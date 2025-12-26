@@ -522,6 +522,13 @@ a:hover {
   color: var(--muted);
 }
 
+.empty-state {
+  margin: 0;
+  padding: 0.5rem 0;
+  color: rgba(26, 28, 31, 0.62);
+  font-weight: 700;
+}
+
 .agenda {
   list-style: none;
   padding: 0;
