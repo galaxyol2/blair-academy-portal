@@ -177,12 +177,24 @@ a:hover {
   box-shadow: none;
 }
 
+.portal-header .container {
+  width: 100%;
+  margin-inline: 0;
+}
+
 .portal-header__inner {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 0;
+  padding: 0.75rem 1.25rem;
+}
+
+.portal-header__actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: end;
+  gap: 0.75rem;
 }
 
 .sidebar-toggle {
@@ -198,7 +210,6 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.85rem;
-  min-width: 260px;
 }
 
 .portal-brand__mark {

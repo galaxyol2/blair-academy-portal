@@ -35,15 +35,6 @@
 
     <header class="portal-header">
       <div class="container portal-header__inner">
-        <button
-          class="sidebar-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="sidebar"
-        >
-          Menu
-        </button>
-
         <a class="portal-brand" href="./index.html" aria-label="Portal home">
           <span class="portal-brand__mark" aria-hidden="true">
             <img
@@ -70,8 +61,18 @@
           />
         </form>
 
-        <div class="portal-user">
-          <span class="portal-user__name" data-user-name>Student</span>
+        <div class="portal-header__actions">
+          <button
+            class="sidebar-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="sidebar"
+          >
+            Menu
+          </button>
+          <div class="portal-user">
+            <span class="portal-user__name" data-user-name>Student</span>
+          </div>
         </div>
       </div>
     </header>
