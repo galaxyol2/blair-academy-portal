@@ -226,14 +226,17 @@ a:hover {
   font-family: var(--serif);
   font-weight: 700;
   font-size: 1.2rem;
+  color: var(--accent);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .portal-brand__sub {
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.82rem;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
 .portal-search input {
