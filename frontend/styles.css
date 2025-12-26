@@ -173,18 +173,8 @@ a:hover {
   z-index: 30;
   background: transparent;
   backdrop-filter: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 6px 18px rgba(11, 43, 87, 0.06);
-}
-
-.portal-header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), rgba(212, 160, 23, 0));
+  border-bottom: 0;
+  box-shadow: none;
 }
 
 .portal-header__inner {
