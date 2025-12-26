@@ -242,6 +242,43 @@ a:hover {
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .portal-brand__name {
+    color: transparent;
+    background: linear-gradient(
+      110deg,
+      #b88400 0%,
+      #ffd56a 18%,
+      #fff3c4 25%,
+      #ffd56a 32%,
+      #c99300 48%,
+      #ffd56a 66%,
+      #fff3c4 74%,
+      #b88400 100%
+    );
+    background-size: 220% 100%;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: gold-shine 5.5s linear infinite;
+  }
+}
+
+@keyframes gold-shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 220% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-brand__name {
+    animation: none !important;
+  }
+}
+
 .portal-brand__sub {
   color: rgba(255, 255, 255, 0.95);
   font-weight: 700;
