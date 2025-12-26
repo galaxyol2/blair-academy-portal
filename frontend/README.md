@@ -6,3 +6,7 @@ Static starter UI for a student portal dashboard (inspired by common university 
 
 - Open `frontend/index.html` in your browser (portal home), or
 - Use any local static server (optional), e.g. `python -m http.server` from the `frontend/` folder.
+
+## Background video
+
+Portal pages reference `../Campus.mp4` (repo root). If you run a server, run it from the repo root so the video file is reachable.
