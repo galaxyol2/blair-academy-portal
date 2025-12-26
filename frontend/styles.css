@@ -193,7 +193,7 @@ a:hover {
   top: 0;
   z-index: 30;
   background: transparent;
-  backdrop-filter: blur(14px);
+  backdrop-filter: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 6px 18px rgba(11, 43, 87, 0.06);
 }
