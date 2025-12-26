@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign up | Blair Academy Portal</title>
+    <meta name="description" content="Create a student portal account." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./portal.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="portal-header">
+      <div class="container portal-header__inner">
+        <a class="portal-brand" href="./index.html" aria-label="Portal home">
+          <span class="portal-brand__mark" aria-hidden="true">BA</span>
+          <span class="portal-brand__text">
+            <span class="portal-brand__name">Blair Academy</span>
+            <span class="portal-brand__sub">Student Portal</span>
+          </span>
+        </a>
+        <div class="portal-user">
+          <a class="btn btn--secondary" href="./login.html">Log in</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="auth-main">
+      <div class="container">
+        <div class="auth-card">
+          <h1 class="auth-title">Create account</h1>
+          <p class="auth-subtitle">
+            This form is UI-only until the backend signup endpoint is wired.
+          </p>
+
+          <form class="auth-form" data-auth="signup" novalidate>
+            <label class="field">
+              <span class="field__label">Full name</span>
+              <input name="name" type="text" autocomplete="name" required />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Email</span>
+              <input name="email" type="email" autocomplete="email" required />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Password</span>
+              <input
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                required
+              />
+            </label>
+
+            <p class="form-error" data-form-error hidden></p>
+
+            <button class="btn btn--primary btn--lg" type="submit">
+              Create account
+            </button>
+            <p class="auth-foot">
+              Already have an account? <a href="./login.html">Log in</a>.
+            </p>
+          </form>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+

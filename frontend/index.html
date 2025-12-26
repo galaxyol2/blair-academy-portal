@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Blair Academy Portal</title>
+    <title>Student Portal | Blair Academy</title>
     <meta
       name="description"
-      content="A college/academy portal website scaffold."
+      content="Student portal home."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,194 +15,158 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
-    <script defer src="./ui.js"></script>
+    <script defer src="./portal.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
 
-    <header class="site-header" data-theme="light">
-      <div class="utility-bar">
-        <div class="container utility-bar__inner">
-          <nav aria-label="Utility" class="utility-nav">
-            <a href="#" class="utility-link">Calendar</a>
-            <a href="#" class="utility-link">Directory</a>
-            <a href="#" class="utility-link">Give</a>
-          </nav>
-          <div class="utility-actions">
-            <a class="btn btn--ghost" href="#">Log in</a>
-            <a class="btn btn--primary" href="#">Apply</a>
-          </div>
-        </div>
-      </div>
+    <header class="portal-header">
+      <div class="container portal-header__inner">
+        <button
+          class="sidebar-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="sidebar"
+        >
+          Menu
+        </button>
 
-      <div class="masthead">
-        <div class="container masthead__inner">
-          <a class="brand" href="#" aria-label="Home">
-            <span class="brand__mark" aria-hidden="true">BA</span>
-            <span class="brand__text">
-              <span class="brand__name">Blair Academy</span>
-              <span class="brand__sub">Portal</span>
-            </span>
-          </a>
+        <a class="portal-brand" href="./index.html" aria-label="Portal home">
+          <span class="portal-brand__mark" aria-hidden="true">BA</span>
+          <span class="portal-brand__text">
+            <span class="portal-brand__name">Blair Academy</span>
+            <span class="portal-brand__sub">Student Portal</span>
+          </span>
+        </a>
 
-          <button
-            class="menu-toggle"
-            type="button"
-            aria-expanded="false"
-            aria-controls="primary-nav"
+        <form class="portal-search" role="search" aria-label="Search">
+          <label class="sr-only" for="q">Search</label>
+          <input
+            id="q"
+            name="q"
+            type="search"
+            placeholder="Search portal…"
+            autocomplete="off"
+          />
+        </form>
+
+        <div class="portal-user">
+          <span class="portal-user__name" data-user-name>Guest</span>
+          <a class="btn btn--secondary" data-auth-link href="./login.html"
+            >Log in</a
           >
-            Menu
+          <button class="btn btn--ghost-dark" data-logout type="button" hidden>
+            Log out
           </button>
-
-          <nav id="primary-nav" class="primary-nav" aria-label="Primary">
-            <a href="#" class="nav-link">About</a>
-            <a href="#" class="nav-link">Academics</a>
-            <a href="#" class="nav-link">Admission</a>
-            <a href="#" class="nav-link">Athletics</a>
-            <a href="#" class="nav-link">Campus Life</a>
-            <a href="#" class="nav-link">Alumni</a>
-          </nav>
         </div>
       </div>
     </header>
 
-    <main id="main">
-      <section class="hero">
-        <div class="hero__bg" aria-hidden="true"></div>
-        <div class="container hero__inner">
-          <p class="eyebrow">College preparatory portal</p>
-          <h1 class="hero__title">A modern campus experience, online.</h1>
-          <p class="hero__lead">
-            News, events, academics, student services, and secure access in one
-            place.
+    <div class="portal-shell">
+      <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
+        <nav class="portal-nav" aria-label="Portal">
+          <a class="portal-nav__link is-active" href="./index.html">Home</a>
+          <a class="portal-nav__link" href="#">Academics</a>
+          <a class="portal-nav__link" href="#">Courses</a>
+          <a class="portal-nav__link" href="#">Financial</a>
+          <a class="portal-nav__link" href="#">Housing</a>
+          <a class="portal-nav__link" href="#">Support</a>
+        </nav>
+        <div class="portal-sidebar__footer">
+          <p class="portal-sidebar__fineprint">
+            Tip: After backend auth is wired, this will show your real profile.
           </p>
-          <div class="hero__actions">
-            <a class="btn btn--primary btn--lg" href="#">Explore</a>
-            <a class="btn btn--secondary btn--lg" href="#">Contact</a>
-          </div>
         </div>
-      </section>
+      </aside>
 
-      <section class="section">
-        <div class="container">
-          <div class="section__header">
-            <h2 class="section__title">Quick links</h2>
-            <p class="section__subtitle">
-              Common destinations students and families use most.
-            </p>
-          </div>
-
-          <div class="card-grid">
-            <a class="card" href="#">
-              <h3 class="card__title">Student Dashboard</h3>
-              <p class="card__text">
-                Assignments, schedules, messages, and announcements.
-              </p>
-            </a>
-            <a class="card" href="#">
-              <h3 class="card__title">Admissions</h3>
-              <p class="card__text">
-                Requirements, tours, interview scheduling, and checklist.
-              </p>
-            </a>
-            <a class="card" href="#">
-              <h3 class="card__title">Academics</h3>
-              <p class="card__text">
-                Courses, departments, advising, and resources.
-              </p>
-            </a>
-            <a class="card" href="#">
-              <h3 class="card__title">Athletics</h3>
-              <p class="card__text">
-                Team schedules, scores, and athletic training info.
-              </p>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="section section--tint">
-        <div class="container split">
-          <div class="split__main">
-            <h2 class="section__title">Latest updates</h2>
-            <div class="list">
-              <article class="list__item">
-                <p class="list__meta">News · Dec 26</p>
-                <h3 class="list__title">
-                  Community spotlight: student research showcase
-                </h3>
-                <p class="list__text">
-                  A quick preview of how stories and posts will look in this
-                  layout.
-                </p>
-              </article>
-              <article class="list__item">
-                <p class="list__meta">Announcement · Dec 20</p>
-                <h3 class="list__title">Winter schedule and campus hours</h3>
-                <p class="list__text">
-                  Replace these placeholders with CMS-driven content later.
-                </p>
-              </article>
+      <main id="main" class="portal-main">
+        <div class="container portal-main__inner">
+          <div class="portal-titlebar">
+            <div>
+              <p class="portal-eyebrow">Welcome</p>
+              <h1 class="portal-title">
+                <span data-user-greeting>Student</span> dashboard
+              </h1>
+            </div>
+            <div class="portal-titlebar__actions">
+              <a class="btn btn--secondary" href="./signup.html">Sign up</a>
+              <a class="btn btn--primary" href="./login.html">Log in</a>
             </div>
           </div>
 
-          <aside class="split__aside" aria-label="Upcoming events">
-            <div class="panel">
-              <div class="panel__header">
-                <h2 class="panel__title">Upcoming events</h2>
-                <a class="panel__link" href="#">View all</a>
+          <section class="portal-section" aria-label="Quick actions">
+            <div class="tile-grid">
+              <a class="tile" href="#">
+                <p class="tile__kicker">Academics</p>
+                <h2 class="tile__title">Courses</h2>
+                <p class="tile__text">View schedule, grades, and materials.</p>
+              </a>
+              <a class="tile" href="#">
+                <p class="tile__kicker">Campus</p>
+                <h2 class="tile__title">Housing</h2>
+                <p class="tile__text">Room info, work orders, and policies.</p>
+              </a>
+              <a class="tile" href="#">
+                <p class="tile__kicker">Finances</p>
+                <h2 class="tile__title">Payments</h2>
+                <p class="tile__text">Invoices, payment methods, and aid.</p>
+              </a>
+              <a class="tile" href="#">
+                <p class="tile__kicker">Support</p>
+                <h2 class="tile__title">IT Help</h2>
+                <p class="tile__text">Password reset and service requests.</p>
+              </a>
+            </div>
+          </section>
+
+          <section class="portal-section portal-section--two">
+            <div class="widget">
+              <div class="widget__header">
+                <h2 class="widget__title">Announcements</h2>
+                <a class="widget__link" href="#">View all</a>
               </div>
-              <ul class="events">
-                <li class="event">
-                  <p class="event__date"><span>Jan</span> 10</p>
-                  <div class="event__body">
-                    <p class="event__title">Open House</p>
-                    <p class="event__meta">10:00 AM · Campus Center</p>
-                  </div>
+              <div class="feed">
+                <article class="feed__item">
+                  <p class="feed__meta">Dec 26 · Office of Student Life</p>
+                  <h3 class="feed__title">Winter break checklist</h3>
+                  <p class="feed__text">
+                    Confirm travel details, housing status, and campus
+                    re-opening times.
+                  </p>
+                </article>
+                <article class="feed__item">
+                  <p class="feed__meta">Dec 20 · Academics</p>
+                  <h3 class="feed__title">Course registration opens Jan 3</h3>
+                  <p class="feed__text">
+                    Review requirements and meet with your advisor to plan.
+                  </p>
+                </article>
+              </div>
+            </div>
+
+            <aside class="widget" aria-label="My week">
+              <div class="widget__header">
+                <h2 class="widget__title">This week</h2>
+                <a class="widget__link" href="#">Calendar</a>
+              </div>
+              <ul class="agenda">
+                <li class="agenda__item">
+                  <p class="agenda__time">Mon · 10:00 AM</p>
+                  <p class="agenda__title">Advising appointment</p>
                 </li>
-                <li class="event">
-                  <p class="event__date"><span>Jan</span> 22</p>
-                  <div class="event__body">
-                    <p class="event__title">Family Weekend</p>
-                    <p class="event__meta">All day · Multiple locations</p>
-                  </div>
+                <li class="agenda__item">
+                  <p class="agenda__time">Wed · 2:30 PM</p>
+                  <p class="agenda__title">Study hall</p>
                 </li>
-                <li class="event">
-                  <p class="event__date"><span>Feb</span> 03</p>
-                  <div class="event__body">
-                    <p class="event__title">Arts Performance</p>
-                    <p class="event__meta">7:30 PM · Auditorium</p>
-                  </div>
+                <li class="agenda__item">
+                  <p class="agenda__time">Fri · 6:00 PM</p>
+                  <p class="agenda__title">Home game</p>
                 </li>
               </ul>
-            </div>
-          </aside>
+            </aside>
+          </section>
         </div>
-      </section>
-    </main>
-
-    <footer class="site-footer">
-      <div class="container footer__inner">
-        <div class="footer__brand">
-          <p class="footer__title">Blair Academy Portal</p>
-          <p class="footer__text">
-            This is a starter scaffold for your project.
-          </p>
-        </div>
-        <nav class="footer__nav" aria-label="Footer">
-          <a href="#" class="footer-link">Contact</a>
-          <a href="#" class="footer-link">Privacy</a>
-          <a href="#" class="footer-link">Accessibility</a>
-        </nav>
-      </div>
-      <div class="footer__bottom">
-        <div class="container footer__bottom-inner">
-          <p class="footer__fineprint">
-            © <span data-year></span> Blair Academy. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </footer>
+      </main>
+    </div>
   </body>
 </html>
-
