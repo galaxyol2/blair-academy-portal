@@ -4,11 +4,11 @@
   --muted: #5b6670;
   --border: rgba(26, 28, 31, 0.14);
 
-  --brand: #770055;
-  --brand-2: #093266;
-  --accent: #0177a0;
+  --brand: #004b8d; /* blue */
+  --brand-2: #0b2b57; /* deep blue */
+  --accent: #d4a017; /* gold */
 
-  --tint: #f6f7f9;
+  --tint: #f3f7ff;
   --shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
 
   --serif: "Libre Caslon Text", Georgia, serif;
@@ -102,7 +102,7 @@ a:hover {
 .btn--primary {
   background: var(--brand);
   color: #fff;
-  box-shadow: 0 10px 24px rgba(119, 0, 85, 0.26);
+  box-shadow: 0 10px 24px rgba(0, 75, 141, 0.22);
 }
 
 .btn--primary:hover {
@@ -111,12 +111,12 @@ a:hover {
 
 .btn--secondary {
   background: #fff;
-  border-color: rgba(119, 0, 85, 0.25);
-  color: var(--brand);
+  border-color: rgba(0, 75, 141, 0.25);
+  color: rgba(0, 75, 141, 0.98);
 }
 
 .btn--secondary:hover {
-  border-color: rgba(119, 0, 85, 0.5);
+  border-color: rgba(0, 75, 141, 0.5);
 }
 
 .btn--ghost-dark {
@@ -204,8 +204,8 @@ a:hover {
 }
 
 .portal-search input:focus {
-  border-color: rgba(1, 119, 160, 0.5);
-  box-shadow: 0 0 0 4px rgba(1, 119, 160, 0.12);
+  border-color: rgba(0, 75, 141, 0.45);
+  box-shadow: 0 0 0 4px rgba(0, 75, 141, 0.12);
 }
 
 .portal-user {
@@ -247,14 +247,14 @@ a:hover {
 
 .portal-nav__link:hover {
   text-decoration: none;
-  background: rgba(1, 119, 160, 0.08);
+  background: rgba(0, 75, 141, 0.08);
   color: rgba(26, 28, 31, 0.92);
 }
 
 .portal-nav__link.is-active {
-  background: rgba(119, 0, 85, 0.09);
+  background: rgba(0, 75, 141, 0.085);
   color: rgba(26, 28, 31, 0.95);
-  border: 1px solid rgba(119, 0, 85, 0.16);
+  border: 1px solid rgba(212, 160, 23, 0.28);
 }
 
 .portal-sidebar__footer {
@@ -338,7 +338,7 @@ a:hover {
 .tile:hover {
   text-decoration: none;
   transform: translateY(-2px);
-  border-color: rgba(1, 119, 160, 0.3);
+  border-color: rgba(212, 160, 23, 0.45);
   box-shadow: var(--shadow);
 }
 
@@ -388,9 +388,14 @@ a:hover {
 }
 
 .widget__link {
-  color: var(--accent);
+  color: rgba(0, 75, 141, 0.98);
   font-weight: 900;
   letter-spacing: 0.02em;
+}
+
+.widget__link:hover {
+  text-decoration: none;
+  box-shadow: inset 0 -2px 0 rgba(212, 160, 23, 0.8);
 }
 
 .feed__item {
@@ -439,11 +444,11 @@ a:hover {
 .agenda__item {
   padding: 0.8rem 0.85rem;
   border-radius: 14px;
-  border: 1px solid rgba(9, 50, 102, 0.15);
+  border: 1px solid rgba(0, 75, 141, 0.16);
   background: linear-gradient(
     180deg,
-    rgba(9, 50, 102, 0.07),
-    rgba(9, 50, 102, 0.02)
+    rgba(0, 75, 141, 0.07),
+    rgba(0, 75, 141, 0.02)
   );
 }
 
@@ -511,8 +516,8 @@ a:hover {
 }
 
 .field input:focus {
-  border-color: rgba(1, 119, 160, 0.5);
-  box-shadow: 0 0 0 4px rgba(1, 119, 160, 0.12);
+  border-color: rgba(0, 75, 141, 0.45);
+  box-shadow: 0 0 0 4px rgba(0, 75, 141, 0.12);
 }
 
 .form-error {
