@@ -1,14 +1,31 @@
 # Backend
 
-This folder is reserved for the backend/API.
+Node/Express API for auth + portal services.
 
-Recommended baseline folders:
+## Setup
 
-- `src/` application source
-- `tests/` automated tests
-- `scripts/` local/dev scripts
+1) Install dependencies:
 
-Configuration:
+`cd backend`
+`npm install`
 
-- Copy `backend/.env.example` to `backend/.env` for local development (don’t commit real secrets).
+2) Create env:
 
+Copy `backend/.env.example` to `backend/.env` and set `JWT_SECRET`.
+
+3) Run:
+
+`npm run dev`
+
+API will be on `http://localhost:3001`.
+
+## Endpoints (used by frontend)
+
+- `POST /api/auth/signup` → `{ token, user }`
+- `POST /api/auth/login` → `{ token, user }`
+- `POST /api/auth/forgot-password` → `{ ok: true }`
+- `GET /api/health` → `{ ok: true }`
+
+## Notes
+
+- User data is stored in a local JSON file (`backend/data/dev.json` by default) and is ignored by git.

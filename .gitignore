@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Local dev data
+backend/data/*.json
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -38,4 +41,3 @@ target/
 # .NET
 bin/
 obj/
-
