@@ -41,7 +41,7 @@ body {
 .video-bg {
   position: fixed;
   inset: 0;
-  z-index: -2;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
   background: #000;
@@ -85,6 +85,14 @@ body {
   .video-bg {
     display: none;
   }
+}
+
+/* Ensure app UI layers above background video */
+.portal-header,
+.portal-shell,
+.auth-main {
+  position: relative;
+  z-index: 1;
 }
 
 a {
