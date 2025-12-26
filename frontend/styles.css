@@ -64,20 +64,15 @@ body {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-      90deg,
-      rgba(11, 43, 87, 0.55),
-      rgba(255, 255, 255, 0.06) 45%,
-      rgba(11, 43, 87, 0.28)
+      180deg,
+      rgba(0, 0, 0, 0.22),
+      rgba(0, 0, 0, 0.35) 55%,
+      rgba(0, 0, 0, 0.45)
     ),
     radial-gradient(
-      1000px 520px at 20% 20%,
-      rgba(212, 160, 23, 0.18),
-      transparent 60%
-    ),
-    radial-gradient(
-      900px 500px at 80% 10%,
-      rgba(0, 75, 141, 0.2),
-      transparent 58%
+      900px 520px at 18% 18%,
+      rgba(212, 160, 23, 0.14),
+      transparent 62%
     );
 }
 
