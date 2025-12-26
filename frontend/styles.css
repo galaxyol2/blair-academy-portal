@@ -60,22 +60,6 @@ body {
   filter: saturate(0.9) contrast(1.05) brightness(0.6);
 }
 
-.video-bg__scrim {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-      180deg,
-      rgba(0, 0, 0, 0.22),
-      rgba(0, 0, 0, 0.35) 55%,
-      rgba(0, 0, 0, 0.45)
-    ),
-    radial-gradient(
-      900px 520px at 18% 18%,
-      rgba(212, 160, 23, 0.14),
-      transparent 62%
-    );
-}
-
 @media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
   .video-bg {
     display: none;
