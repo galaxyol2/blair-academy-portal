@@ -57,7 +57,7 @@ body {
   border: 0;
   transform: scale(1.12);
   transform-origin: center;
-  filter: none;
+  filter: blur(8px);
 }
 
 @media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce) {
