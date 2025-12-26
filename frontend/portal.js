@@ -21,6 +21,40 @@ function apiBaseUrl() {
   return localStorage.getItem("blair.portal.apiBaseUrl") || "http://localhost:3001";
 }
 
+function currentPage() {
+  const raw = window.location.pathname.split("/").pop();
+  return raw || "index.html";
+}
+
+function isAuthPage(page) {
+  return (
+    page === "login.html" ||
+    page === "signup.html" ||
+    page === "forgot-password.html"
+  );
+}
+
+function isDashboardPage(page) {
+  return page === "index.html";
+}
+
+function routeGuards() {
+  const page = currentPage();
+  const session = getSession();
+
+  if (isDashboardPage(page) && !session?.token) {
+    window.location.replace("./login.html");
+    return false;
+  }
+
+  if (isAuthPage(page) && session?.token) {
+    window.location.replace("./index.html");
+    return false;
+  }
+
+  return true;
+}
+
 async function apiFetch(path, options = {}) {
   const session = getSession();
   const headers = new Headers(options.headers || {});
@@ -64,22 +98,9 @@ function initHeaderAuthUi() {
 
   const userNameEl = document.querySelector("[data-user-name]");
   const greetingEl = document.querySelector("[data-user-greeting]");
-  const authLinkEl = document.querySelector("[data-auth-link]");
-  const logoutBtn = document.querySelector("[data-logout]");
 
-  if (userNameEl) userNameEl.textContent = session?.user?.name || "Guest";
+  if (userNameEl) userNameEl.textContent = session?.user?.name || "Student";
   if (greetingEl) greetingEl.textContent = session?.user?.name || "Student";
-
-  if (authLinkEl) {
-    authLinkEl.hidden = !!session?.token;
-  }
-  if (logoutBtn) {
-    logoutBtn.hidden = !session?.token;
-    logoutBtn.addEventListener("click", () => {
-      clearSession();
-      window.location.href = "./index.html";
-    });
-  }
 }
 
 function initSidebarToggle() {
@@ -161,6 +182,8 @@ function initAuthForms() {
   });
 }
 
-initHeaderAuthUi();
-initSidebarToggle();
-initAuthForms();
+if (routeGuards()) {
+  initHeaderAuthUi();
+  initSidebarToggle();
+  initAuthForms();
+}
