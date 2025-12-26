@@ -39,6 +39,8 @@ function isDashboardPage(page) {
 }
 
 function routeGuards() {
+  if (window.location.protocol === "file:") return true;
+
   const page = currentPage();
   const session = getSession();
 
