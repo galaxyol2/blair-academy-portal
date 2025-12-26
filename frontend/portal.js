@@ -100,19 +100,36 @@ function setFormError(form, message) {
   errorEl.textContent = message || "";
 }
 
+function setFormSuccess(form, message) {
+  const successEl = form.querySelector("[data-form-success]");
+  if (!successEl) return;
+  successEl.hidden = !message;
+  successEl.textContent = message || "";
+}
+
 async function handleAuthSubmit(form) {
   const mode = form.getAttribute("data-auth");
   const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
 
   setFormError(form, "");
+  setFormSuccess(form, "");
 
   try {
+    if (mode === "forgot") {
+      await apiFetch("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: payload.email }),
+      });
+      setFormSuccess(
+        form,
+        "If that email exists, a reset link has been sent. Check your inbox."
+      );
+      return;
+    }
+
     const path = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
-    const body = await apiFetch(path, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const body = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
 
     if (!body || typeof body !== "object") {
       throw new Error("Unexpected response from server");
@@ -147,4 +164,3 @@ function initAuthForms() {
 initHeaderAuthUi();
 initSidebarToggle();
 initAuthForms();
-

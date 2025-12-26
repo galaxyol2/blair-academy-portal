@@ -569,6 +569,16 @@ a:hover {
   font-weight: 700;
 }
 
+.form-success {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 150, 90, 0.22);
+  background: rgba(0, 150, 90, 0.06);
+  color: #005e3a;
+  font-weight: 700;
+}
+
 .auth-foot {
   margin: 0.35rem 0 0;
   color: rgba(26, 28, 31, 0.7);
