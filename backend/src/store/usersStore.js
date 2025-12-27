@@ -25,19 +25,15 @@ function createJsonUsersStore() {
   return {
     async findByEmail(email) {
       const db = await readDb();
-      const user = db.users.find((u) => u.email === email) || null;
-      if (!user) return null;
-      return { ...user, role: user.role || "student" };
+      return db.users.find((u) => u.email === email) || null;
     },
 
     async findById(id) {
       const db = await readDb();
-      const user = db.users.find((u) => u.id === id) || null;
-      if (!user) return null;
-      return { ...user, role: user.role || "student" };
+      return db.users.find((u) => u.id === id) || null;
     },
 
-    async create({ name, email, passwordHash, role = "student" }) {
+    async create({ name, email, passwordHash }) {
       const db = await readDb();
       const exists = db.users.some((u) => u.email === email);
       if (exists) return null;
@@ -47,7 +43,6 @@ function createJsonUsersStore() {
         name,
         email,
         passwordHash,
-        role,
         createdAt: new Date().toISOString(),
       };
       db.users.push(user);
@@ -91,13 +86,10 @@ function createPgUsersStore() {
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'student',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ
       );
     `);
-    // Support older deployments where the table exists without `role`.
-    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
     schemaReady = true;
   }
 
@@ -105,7 +97,7 @@ function createPgUsersStore() {
     async findByEmail(email) {
       await ensureSchema();
       const res = await pool.query(
-        `SELECT id, name, email, role, password_hash AS "passwordHash" FROM users WHERE email = $1 LIMIT 1`,
+        `SELECT id, name, email, password_hash AS "passwordHash" FROM users WHERE email = $1 LIMIT 1`,
         [email]
       );
       return res.rows[0] || null;
@@ -114,20 +106,20 @@ function createPgUsersStore() {
     async findById(id) {
       await ensureSchema();
       const res = await pool.query(
-        `SELECT id, name, email, role, password_hash AS "passwordHash" FROM users WHERE id = $1 LIMIT 1`,
+        `SELECT id, name, email, password_hash AS "passwordHash" FROM users WHERE id = $1 LIMIT 1`,
         [id]
       );
       return res.rows[0] || null;
     },
 
-    async create({ name, email, passwordHash, role = "student" }) {
+    async create({ name, email, passwordHash }) {
       await ensureSchema();
       const id = crypto.randomUUID();
       try {
         const res = await pool.query(
-          `INSERT INTO users (id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)
-           RETURNING id, name, email, role, password_hash AS "passwordHash"`,
-          [id, name, email, passwordHash, role]
+          `INSERT INTO users (id, name, email, password_hash) VALUES ($1, $2, $3, $4)
+           RETURNING id, name, email, password_hash AS "passwordHash"`,
+          [id, name, email, passwordHash]
         );
         return res.rows[0] || null;
       } catch (err) {
@@ -142,7 +134,7 @@ function createPgUsersStore() {
         `UPDATE users
            SET password_hash = $2, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, name, email, role, password_hash AS "passwordHash"`,
+         RETURNING id, name, email, password_hash AS "passwordHash"`,
         [userId, passwordHash]
       );
       return res.rows[0] || null;

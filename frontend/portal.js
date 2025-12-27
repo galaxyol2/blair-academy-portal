@@ -226,12 +226,7 @@ async function handleAuthSubmit(form) {
       return;
     }
 
-    const path =
-      mode === "signup"
-        ? "/api/auth/signup"
-        : mode === "employee-login"
-          ? "/api/auth/employee-login"
-          : "/api/auth/login";
+    const path = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
     const body = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
 
     if (!body || typeof body !== "object") {
