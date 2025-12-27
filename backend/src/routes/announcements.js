@@ -57,8 +57,12 @@ function buildAdminAnnouncementsRouter() {
     res.status(201).json({ item: announcement });
   });
 
+  router.delete("/announcements", requireAdminKey, async (_req, res) => {
+    const deleted = await announcementsStore.clear();
+    res.json({ ok: true, deleted });
+  });
+
   return router;
 }
 
 module.exports = { buildAnnouncementsRouter, buildAdminAnnouncementsRouter };
-

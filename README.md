@@ -25,3 +25,5 @@ This repo includes a Discord bot in `bot/` that can post announcements to the we
   - `npm start`
 
 In Discord, use `/announce` with a title + message. The portal will pull announcements from `GET /api/announcements`.
+
+To clear announcements, use `/clear-announcements confirm:true`.

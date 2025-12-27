@@ -51,6 +51,14 @@ function createJsonAnnouncementsStore() {
       await writeDb(db);
       return announcement;
     },
+
+    async clear() {
+      const db = await readDb();
+      const deleted = Array.isArray(db.announcements) ? db.announcements.length : 0;
+      db.announcements = [];
+      await writeDb(db);
+      return deleted;
+    },
   };
 }
 
@@ -107,6 +115,12 @@ function createPgAnnouncementsStore() {
       );
       return res.rows[0];
     },
+
+    async clear() {
+      await ensureSchema();
+      const res = await pool.query("DELETE FROM announcements");
+      return res.rowCount || 0;
+    },
   };
 }
 
@@ -115,4 +129,3 @@ const announcementsStore = process.env.DATABASE_URL
   : createJsonAnnouncementsStore();
 
 module.exports = { announcementsStore };
-

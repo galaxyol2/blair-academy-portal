@@ -60,6 +60,30 @@ async function postAnnouncement({ title, body, createdBy }) {
   return json?.item || null;
 }
 
+async function clearAllAnnouncements() {
+  const res = await fetch(ANNOUNCE_API_URL, {
+    method: "DELETE",
+    headers: {
+      "x-admin-key": ADMIN_API_KEY,
+    },
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    // ignore
+  }
+
+  if (!res.ok) {
+    const msg =
+      (json && (json.error || json.message)) || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return Number(json?.deleted || 0);
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -71,13 +95,35 @@ client.once(Events.ClientReady, () => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== "announce") return;
+  if (interaction.commandName !== "announce" && interaction.commandName !== "clear-announcements") {
+    return;
+  }
 
   if (!canUse(interaction)) {
     await interaction.reply({
-      content: "You don’t have permission to use /announce.",
+      content: "You don't have permission to use this command.",
       ephemeral: true,
     });
+    return;
+  }
+
+  if (interaction.commandName === "clear-announcements") {
+    const confirm = Boolean(interaction.options.getBoolean("confirm"));
+    if (!confirm) {
+      await interaction.reply({
+        content: "Not cleared. Set `confirm: true` to proceed.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const deleted = await clearAllAnnouncements();
+      await interaction.editReply(`Cleared ${deleted} announcement(s).`);
+    } catch (err) {
+      await interaction.editReply(`Failed to clear: ${err.message}`);
+    }
     return;
   }
 
@@ -103,4 +149,3 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.login(DISCORD_BOT_TOKEN);
-
