@@ -305,6 +305,7 @@ a:hover {
 }
 
 .portal-user {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
@@ -314,6 +315,66 @@ a:hover {
 .portal-user__name {
   color: rgba(26, 28, 31, 0.78);
   font-weight: 800;
+}
+
+.user-menu__button {
+  appearance: none;
+  border: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+
+.user-menu__button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.user-menu__button:focus-visible {
+  outline: 2px solid rgba(212, 160, 23, 0.9);
+  outline-offset: 2px;
+}
+
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.6rem);
+  min-width: 180px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(20, 20, 24, 0.78);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.user-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+}
+
+.user-menu__item:hover,
+.user-menu__item:focus-visible {
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.user-menu__item--danger {
+  color: rgba(255, 200, 200, 0.95);
+}
+
+.user-menu__item--danger:hover,
+.user-menu__item--danger:focus-visible {
+  background: rgba(255, 70, 70, 0.18);
 }
 
 /* Portal shell */

@@ -71,7 +71,29 @@
             Menu
           </button>
           <div class="portal-user">
-            <span class="portal-user__name" data-user-name>Student</span>
+            <button
+              class="user-menu__button"
+              type="button"
+              data-user-menu-button
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="user-menu"
+            >
+              <span class="portal-user__name" data-user-name>Student</span>
+            </button>
+            <div id="user-menu" class="user-menu" role="menu" data-user-menu hidden>
+              <a class="user-menu__item" role="menuitem" href="#" data-settings
+                >Settings</a
+              >
+              <button
+                class="user-menu__item user-menu__item--danger"
+                role="menuitem"
+                type="button"
+                data-logout
+              >
+                Log out
+              </button>
+            </div>
           </div>
         </div>
       </div>

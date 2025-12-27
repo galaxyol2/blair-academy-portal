@@ -116,6 +116,41 @@ function initSidebarToggle() {
   });
 }
 
+function initUserMenu() {
+  const button = document.querySelector("[data-user-menu-button]");
+  const menu = document.querySelector("[data-user-menu]");
+  const logoutBtn = document.querySelector("[data-logout]");
+  if (!button || !menu) return;
+
+  const close = () => {
+    menu.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+  };
+
+  const open = () => {
+    menu.hidden = false;
+    button.setAttribute("aria-expanded", "true");
+  };
+
+  button.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (menu.hidden) open();
+    else close();
+  });
+
+  document.addEventListener("click", () => close());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      clearSession();
+      window.location.href = "./login.html";
+    });
+  }
+}
+
 function setFormError(form, message) {
   const errorEl = form.querySelector("[data-form-error]");
   if (!errorEl) return;
@@ -187,5 +222,6 @@ function initAuthForms() {
 if (routeGuards()) {
   initHeaderAuthUi();
   initSidebarToggle();
+  initUserMenu();
   initAuthForms();
 }
