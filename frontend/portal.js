@@ -226,7 +226,11 @@ async function handleAuthSubmit(form) {
     }
 
     setSession({ token, user });
-    window.location.href = "./index.html";
+    if (window.location.protocol === "file:") {
+      window.location.href = "./dashboard.html";
+    } else {
+      window.location.href = "/dashboard";
+    }
   } catch (err) {
     const apiHint = ` (API: ${apiBaseUrl()})`;
 
@@ -254,7 +258,7 @@ async function handleAuthSubmit(form) {
     setFormError(
       form,
       baseMisconfigured
-        ? `${msg}${apiHint} — set your deployed API in frontend/config.js`
+        ? `${msg}${apiHint} Set your deployed API URL in frontend/config.js (or localStorage blair.portal.apiBaseUrl).`
         : `${msg}${apiHint}`
     );
   }

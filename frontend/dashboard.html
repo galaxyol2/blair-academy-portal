@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Student Portal | Blair Academy</title>
+    <meta name="description" content="Student portal home." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      (function () {
+        if (window.location.protocol === "file:") return;
+        try {
+          var raw = localStorage.getItem("blair.portal.session");
+          var session = raw ? JSON.parse(raw) : null;
+          if (!session || !session.token) window.location.replace("/");
+        } catch (_e) {
+          window.location.replace("/");
+        }
+      })();
+    </script>
+    <script defer src="./config.js"></script>
+    <script defer src="./portal.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="video-bg" aria-hidden="true">
+      <video
+        class="video-bg__media"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      >
+        <source src="./assets/Campus.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <header class="portal-header">
+      <div class="container portal-header__inner">
+        <a class="portal-brand" href="/dashboard" aria-label="Portal home">
+          <span class="portal-brand__mark" aria-hidden="true">
+            <img
+              class="portal-brand__logo"
+              src="./assets/logo.png"
+              alt=""
+              decoding="async"
+            />
+          </span>
+          <span class="portal-brand__text">
+            <span class="portal-brand__name">Blair Academy</span>
+            <span class="portal-brand__sub">Student Portal</span>
+          </span>
+        </a>
+
+        <form class="portal-search" role="search" aria-label="Search">
+          <label class="sr-only" for="q">Search</label>
+          <input
+            id="q"
+            name="q"
+            type="search"
+            placeholder="Search portal…"
+            autocomplete="off"
+          />
+        </form>
+
+        <div class="portal-header__actions">
+          <button
+            class="sidebar-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="sidebar"
+          >
+            Menu
+          </button>
+          <div class="portal-user">
+            <button
+              class="user-menu__button"
+              type="button"
+              data-user-menu-button
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="user-menu"
+            >
+              <span class="portal-user__name" data-user-name>Student</span>
+            </button>
+            <div id="user-menu" class="user-menu" role="menu" data-user-menu hidden>
+              <a class="user-menu__item" role="menuitem" href="#" data-settings
+                >Settings</a
+              >
+              <button
+                class="user-menu__item user-menu__item--danger"
+                role="menuitem"
+                type="button"
+                data-logout
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="portal-shell">
+      <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
+        <nav class="portal-nav" aria-label="Portal">
+          <a class="portal-nav__link is-active" href="/dashboard">Home</a>
+        </nav>
+        <div class="portal-sidebar__footer">
+          <p class="portal-sidebar__fineprint"></p>
+        </div>
+      </aside>
+
+      <main id="main" class="portal-main">
+        <div class="container portal-main__inner">
+          <div class="portal-titlebar">
+            <div>
+              <p class="portal-eyebrow">Welcome</p>
+              <h1 class="portal-title">
+                <span data-user-greeting>Student</span> dashboard
+              </h1>
+            </div>
+          </div>
+
+          <section class="portal-section" aria-label="Quick actions">
+            <div class="tile-grid">
+              <a class="tile" href="#">
+                <p class="tile__kicker">Academics</p>
+                <h2 class="tile__title">Courses</h2>
+                <p class="tile__text">View schedule, grades, and materials.</p>
+              </a>
+              <a class="tile" href="#">
+                <p class="tile__kicker">Campus</p>
+                <h2 class="tile__title">Housing</h2>
+                <p class="tile__text">Room info, work orders, and policies.</p>
+              </a>
+              <a class="tile" href="#">
+                <p class="tile__kicker">Finances</p>
+                <h2 class="tile__title">Payments</h2>
+                <p class="tile__text">Invoices, payment methods, and aid.</p>
+              </a>
+              <a class="tile" href="#">
+                <p class="tile__kicker">Support</p>
+                <h2 class="tile__title">IT Help</h2>
+                <p class="tile__text">Password reset and service requests.</p>
+              </a>
+            </div>
+          </section>
+
+          <section class="portal-section portal-section--two">
+            <div class="widget">
+              <div class="widget__header">
+                <h2 class="widget__title">Announcements</h2>
+                <a class="widget__link" href="#">View all</a>
+              </div>
+              <div class="feed">
+                <p class="empty-state">No announcements yet.</p>
+              </div>
+            </div>
+
+            <aside class="widget" aria-label="My week">
+              <div class="widget__header">
+                <h2 class="widget__title">This week</h2>
+                <a class="widget__link" href="#">Calendar</a>
+              </div>
+              <p class="empty-state">No upcoming events yet.</p>
+            </aside>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

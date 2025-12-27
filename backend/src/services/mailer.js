@@ -6,7 +6,7 @@ function buildResetLink({ token }) {
   const base = rawBase.startsWith("http://") || rawBase.startsWith("https://")
     ? rawBase
     : `https://${rawBase}`;
-  const url = new URL("reset-password.html", base.endsWith("/") ? base : `${base}/`);
+  const url = new URL("reset-password", base.endsWith("/") ? base : `${base}/`);
   url.searchParams.set("token", token);
   return url.toString();
 }

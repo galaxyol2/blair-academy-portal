@@ -4,8 +4,16 @@ Static starter UI for a student portal dashboard (inspired by common university 
 
 ## Run locally
 
-- Open `frontend/index.html` in your browser (portal home), or
+- Open `frontend/index.html` in your browser (login), or
 - Use any local static server (optional), e.g. `python -m http.server` from the `frontend/` folder.
+
+## Routes (Vercel)
+
+- `/` (login)
+- `/dashboard`
+- `/signup`
+- `/forgot-password`
+- `/reset-password`
 
 ## Background video
 
