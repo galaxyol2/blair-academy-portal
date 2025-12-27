@@ -36,32 +36,25 @@ function currentPage() {
   return raw || "index.html";
 }
 
-function isAuthPage(page) {
-  return (
-    page === "login.html" ||
-    page === "signup.html" ||
-    page === "forgot-password.html" ||
-    page === "reset-password.html"
-  );
-}
-
-function isDashboardPage(page) {
-  return page === "index.html";
+function pageKind() {
+  if (document.querySelector("form[data-auth]")) return "auth";
+  if (document.querySelector(".portal-shell")) return "dashboard";
+  return "other";
 }
 
 function routeGuards() {
   if (window.location.protocol === "file:") return true;
 
-  const page = currentPage();
   const session = getSession();
+  const kind = pageKind();
 
-  if (isDashboardPage(page) && !session?.token) {
-    window.location.replace("./login.html");
+  if (kind === "dashboard" && !session?.token) {
+    window.location.replace("/");
     return false;
   }
 
-  if (isAuthPage(page) && session?.token) {
-    window.location.replace("./index.html");
+  if (kind === "auth" && session?.token) {
+    window.location.replace("/dashboard");
     return false;
   }
 
@@ -157,7 +150,7 @@ function initUserMenu() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       clearSession();
-      window.location.href = "./login.html";
+      window.location.href = "/";
     });
   }
 }
@@ -213,7 +206,7 @@ async function handleAuthSubmit(form) {
 
       setFormSuccess(form, "Password updated. You can now log in.");
       setTimeout(() => {
-        window.location.href = "./login.html";
+        window.location.href = "/";
       }, 900);
       return;
     }

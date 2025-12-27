@@ -21,9 +21,9 @@
         try {
           var raw = localStorage.getItem("blair.portal.session");
           var session = raw ? JSON.parse(raw) : null;
-          if (!session || !session.token) window.location.replace("./login.html");
+          if (!session || !session.token) window.location.replace("/");
         } catch (_e) {
-          window.location.replace("./login.html");
+          window.location.replace("/");
         }
       })();
     </script>
@@ -48,7 +48,7 @@
 
     <header class="portal-header">
       <div class="container portal-header__inner">
-        <a class="portal-brand" href="./index.html" aria-label="Portal home">
+        <a class="portal-brand" href="/dashboard" aria-label="Portal home">
           <span class="portal-brand__mark" aria-hidden="true">
             <img
               class="portal-brand__logo"
@@ -115,7 +115,7 @@
     <div class="portal-shell">
       <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
         <nav class="portal-nav" aria-label="Portal">
-          <a class="portal-nav__link is-active" href="./index.html">Home</a>
+          <a class="portal-nav__link is-active" href="/dashboard">Home</a>
         </nav>
         <div class="portal-sidebar__footer">
           <p class="portal-sidebar__fineprint"></p>
