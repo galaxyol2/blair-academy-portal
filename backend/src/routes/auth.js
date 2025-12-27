@@ -17,6 +17,10 @@ function normalizeEmail(email) {
 function buildAuthRouter() {
   const router = express.Router();
 
+  function expectedSignupCode() {
+    return String(process.env.SIGNUP_CODE || "BLAIR-F25-9KQ7").trim();
+  }
+
   function requireAuth(req, res, next) {
     const header = String(req.get("authorization") || "");
     const match = header.match(/^Bearer\s+(.+)$/i);
@@ -45,7 +49,11 @@ function buildAuthRouter() {
     const name = String(req.body?.name || "").trim();
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
+    const signupCode = String(req.body?.signupCode || "").trim();
 
+    if (signupCode !== expectedSignupCode()) {
+      return res.status(401).json({ error: "Invalid sign up code" });
+    }
     if (!validateFullName(name)) {
       return res.status(400).json({ error: "First and last name are required" });
     }

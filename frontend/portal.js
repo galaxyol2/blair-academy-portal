@@ -196,8 +196,12 @@ async function handleAuthSubmit(form) {
     if (mode === "signup") {
       const firstName = String(payload.firstName || "").trim();
       const lastName = String(payload.lastName || "").trim();
+      const signupCode = String(payload.signupCode || "").trim();
       if (!firstName || !lastName) {
         throw new Error("First and last name are required.");
+      }
+      if (!signupCode) {
+        throw new Error("Sign up code is required.");
       }
       payload.name = `${firstName} ${lastName}`.trim();
       delete payload.firstName;
@@ -283,6 +287,11 @@ async function handleAuthSubmit(form) {
 
     if (err?.status === 409 && mode === "signup") {
       setFormError(form, "That email is already in use. Try logging in instead.");
+      return;
+    }
+
+    if (err?.status === 401 && mode === "signup") {
+      setFormError(form, "Invalid sign up code.");
       return;
     }
 
