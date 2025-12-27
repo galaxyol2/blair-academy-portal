@@ -41,13 +41,17 @@ app.use(
 );
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, userStore: process.env.DATABASE_URL ? "postgres" : "json" });
 });
 
 app.use("/api/auth", buildAuthRouter());
 
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
+  // eslint-disable-next-line no-console
+  console.log(
+    `User store: ${process.env.DATABASE_URL ? "postgres (DATABASE_URL set)" : "json (no DATABASE_URL)"}`
+  );
   // eslint-disable-next-line no-console
   console.log(`API listening on http://localhost:${port}`);
 });
