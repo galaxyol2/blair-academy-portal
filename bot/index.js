@@ -150,6 +150,25 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
+function createCooldown({ windowMs, maxUses }) {
+  const uses = new Map(); // key -> number[] (timestamps)
+
+  return function hit(key) {
+    const now = Date.now();
+    const list = uses.get(key) || [];
+    const filtered = list.filter((t) => now - t < windowMs);
+    filtered.push(now);
+    uses.set(key, filtered);
+
+    const allowed = filtered.length <= maxUses;
+    const retryAfterMs = allowed ? 0 : Math.max(1, windowMs - (now - filtered[0]));
+    return { allowed, retryAfterMs };
+  };
+}
+
+// Per Discord user, per command.
+const commandCooldown = createCooldown({ windowMs: 60_000, maxUses: 5 });
+
 let clientReady = false;
 client.once(Events.ClientReady, () => {
   clientReady = true;
@@ -314,6 +333,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
     interaction.commandName !== "clear-announcements" &&
     interaction.commandName !== "delete-user"
   ) {
+    return;
+  }
+
+  const cooldownKey = `${interaction.user?.id || "unknown"}:${interaction.commandName}`;
+  const cooldown = commandCooldown(cooldownKey);
+  if (!cooldown.allowed) {
+    const seconds = Math.ceil(cooldown.retryAfterMs / 1000);
+    await interaction.reply({
+      content: `Rate limited. Try again in ${seconds}s.`,
+      ephemeral: true,
+    });
     return;
   }
 
