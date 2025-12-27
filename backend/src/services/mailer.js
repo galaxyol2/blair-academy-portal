@@ -3,7 +3,7 @@ const nodemailer = require("nodemailer");
 function buildResetLink({ token }) {
   const base =
     process.env.FRONTEND_BASE_URL ||
-    "http://localhost:8000/frontend";
+    "http://localhost:8000";
   const url = new URL("reset-password.html", base.endsWith("/") ? base : `${base}/`);
   url.searchParams.set("token", token);
   return url.toString();
@@ -40,6 +40,8 @@ async function sendPasswordResetEmail({ to, token }) {
       text: `Reset your password:\n\n${resetLink}\n\nThis link expires in 15 minutes.`,
       html: `<p>Reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>This link expires in 15 minutes.</p>`,
     });
+    // eslint-disable-next-line no-console
+    console.log(`[password-reset] Sent to: ${to} (via SMTP)`);
     return { ok: true };
   }
 
