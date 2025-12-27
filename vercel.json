@@ -2,6 +2,7 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/dashboard", "destination": "/frontend/dashboard.html" },
+    { "source": "/settings", "destination": "/frontend/settings.html" },
     { "source": "/signup", "destination": "/frontend/signup.html" },
     { "source": "/forgot-password", "destination": "/frontend/forgot-password.html" },
     { "source": "/reset-password", "destination": "/frontend/reset-password.html" },

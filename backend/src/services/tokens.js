@@ -20,6 +20,17 @@ function signPasswordResetToken({ userId }) {
   });
 }
 
+function verifyAccessToken(token) {
+  const secret = requireJwtSecret();
+  const payload = jwt.verify(token, secret);
+  if (!payload || !payload.sub) {
+    const err = new Error("Invalid access token");
+    err.status = 401;
+    throw err;
+  }
+  return { userId: payload.sub };
+}
+
 function verifyPasswordResetToken(token) {
   const secret = requireJwtSecret();
   const payload = jwt.verify(token, secret);
@@ -31,4 +42,9 @@ function verifyPasswordResetToken(token) {
   return { userId: payload.sub };
 }
 
-module.exports = { signAccessToken, signPasswordResetToken, verifyPasswordResetToken };
+module.exports = {
+  signAccessToken,
+  verifyAccessToken,
+  signPasswordResetToken,
+  verifyPasswordResetToken,
+};

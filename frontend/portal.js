@@ -237,6 +237,27 @@ async function handleAuthSubmit(form) {
       return;
     }
 
+    if (mode === "change-password") {
+      const currentPassword = String(payload.currentPassword || "");
+      const newPassword = String(payload.newPassword || "");
+      const confirm = String(payload.confirmNewPassword || "");
+
+      if (!currentPassword) throw new Error("Current password is required");
+      if (!newPassword || newPassword.length < 8) {
+        throw new Error("New password must be at least 8 characters");
+      }
+      if (newPassword !== confirm) throw new Error("New passwords do not match");
+
+      await apiFetch("/api/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      form.reset();
+      setFormSuccess(form, "Password updated.");
+      return;
+    }
+
     const path = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
     const body = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
 

@@ -4,6 +4,7 @@ const { usersStore } = require("../store/usersStore");
 const { hashPassword, verifyPassword } = require("../services/passwords");
 const {
   signAccessToken,
+  verifyAccessToken,
   signPasswordResetToken,
   verifyPasswordResetToken,
 } = require("../services/tokens");
@@ -15,6 +16,21 @@ function normalizeEmail(email) {
 
 function buildAuthRouter() {
   const router = express.Router();
+
+  function requireAuth(req, res, next) {
+    const header = String(req.get("authorization") || "");
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    const token = match ? match[1].trim() : "";
+    if (!token) return res.status(401).json({ error: "Missing access token" });
+
+    try {
+      const { userId } = verifyAccessToken(token);
+      req.userId = userId;
+      return next();
+    } catch (_err) {
+      return res.status(401).json({ error: "Invalid access token" });
+    }
+  }
 
   function validateFullName(name) {
     const parts = String(name || "")
@@ -64,6 +80,28 @@ function buildAuthRouter() {
 
     const token = signAccessToken({ userId: user.id });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+  });
+
+  router.post("/change-password", requireAuth, async (req, res) => {
+    const currentPassword = String(req.body?.currentPassword || "");
+    const newPassword = String(req.body?.newPassword || "");
+
+    if (!currentPassword) {
+      return res.status(400).json({ error: "Current password is required" });
+    }
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: "New password must be at least 8 characters" });
+    }
+
+    const user = await usersStore.findById(req.userId);
+    if (!user) return res.status(401).json({ error: "Invalid access token" });
+
+    const ok = await verifyPassword(currentPassword, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: "Current password is incorrect" });
+
+    const passwordHash = await hashPassword(newPassword);
+    await usersStore.updatePassword({ userId: user.id, passwordHash });
+    res.json({ ok: true });
   });
 
   router.post("/forgot-password", async (req, res) => {
