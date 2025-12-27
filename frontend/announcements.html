@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dashboard • Blair Academy Student Portal</title>
-    <meta name="description" content="Student portal home." />
+    <title>Announcements - Blair Academy Student Portal</title>
+    <meta name="description" content="Announcements." />
     <link rel="icon" type="image/png" href="./assets/logo.png" />
     <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -114,7 +114,8 @@
     <div class="portal-shell">
       <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
         <nav class="portal-nav" aria-label="Portal">
-          <a class="portal-nav__link is-active" href="/dashboard">Home</a>
+          <a class="portal-nav__link" href="/dashboard">Home</a>
+          <a class="portal-nav__link is-active" href="/announcements">Announcements</a>
         </nav>
         <div class="portal-sidebar__footer">
           <p class="portal-sidebar__fineprint"></p>
@@ -125,56 +126,21 @@
         <div class="container portal-main__inner">
           <div class="portal-titlebar">
             <div>
-              <p class="portal-eyebrow">Welcome</p>
-              <h1 class="portal-title">
-                <span data-user-greeting>Student</span> dashboard
-              </h1>
+              <p class="portal-eyebrow">Updates</p>
+              <h1 class="portal-title">Announcements</h1>
             </div>
           </div>
 
-          <section class="portal-section" aria-label="Quick actions">
-            <div class="tile-grid">
-              <a class="tile" href="#">
-                <p class="tile__kicker">Academics</p>
-                <h2 class="tile__title">Courses</h2>
-                <p class="tile__text">View schedule, grades, and materials.</p>
-              </a>
-              <a class="tile" href="#">
-                <p class="tile__kicker">Campus</p>
-                <h2 class="tile__title">Housing</h2>
-                <p class="tile__text">Room info, work orders, and policies.</p>
-              </a>
-              <a class="tile" href="#">
-                <p class="tile__kicker">Finances</p>
-                <h2 class="tile__title">Payments</h2>
-                <p class="tile__text">Invoices, payment methods, and aid.</p>
-              </a>
-              <a class="tile" href="#">
-                <p class="tile__kicker">Support</p>
-                <h2 class="tile__title">IT Help</h2>
-                <p class="tile__text">Password reset and service requests.</p>
-              </a>
-            </div>
-          </section>
-
-          <section class="portal-section portal-section--two">
+          <section class="portal-section" aria-label="Announcements feed">
             <div class="widget">
               <div class="widget__header">
-                <h2 class="widget__title">Announcements</h2>
-                <a class="widget__link" href="/announcements">View all</a>
+                <h2 class="widget__title">All announcements</h2>
+                <a class="widget__link" href="/dashboard">Back</a>
               </div>
               <div class="feed">
                 <p class="empty-state">No announcements yet.</p>
               </div>
             </div>
-
-            <aside class="widget" aria-label="My week">
-              <div class="widget__header">
-                <h2 class="widget__title">This week</h2>
-                <a class="widget__link" href="#">Calendar</a>
-              </div>
-              <p class="empty-state">No upcoming events yet.</p>
-            </aside>
           </section>
         </div>
       </main>
