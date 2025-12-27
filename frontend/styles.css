@@ -269,6 +269,30 @@ a:hover {
   }
 }
 
+@supports (-webkit-background-clip: text) or (background-clip: text) {
+  .portal-brand__sub {
+    color: transparent;
+    background: linear-gradient(
+      110deg,
+      #aeb6bf 0%,
+      #f7f9fb 18%,
+      #ffffff 26%,
+      #d9dde2 36%,
+      #9aa3ad 52%,
+      #d9dde2 70%,
+      #ffffff 78%,
+      #aeb6bf 100%
+    );
+    background-repeat: repeat;
+    background-size: 220% 100%;
+    background-position: 0% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    will-change: background-position;
+    animation: silver-shine 7s linear infinite;
+  }
+}
+
 @keyframes gold-shine {
   0% {
     background-position: 0% 50%;
@@ -278,8 +302,20 @@ a:hover {
   }
 }
 
+@keyframes silver-shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 220% 50%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .portal-brand__name {
+    animation: none !important;
+  }
+  .portal-brand__sub {
     animation: none !important;
   }
 }
