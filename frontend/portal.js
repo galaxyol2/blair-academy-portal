@@ -283,8 +283,6 @@ async function handleAuthSubmit(form) {
       window.location.href = "/dashboard";
     }
   } catch (err) {
-    const apiHint = ` (API: ${apiBaseUrl()})`;
-
     if (err?.status === 409 && mode === "signup") {
       setFormError(form, "That email is already in use. Try logging in instead.");
       return;
@@ -314,8 +312,8 @@ async function handleAuthSubmit(form) {
     setFormError(
       form,
       baseMisconfigured
-        ? `${msg}${apiHint} Set your deployed API URL in frontend/config.js (or localStorage blair.portal.apiBaseUrl).`
-        : `${msg}${apiHint}`
+        ? `${msg} Set your deployed API URL in frontend/config.js (or localStorage blair.portal.apiBaseUrl).`
+        : `${msg}`
     );
   }
 }
