@@ -2,17 +2,16 @@ function isEnabled() {
   return Boolean(String(process.env.SIGNUP_LOG_URL || "").trim());
 }
 
-function buildPayload({ user, sourceIp }) {
+function buildPayload({ user }) {
   return {
     userId: user?.id || "",
     name: user?.name || "",
     email: user?.email || "",
     createdAt: user?.createdAt || "",
-    sourceIp: sourceIp || "",
   };
 }
 
-async function postSignupLog({ user, sourceIp }) {
+async function postSignupLog({ user }) {
   const url = String(process.env.SIGNUP_LOG_URL || "").trim();
   if (!url) return;
 
@@ -29,7 +28,7 @@ async function postSignupLog({ user, sourceIp }) {
         "Content-Type": "application/json",
         "x-admin-key": key,
       },
-      body: JSON.stringify(buildPayload({ user, sourceIp })),
+      body: JSON.stringify(buildPayload({ user })),
       signal: controller.signal,
     });
     if (!res.ok) {

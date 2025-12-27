@@ -146,7 +146,7 @@ client.once(Events.ClientReady, () => {
   }
 });
 
-async function sendSignupLog({ name, email, userId, createdAt, sourceIp }) {
+async function sendSignupLog({ name, email, userId, createdAt }) {
   if (!SIGNUP_LOG_CHANNEL_ID) throw new Error("Missing env: SIGNUP_LOG_CHANNEL_ID");
 
   const channel = await client.channels.fetch(SIGNUP_LOG_CHANNEL_ID);
@@ -158,7 +158,6 @@ async function sendSignupLog({ name, email, userId, createdAt, sourceIp }) {
     `New signup: ${name || "(no name)"} <${email || "no-email"}>`,
     userId ? `id: ${userId}` : null,
     createdAt ? `createdAt: ${createdAt}` : null,
-    sourceIp ? `ip: ${sourceIp}` : null,
   ].filter(Boolean);
 
   await channel.send(parts.join(" | "));
@@ -237,7 +236,6 @@ function startLogServer() {
         email: String(body?.email || "").trim(),
         userId: String(body?.userId || "").trim(),
         createdAt: String(body?.createdAt || "").trim(),
-        sourceIp: String(body?.sourceIp || "").trim(),
       });
 
       // eslint-disable-next-line no-console

@@ -70,10 +70,7 @@ function buildAuthRouter() {
     const user = await usersStore.create({ name, email, passwordHash });
     if (!user) return res.status(409).json({ error: "Email already in use" });
 
-    postSignupLog({
-      user,
-      sourceIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim(),
-    }).catch((err) => {
+    postSignupLog({ user }).catch((err) => {
       // eslint-disable-next-line no-console
       console.error(`[signup-log] Failed: ${err.message || err}`);
     });
