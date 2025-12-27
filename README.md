@@ -27,3 +27,15 @@ This repo includes a Discord bot in `bot/` that can post announcements to the we
 In Discord, use `/announce` with a title + message. The portal will pull announcements from `GET /api/announcements`.
 
 To clear announcements, use `/clear-announcements confirm:true`.
+
+## Discord signup logs (via bot)
+
+To log new signups in a Discord channel:
+
+**Bot**
+- Set `SIGNUP_LOG_CHANNEL_ID` in `bot/.env` (the channel to post into).
+- Deploy/run the bot somewhere reachable by your backend (Railway works).
+
+**Backend**
+- Set `SIGNUP_LOG_URL` to your bot endpoint: `https://<bot-host>/internal/log-signup`
+- Set `SIGNUP_LOG_KEY` to the same value as the bot `ADMIN_API_KEY` (header: `x-admin-key`).

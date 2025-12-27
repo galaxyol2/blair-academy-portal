@@ -9,6 +9,7 @@ const {
   verifyPasswordResetToken,
 } = require("../services/tokens");
 const { sendPasswordResetEmail } = require("../services/mailer");
+const { postSignupLog } = require("../services/signupLog");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -68,6 +69,14 @@ function buildAuthRouter() {
     const passwordHash = await hashPassword(password);
     const user = await usersStore.create({ name, email, passwordHash });
     if (!user) return res.status(409).json({ error: "Email already in use" });
+
+    postSignupLog({
+      user,
+      sourceIp: String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim(),
+    }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(`[signup-log] Failed: ${err.message || err}`);
+    });
 
     const token = signAccessToken({ userId: user.id });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
