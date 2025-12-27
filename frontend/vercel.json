@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/login.html", "destination": "/", "permanent": true },
+    { "source": "/login.html", "destination": "/login", "permanent": true },
     { "source": "/signup.html", "destination": "/signup", "permanent": true },
     {
       "source": "/forgot-password.html",
@@ -24,4 +24,3 @@
     { "source": "/dashboard", "destination": "/index.html" }
   ]
 }
-
