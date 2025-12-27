@@ -296,10 +296,33 @@ function initResetToken() {
   tokenInput.value = token;
 }
 
+function initPasswordToggles() {
+  document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    const field = button.closest(".field");
+    const input = field ? field.querySelector("input") : null;
+    if (!input) return;
+
+    const setState = (visible) => {
+      input.type = visible ? "text" : "password";
+      button.textContent = visible ? "Hide" : "Show";
+      button.setAttribute("aria-pressed", visible ? "true" : "false");
+      button.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+    };
+
+    setState(false);
+
+    button.addEventListener("click", () => {
+      setState(input.type !== "text");
+      input.focus({ preventScroll: true });
+    });
+  });
+}
+
 if (routeGuards()) {
   initHeaderAuthUi();
   initSidebarToggle();
   initUserMenu();
   initAuthForms();
   initResetToken();
+  initPasswordToggles();
 }

@@ -61,15 +61,26 @@
               <input name="email" type="email" autocomplete="email" required />
             </label>
 
-            <label class="field">
+            <label class="field field--with-toggle">
               <span class="field__label">Password</span>
-              <input
-                name="password"
-                type="password"
-                autocomplete="new-password"
-                minlength="8"
-                required
-              />
+              <span class="field__control">
+                <input
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="8"
+                  required
+                />
+                <button
+                  class="field__toggle"
+                  type="button"
+                  data-password-toggle
+                  aria-label="Show password"
+                  aria-pressed="false"
+                >
+                  Show
+                </button>
+              </span>
             </label>
 
             <p class="form-error" data-form-error hidden></p>
