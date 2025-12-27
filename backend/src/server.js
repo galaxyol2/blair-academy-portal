@@ -5,6 +5,7 @@ const cors = require("cors");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const { buildAuthRouter } = require("./routes/auth");
+const { buildAdminUsersRouter } = require("./routes/adminUsers");
 const {
   buildAnnouncementsRouter,
   buildAdminAnnouncementsRouter,
@@ -55,6 +56,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", buildAuthRouter());
 app.use("/api/announcements", buildAnnouncementsRouter());
 app.use("/api/admin", buildAdminAnnouncementsRouter());
+app.use("/api/admin", buildAdminUsersRouter());
 
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {

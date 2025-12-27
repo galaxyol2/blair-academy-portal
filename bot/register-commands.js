@@ -37,13 +37,26 @@ const clearAnnouncements = new SlashCommandBuilder()
       .setRequired(true)
   );
 
+const deleteUser = new SlashCommandBuilder()
+  .setName("delete-user")
+  .setDescription("Delete a user account so they can sign up again.")
+  .addStringOption((opt) =>
+    opt.setName("email").setDescription("User email to delete").setRequired(true)
+  )
+  .addBooleanOption((opt) =>
+    opt
+      .setName("confirm")
+      .setDescription("Confirm you want to delete this user")
+      .setRequired(true)
+  );
+
 async function main() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(appId, guildId), {
-    body: [announce.toJSON(), clearAnnouncements.toJSON()],
+    body: [announce.toJSON(), clearAnnouncements.toJSON(), deleteUser.toJSON()],
   });
   // eslint-disable-next-line no-console
-  console.log("Registered /announce and /clear-announcements");
+  console.log("Registered /announce, /clear-announcements, /delete-user");
 }
 
 if (require.main === module) {

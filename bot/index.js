@@ -113,6 +113,39 @@ async function clearAllAnnouncements() {
   return Number(json?.deleted || 0);
 }
 
+function backendOrigin() {
+  const u = new URL(ANNOUNCE_API_URL);
+  return u.origin;
+}
+
+async function deleteUserByEmail(email) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) throw new Error("Missing email.");
+
+  const url = `${backendOrigin()}/api/admin/users?email=${encodeURIComponent(e)}`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      "x-admin-key": ADMIN_API_KEY,
+    },
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    // ignore
+  }
+
+  if (!res.ok) {
+    const msg =
+      (json && (json.error || json.message)) || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return json?.deleted || null;
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -276,7 +309,11 @@ startLogServer();
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
-  if (interaction.commandName !== "announce" && interaction.commandName !== "clear-announcements") {
+  if (
+    interaction.commandName !== "announce" &&
+    interaction.commandName !== "clear-announcements" &&
+    interaction.commandName !== "delete-user"
+  ) {
     return;
   }
 
@@ -285,6 +322,32 @@ client.on(Events.InteractionCreate, async (interaction) => {
       content: "You don't have permission to use this command.",
       ephemeral: true,
     });
+    return;
+  }
+
+  if (interaction.commandName === "delete-user") {
+    const confirm = Boolean(interaction.options.getBoolean("confirm"));
+    const email = String(interaction.options.getString("email") || "").trim();
+
+    if (!confirm) {
+      await interaction.reply({
+        content: "Not deleted. Set `confirm: true` to proceed.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const deleted = await deleteUserByEmail(email);
+      await interaction.editReply(
+        deleted
+          ? `Deleted user: ${deleted.email} (${deleted.name || "no name"})`
+          : "Deleted."
+      );
+    } catch (err) {
+      await interaction.editReply(`Failed to delete: ${err.message}`);
+    }
     return;
   }
 

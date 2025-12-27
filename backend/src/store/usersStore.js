@@ -62,6 +62,24 @@ function createJsonUsersStore() {
       await writeDb(db);
       return db.users[idx];
     },
+
+    async deleteByEmail(email) {
+      const db = await readDb();
+      const idx = db.users.findIndex((u) => u.email === email);
+      if (idx === -1) return null;
+      const [deleted] = db.users.splice(idx, 1);
+      await writeDb(db);
+      return deleted || null;
+    },
+
+    async deleteById(id) {
+      const db = await readDb();
+      const idx = db.users.findIndex((u) => u.id === id);
+      if (idx === -1) return null;
+      const [deleted] = db.users.splice(idx, 1);
+      await writeDb(db);
+      return deleted || null;
+    },
   };
 }
 
@@ -136,6 +154,26 @@ function createPgUsersStore() {
          WHERE id = $1
          RETURNING id, name, email, password_hash AS "passwordHash"`,
         [userId, passwordHash]
+      );
+      return res.rows[0] || null;
+    },
+
+    async deleteByEmail(email) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM users WHERE email = $1
+         RETURNING id, name, email, password_hash AS "passwordHash"`,
+        [email]
+      );
+      return res.rows[0] || null;
+    },
+
+    async deleteById(id) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM users WHERE id = $1
+         RETURNING id, name, email, password_hash AS "passwordHash"`,
+        [id]
       );
       return res.rows[0] || null;
     },
