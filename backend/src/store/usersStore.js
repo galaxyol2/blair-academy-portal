@@ -27,6 +27,11 @@ const usersStore = {
     return db.users.find((u) => u.email === email) || null;
   },
 
+  async findById(id) {
+    const db = await readDb();
+    return db.users.find((u) => u.id === id) || null;
+  },
+
   async create({ name, email, passwordHash }) {
     const db = await readDb();
     const user = {
@@ -40,7 +45,15 @@ const usersStore = {
     await writeDb(db);
     return user;
   },
+
+  async updatePassword({ userId, passwordHash }) {
+    const db = await readDb();
+    const idx = db.users.findIndex((u) => u.id === userId);
+    if (idx === -1) return null;
+    db.users[idx] = { ...db.users[idx], passwordHash, updatedAt: new Date().toISOString() };
+    await writeDb(db);
+    return db.users[idx];
+  },
 };
 
 module.exports = { usersStore };
-

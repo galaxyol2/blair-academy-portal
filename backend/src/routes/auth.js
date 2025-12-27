@@ -2,7 +2,12 @@ const express = require("express");
 
 const { usersStore } = require("../store/usersStore");
 const { hashPassword, verifyPassword } = require("../services/passwords");
-const { signAccessToken } = require("../services/tokens");
+const {
+  signAccessToken,
+  signPasswordResetToken,
+  verifyPasswordResetToken,
+} = require("../services/tokens");
+const { sendPasswordResetEmail } = require("../services/mailer");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -54,7 +59,37 @@ function buildAuthRouter() {
     if (!email) return res.status(400).json({ error: "Email is required" });
 
     // Intentionally do not reveal whether the email exists.
-    // Hook this up to email sending + reset tokens later.
+    const user = await usersStore.findByEmail(email);
+    if (user) {
+      const token = signPasswordResetToken({ userId: user.id });
+      await sendPasswordResetEmail({ to: email, token });
+    }
+
+    res.json({ ok: true });
+  });
+
+  router.post("/reset-password", async (req, res) => {
+    const token = String(req.body?.token || "").trim();
+    const password = String(req.body?.password || "");
+
+    if (!token) return res.status(400).json({ error: "Token is required" });
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+
+    let userId;
+    try {
+      ({ userId } = verifyPasswordResetToken(token));
+    } catch (err) {
+      return res.status(401).json({ error: "Invalid or expired reset token" });
+    }
+
+    const user = await usersStore.findById(userId);
+    if (!user) return res.status(401).json({ error: "Invalid or expired reset token" });
+
+    const passwordHash = await hashPassword(password);
+    await usersStore.updatePassword({ userId: user.id, passwordHash });
+
     res.json({ ok: true });
   });
 
@@ -62,4 +97,3 @@ function buildAuthRouter() {
 }
 
 module.exports = { buildAuthRouter };
-

@@ -24,6 +24,7 @@ API will be on `http://localhost:3001`.
 - `POST /api/auth/signup` → `{ token, user }`
 - `POST /api/auth/login` → `{ token, user }`
 - `POST /api/auth/forgot-password` → `{ ok: true }`
+- `POST /api/auth/reset-password` → `{ ok: true }`
 - `GET /api/health` → `{ ok: true }`
 
 ## Notes

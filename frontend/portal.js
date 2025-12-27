@@ -30,7 +30,8 @@ function isAuthPage(page) {
   return (
     page === "login.html" ||
     page === "signup.html" ||
-    page === "forgot-password.html"
+    page === "forgot-password.html" ||
+    page === "reset-password.html"
   );
 }
 
@@ -186,6 +187,27 @@ async function handleAuthSubmit(form) {
       return;
     }
 
+    if (mode === "reset") {
+      if (!payload.token) throw new Error("Missing reset token");
+      if (!payload.password || String(payload.password).length < 8) {
+        throw new Error("Password must be at least 8 characters");
+      }
+      if (payload.password !== payload.confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      await apiFetch("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token: payload.token, password: payload.password }),
+      });
+
+      setFormSuccess(form, "Password updated. You can now log in.");
+      setTimeout(() => {
+        window.location.href = "./login.html";
+      }, 900);
+      return;
+    }
+
     const path = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
     const body = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
 
@@ -219,9 +241,18 @@ function initAuthForms() {
   });
 }
 
+function initResetToken() {
+  const tokenInput = document.querySelector("[data-reset-token]");
+  if (!tokenInput) return;
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token") || "";
+  tokenInput.value = token;
+}
+
 if (routeGuards()) {
   initHeaderAuthUi();
   initSidebarToggle();
   initUserMenu();
   initAuthForms();
+  initResetToken();
 }
