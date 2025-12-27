@@ -19,7 +19,22 @@ function clearSession() {
 
 function apiBaseUrl() {
   const override = localStorage.getItem("blair.portal.apiBaseUrl");
-  if (override) return override;
+  if (override) {
+    const cleaned = String(override).trim().replace(/\/+$/, "");
+    const isAbsolute = /^https?:\/\//i.test(cleaned);
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const sameOrigin =
+      Boolean(origin) && origin !== "null" && isAbsolute && cleaned.startsWith(origin);
+
+    // If someone accidentally points the API at the same origin (Vercel static site),
+    // it will try to call `/api/*` on the frontend and fail (often 401/404).
+    // Auto-clear obviously bad overrides and fall back to config.js.
+    if (!isAbsolute || sameOrigin) {
+      localStorage.removeItem("blair.portal.apiBaseUrl");
+    } else {
+      return cleaned;
+    }
+  }
 
   const cfg = window.__BLAIR_CONFIG__ && typeof window.__BLAIR_CONFIG__ === "object"
     ? window.__BLAIR_CONFIG__
