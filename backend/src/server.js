@@ -5,6 +5,10 @@ const cors = require("cors");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const { buildAuthRouter } = require("./routes/auth");
+const {
+  buildAnnouncementsRouter,
+  buildAdminAnnouncementsRouter,
+} = require("./routes/announcements");
 
 const app = express();
 
@@ -41,10 +45,16 @@ app.use(
 );
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, userStore: process.env.DATABASE_URL ? "postgres" : "json" });
+  res.json({
+    ok: true,
+    userStore: process.env.DATABASE_URL ? "postgres" : "json",
+    announcementsStore: process.env.DATABASE_URL ? "postgres" : "json",
+  });
 });
 
 app.use("/api/auth", buildAuthRouter());
+app.use("/api/announcements", buildAnnouncementsRouter());
+app.use("/api/admin", buildAdminAnnouncementsRouter());
 
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {

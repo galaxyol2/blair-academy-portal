@@ -815,6 +815,49 @@ a:hover {
   box-shadow: 0 0 0 4px rgba(0, 75, 141, 0.12);
 }
 
+/* Announcements */
+.announcement-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.announcement {
+  border-radius: 14px;
+  border: 1px solid rgba(0, 75, 141, 0.16);
+  background: linear-gradient(180deg, rgba(0, 75, 141, 0.06), rgba(0, 75, 141, 0.015));
+  padding: 0.95rem 1rem;
+}
+
+.announcement__meta {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(26, 28, 31, 0.58);
+}
+
+.announcement__title {
+  margin: 0.35rem 0 0;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.announcement__body {
+  margin: 0.5rem 0 0;
+  color: rgba(26, 28, 31, 0.75);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.announcement-list--preview .announcement__body {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .form-error {
   margin: 0;
   padding: 0.75rem 0.85rem;

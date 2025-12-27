@@ -307,6 +307,86 @@ function initResetToken() {
   tokenInput.value = token;
 }
 
+function formatShortDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(date);
+}
+
+function renderAnnouncements(container, items, { variant }) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No announcements yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className =
+    variant === "preview"
+      ? "announcement-list announcement-list--preview"
+      : "announcement-list";
+
+  for (const item of items) {
+    const row = document.createElement("article");
+    row.className = "announcement";
+
+    const meta = document.createElement("p");
+    meta.className = "announcement__meta";
+    const when = formatShortDate(item.createdAt);
+    meta.textContent = when ? `${when} • Announcement` : "Announcement";
+
+    const title = document.createElement("h3");
+    title.className = "announcement__title";
+    title.textContent = String(item.title || "Announcement");
+
+    const body = document.createElement("p");
+    body.className = "announcement__body";
+    body.textContent = String(item.body || "");
+
+    row.appendChild(meta);
+    row.appendChild(title);
+    row.appendChild(body);
+    list.appendChild(row);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadAnnouncements(target, { limit, variant }) {
+  const container = document.querySelector(target);
+  if (!container) return;
+
+  const empty = container.querySelector("[data-announcements-empty]");
+  if (empty) empty.textContent = "Loading…";
+
+  try {
+    const data = await apiFetch(
+      `/api/announcements?limit=${encodeURIComponent(String(limit))}`
+    );
+    const items = (data && data.items) || [];
+    renderAnnouncements(container, items, { variant });
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load announcements.";
+    container.appendChild(msg);
+  }
+}
+
+function initAnnouncements() {
+  if (document.querySelector("[data-announcements-preview]")) {
+    loadAnnouncements("[data-announcements-preview]", { limit: 3, variant: "preview" });
+  }
+  if (document.querySelector("[data-announcements-list]")) {
+    loadAnnouncements("[data-announcements-list]", { limit: 50, variant: "list" });
+  }
+}
+
 function initPasswordToggles() {
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     const field = button.closest(".field");
@@ -336,4 +416,5 @@ if (routeGuards()) {
   initAuthForms();
   initResetToken();
   initPasswordToggles();
+  initAnnouncements();
 }
