@@ -1,30 +1,7 @@
 const express = require("express");
 
 const { usersStore } = require("../store/usersStore");
-
-function createFixedWindowRateLimiter({ windowMs, max, keyFn }) {
-  const buckets = new Map();
-
-  return function rateLimit(req, res, next) {
-    const now = Date.now();
-    const key = String(keyFn(req) || "").trim() || "anonymous";
-
-    let bucket = buckets.get(key);
-    if (!bucket || now >= bucket.resetAt) {
-      bucket = { count: 0, resetAt: now + windowMs };
-      buckets.set(key, bucket);
-    }
-
-    bucket.count += 1;
-    if (bucket.count > max) {
-      const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
-      res.set("Retry-After", String(retryAfterSeconds));
-      return res.status(429).json({ error: "Too many requests" });
-    }
-
-    return next();
-  };
-}
+const { createFixedWindowRateLimiter, requestIp } = require("../middleware/rateLimit");
 
 function requireAdminKey(req, res, next) {
   const expected = String(process.env.ADMIN_API_KEY || "").trim();
@@ -49,7 +26,7 @@ function buildAdminUsersRouter() {
     max: 5,
     keyFn: (req) =>
       String(req.get("x-admin-key") || req.get("x-api-key") || "").trim() ||
-      String(req.ip || "").trim(),
+      requestIp(req),
   });
 
   // Delete a user so they can re-create their account with the same email.

@@ -118,6 +118,8 @@ async function apiFetch(path, options = {}) {
     const err = new Error(message);
     err.status = res.status;
     err.body = body;
+    const retryAfter = res.headers.get("retry-after");
+    if (retryAfter) err.retryAfterSeconds = Number(retryAfter) || null;
     throw err;
   }
 
@@ -298,6 +300,15 @@ async function handleAuthSubmit(form) {
       window.location.href = "/dashboard";
     }
   } catch (err) {
+    if (err?.status === 429) {
+      const retry =
+        typeof err.retryAfterSeconds === "number" && err.retryAfterSeconds > 0
+          ? ` Try again in ${err.retryAfterSeconds}s.`
+          : " Try again in a bit.";
+      setFormError(form, `Too many attempts.${retry}`);
+      return;
+    }
+
     if (err?.status === 409 && mode === "signup") {
       setFormError(form, "That email is already in use. Try logging in instead.");
       return;

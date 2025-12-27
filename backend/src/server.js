@@ -13,6 +13,9 @@ const {
 
 const app = express();
 
+// Trust Railway/hosted proxies so req.ip reflects the real client IP (used for rate limiting).
+app.set("trust proxy", 1);
+
 app.use(express.json({ limit: "1mb" }));
 
 function normalizeOrigin(value) {

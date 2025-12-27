@@ -10,6 +10,7 @@ const {
 } = require("../services/tokens");
 const { sendPasswordResetEmail } = require("../services/mailer");
 const { postSignupLog } = require("../services/signupLog");
+const { createFixedWindowRateLimiter, requestIp } = require("../middleware/rateLimit");
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -17,6 +18,27 @@ function normalizeEmail(email) {
 
 function buildAuthRouter() {
   const router = express.Router();
+
+  const rateLimitSignup = createFixedWindowRateLimiter({
+    windowMs: 60_000,
+    max: 5,
+    keyFn: requestIp,
+  });
+  const rateLimitLogin = createFixedWindowRateLimiter({
+    windowMs: 60_000,
+    max: 15,
+    keyFn: requestIp,
+  });
+  const rateLimitForgotPassword = createFixedWindowRateLimiter({
+    windowMs: 60_000,
+    max: 5,
+    keyFn: requestIp,
+  });
+  const rateLimitResetPassword = createFixedWindowRateLimiter({
+    windowMs: 60_000,
+    max: 10,
+    keyFn: requestIp,
+  });
 
   function expectedSignupCode() {
     return String(process.env.SIGNUP_CODE || "BLAIR-F25-9KQ7").trim();
@@ -49,7 +71,7 @@ function buildAuthRouter() {
     return parts.every((p) => p.length >= 2);
   }
 
-  router.post("/signup", async (req, res) => {
+  router.post("/signup", rateLimitSignup, async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
@@ -82,7 +104,7 @@ function buildAuthRouter() {
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   });
 
-  router.post("/login", async (req, res) => {
+  router.post("/login", rateLimitLogin, async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
 
@@ -126,7 +148,7 @@ function buildAuthRouter() {
     res.json({ ok: true });
   });
 
-  router.post("/forgot-password", async (req, res) => {
+  router.post("/forgot-password", rateLimitForgotPassword, async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     if (!email) return res.status(400).json({ error: "Email is required" });
 
@@ -150,7 +172,7 @@ function buildAuthRouter() {
     res.json({ ok: true });
   });
 
-  router.post("/reset-password", async (req, res) => {
+  router.post("/reset-password", rateLimitResetPassword, async (req, res) => {
     const token = String(req.body?.token || "").trim();
     const password = String(req.body?.password || "");
 
