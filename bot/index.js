@@ -38,6 +38,7 @@ const ANNOUNCE_API_URL = requiredEnvAny([
 ]);
 const ADMIN_API_KEY = requiredEnvAny(["ADMIN_API_KEY", "ADMIN_KEY"]);
 const DISCORD_BOT_TOKEN = requiredEnv("DISCORD_BOT_TOKEN");
+const DISCORD_GUILD_ID = String(process.env.DISCORD_GUILD_ID || "").trim();
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
@@ -121,6 +122,28 @@ client.once(Events.ClientReady, () => {
   clientReady = true;
   // eslint-disable-next-line no-console
   console.log(`Bot ready as ${client.user.tag}`);
+
+  if (SIGNUP_LOG_CHANNEL_ID && DISCORD_GUILD_ID && SIGNUP_LOG_CHANNEL_ID === DISCORD_GUILD_ID) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "SIGNUP_LOG_CHANNEL_ID matches DISCORD_GUILD_ID; you likely pasted the server ID instead of the channel ID."
+    );
+  }
+
+  if (SIGNUP_LOG_CHANNEL_ID) {
+    client.channels
+      .fetch(SIGNUP_LOG_CHANNEL_ID)
+      .then((ch) => {
+        if (!ch || !ch.isTextBased()) {
+          // eslint-disable-next-line no-console
+          console.warn("SIGNUP_LOG_CHANNEL_ID is not a text channel.");
+        }
+      })
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.warn(`SIGNUP_LOG_CHANNEL_ID is invalid or not accessible: ${err.message}`);
+      });
+  }
 });
 
 async function sendSignupLog({ name, email, userId, createdAt, sourceIp }) {
@@ -238,6 +261,15 @@ function startLogServer() {
       `Log server listening on http://localhost:${LOG_SERVER_PORT} (signup channel set: ${Boolean(
         SIGNUP_LOG_CHANNEL_ID
       )})`
+    );
+  });
+
+  server.on("error", (err) => {
+    // eslint-disable-next-line no-console
+    console.error(
+      err && err.code === "EADDRINUSE"
+        ? `Log server port ${LOG_SERVER_PORT} is already in use. Change BOT_PORT in bot/.env.`
+        : `[log-server] Error: ${err.message || err}`
     );
   });
 }
