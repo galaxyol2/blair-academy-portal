@@ -16,12 +16,23 @@ function normalizeEmail(email) {
 function buildAuthRouter() {
   const router = express.Router();
 
+  function validateFullName(name) {
+    const parts = String(name || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (parts.length < 2) return false;
+    return parts.every((p) => p.length >= 2);
+  }
+
   router.post("/signup", async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
 
-    if (!name) return res.status(400).json({ error: "Name is required" });
+    if (!validateFullName(name)) {
+      return res.status(400).json({ error: "First and last name are required" });
+    }
     if (!email) return res.status(400).json({ error: "Email is required" });
     if (!password || password.length < 8) {
       return res.status(400).json({ error: "Password must be at least 8 characters" });

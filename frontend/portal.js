@@ -193,6 +193,17 @@ async function handleAuthSubmit(form) {
   setFormSuccess(form, "");
 
   try {
+    if (mode === "signup") {
+      const firstName = String(payload.firstName || "").trim();
+      const lastName = String(payload.lastName || "").trim();
+      if (!firstName || !lastName) {
+        throw new Error("First and last name are required.");
+      }
+      payload.name = `${firstName} ${lastName}`.trim();
+      delete payload.firstName;
+      delete payload.lastName;
+    }
+
     if (mode === "forgot") {
       await apiFetch("/api/auth/forgot-password", {
         method: "POST",
