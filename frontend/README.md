@@ -9,4 +9,8 @@ Static starter UI for a student portal dashboard (inspired by common university 
 
 ## Background video
 
-Portal pages reference `../Campus.mp4` (repo root). If you run a server, run it from the repo root so the video file is reachable.
+Portal pages reference `frontend/assets/Campus.mp4`.
+
+## API base URL (Vercel)
+
+Set your deployed backend base URL in `frontend/config.js`.

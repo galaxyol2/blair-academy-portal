@@ -18,7 +18,17 @@ function clearSession() {
 }
 
 function apiBaseUrl() {
-  return localStorage.getItem("blair.portal.apiBaseUrl") || "http://localhost:3001";
+  const override = localStorage.getItem("blair.portal.apiBaseUrl");
+  if (override) return override;
+
+  const cfg = window.__BLAIR_CONFIG__ && typeof window.__BLAIR_CONFIG__ === "object"
+    ? window.__BLAIR_CONFIG__
+    : null;
+  if (cfg && typeof cfg.apiBaseUrl === "string" && cfg.apiBaseUrl.trim()) {
+    return cfg.apiBaseUrl.trim().replace(/\/+$/, "");
+  }
+
+  return "http://localhost:3001";
 }
 
 function currentPage() {
@@ -228,7 +238,10 @@ async function handleAuthSubmit(form) {
     const msg =
       err?.message ||
       "Login/signup failed. Start your backend auth server and try again.";
-    setFormError(form, `${msg} (API: ${apiBaseUrl()})`);
+    setFormError(
+      form,
+      `${msg} (API: ${apiBaseUrl()}) — set it in frontend/config.js or localStorage blair.portal.apiBaseUrl`
+    );
   }
 }
 
