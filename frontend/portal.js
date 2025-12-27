@@ -57,6 +57,33 @@ function pageKind() {
   return "other";
 }
 
+function initBackgroundVideo() {
+  const video = document.querySelector(".video-bg__media");
+  if (!video || typeof video.play !== "function") return;
+
+  video.muted = true;
+  video.playsInline = true;
+  video.loop = true;
+  video.autoplay = true;
+
+  const tryPlay = async () => {
+    if (document.hidden) return;
+    try {
+      await video.play();
+    } catch {
+      // ignore (autoplay policies / background throttling)
+    }
+  };
+
+  video.addEventListener("canplay", tryPlay);
+  video.addEventListener("pause", tryPlay);
+  document.addEventListener("visibilitychange", tryPlay);
+  window.addEventListener("focus", tryPlay);
+  window.addEventListener("pageshow", tryPlay);
+
+  tryPlay();
+}
+
 function routeGuards() {
   if (window.location.protocol === "file:") return true;
 
@@ -464,6 +491,8 @@ function initPasswordToggles() {
 }
 
 if (routeGuards()) {
+  initBackgroundVideo();
+
   validateSessionAndAutoLogout();
   // Keep sessions in sync if an admin deletes the account while the user is logged in.
   if (pageKind() === "dashboard") {
