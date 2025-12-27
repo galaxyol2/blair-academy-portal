@@ -29,5 +29,6 @@ API will be on `http://localhost:3001`.
 
 ## Notes
 
-- User data is stored in a local JSON file (`backend/data/dev.json` by default) and is ignored by git.
+- Local dev can use a JSON file store (`backend/data/dev.json` by default).
+- Production should use Postgres (set `DATABASE_URL`) so accounts persist and emails stay unique.
 - For production email sending, set either SMTP env vars or `SENDGRID_API_KEY` (preferred if SMTP ports are blocked).

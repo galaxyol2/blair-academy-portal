@@ -32,6 +32,7 @@ function buildAuthRouter() {
 
     const passwordHash = await hashPassword(password);
     const user = await usersStore.create({ name, email, passwordHash });
+    if (!user) return res.status(409).json({ error: "Email already in use" });
 
     const token = signAccessToken({ userId: user.id });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
