@@ -10,9 +10,32 @@ const app = express();
 
 app.use(express.json({ limit: "1mb" }));
 
+function normalizeOrigin(value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (v.startsWith("http://") || v.startsWith("https://")) return v.replace(/\/+$/, "");
+  return `https://${v.replace(/\/+$/, "")}`;
+}
+
+function allowedOrigins() {
+  const raw = String(process.env.CORS_ORIGIN || "").trim();
+  if (!raw) return null; // allow all
+  return raw
+    .split(",")
+    .map((s) => normalizeOrigin(s))
+    .filter(Boolean);
+}
+
+const allowed = allowedOrigins();
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || true,
+    origin(origin, callback) {
+      if (!allowed) return callback(null, true);
+      if (!origin) return callback(null, true); // non-browser requests
+      const o = normalizeOrigin(origin);
+      return callback(null, allowed.includes(o));
+    },
     credentials: true,
   })
 );
@@ -28,4 +51,3 @@ app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`API listening on http://localhost:${port}`);
 });
-
