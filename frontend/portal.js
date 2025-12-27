@@ -76,6 +76,21 @@ function routeGuards() {
   return true;
 }
 
+async function validateSessionAndAutoLogout() {
+  const session = getSession();
+  if (!session?.token) return;
+  if (pageKind() !== "dashboard") return;
+
+  try {
+    await apiFetch("/api/auth/me");
+  } catch (err) {
+    if (err?.status === 401) {
+      clearSession();
+      window.location.replace("/");
+    }
+  }
+}
+
 async function apiFetch(path, options = {}) {
   const session = getSession();
   const headers = new Headers(options.headers || {});
@@ -438,6 +453,13 @@ function initPasswordToggles() {
 }
 
 if (routeGuards()) {
+  validateSessionAndAutoLogout();
+  // Keep sessions in sync if an admin deletes the account while the user is logged in.
+  if (pageKind() === "dashboard") {
+    setInterval(validateSessionAndAutoLogout, 60_000);
+    window.addEventListener("focus", validateSessionAndAutoLogout);
+  }
+
   initHeaderAuthUi();
   initSidebarToggle();
   initUserMenu();

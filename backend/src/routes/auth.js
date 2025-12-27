@@ -22,7 +22,7 @@ function buildAuthRouter() {
     return String(process.env.SIGNUP_CODE || "BLAIR-F25-9KQ7").trim();
   }
 
-  function requireAuth(req, res, next) {
+  async function requireAuth(req, res, next) {
     const header = String(req.get("authorization") || "");
     const match = header.match(/^Bearer\s+(.+)$/i);
     const token = match ? match[1].trim() : "";
@@ -31,6 +31,9 @@ function buildAuthRouter() {
     try {
       const { userId } = verifyAccessToken(token);
       req.userId = userId;
+      const user = await usersStore.findById(userId);
+      if (!user) return res.status(401).json({ error: "Invalid access token" });
+      req.user = user;
       return next();
     } catch (_err) {
       return res.status(401).json({ error: "Invalid access token" });
@@ -96,6 +99,11 @@ function buildAuthRouter() {
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   });
 
+  router.get("/me", requireAuth, async (req, res) => {
+    const user = req.user;
+    res.json({ user: { id: user.id, name: user.name, email: user.email } });
+  });
+
   router.post("/change-password", requireAuth, async (req, res) => {
     const currentPassword = String(req.body?.currentPassword || "");
     const newPassword = String(req.body?.newPassword || "");
@@ -107,7 +115,7 @@ function buildAuthRouter() {
       return res.status(400).json({ error: "New password must be at least 8 characters" });
     }
 
-    const user = await usersStore.findById(req.userId);
+    const user = req.user;
     if (!user) return res.status(401).json({ error: "Invalid access token" });
 
     const ok = await verifyPassword(currentPassword, user.passwordHash);
