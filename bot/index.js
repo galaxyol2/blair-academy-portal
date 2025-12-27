@@ -13,8 +13,28 @@ function requiredEnv(name) {
   return v;
 }
 
-const ANNOUNCE_API_URL = requiredEnv("ANNOUNCE_API_URL");
-const ADMIN_API_KEY = requiredEnv("ADMIN_API_KEY");
+function requiredEnvAny(names) {
+  for (const name of names) {
+    const v = String(process.env[name] || "").trim();
+    if (v) return v;
+  }
+
+  const presence = Object.fromEntries(
+    names.map((n) => [n, Boolean(String(process.env[n] || "").trim())])
+  );
+  throw new Error(
+    `Missing env: ${names[0]} (also checked: ${names.slice(1).join(", ")}) | cwd=${process.cwd()} | present=${JSON.stringify(
+      presence
+    )}`
+  );
+}
+
+const ANNOUNCE_API_URL = requiredEnvAny([
+  "ANNOUNCE_API_URL",
+  "ANNOUNCE_URL",
+  "ANNOUNCEMENTS_API_URL",
+]);
+const ADMIN_API_KEY = requiredEnvAny(["ADMIN_API_KEY", "ADMIN_KEY"]);
 const DISCORD_BOT_TOKEN = requiredEnv("DISCORD_BOT_TOKEN");
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
