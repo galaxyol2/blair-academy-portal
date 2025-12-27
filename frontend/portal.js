@@ -52,8 +52,8 @@ function currentPage() {
 }
 
 function pageKind() {
-  if (document.querySelector("form[data-auth]")) return "auth";
   if (document.querySelector(".portal-shell")) return "dashboard";
+  if (document.querySelector("form[data-auth]")) return "auth";
   return "other";
 }
 
