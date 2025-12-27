@@ -15,6 +15,18 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css" />
+    <script>
+      (function () {
+        if (window.location.protocol === "file:") return;
+        try {
+          var raw = localStorage.getItem("blair.portal.session");
+          var session = raw ? JSON.parse(raw) : null;
+          if (!session || !session.token) window.location.replace("./login.html");
+        } catch (_e) {
+          window.location.replace("./login.html");
+        }
+      })();
+    </script>
     <script defer src="./config.js"></script>
     <script defer src="./portal.js"></script>
   </head>
