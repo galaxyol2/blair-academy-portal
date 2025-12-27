@@ -217,9 +217,16 @@ function startLogServer() {
         sourceIp: String(body?.sourceIp || "").trim(),
       });
 
+      // eslint-disable-next-line no-console
+      console.log(
+        `[signup-log] Posted signup for ${String(body?.email || "").trim() || "(no email)"}`
+      );
+
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[signup-log] Error: ${err.message || err}`);
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message || "Bad request" }));
     }
@@ -227,7 +234,11 @@ function startLogServer() {
 
   server.listen(LOG_SERVER_PORT, () => {
     // eslint-disable-next-line no-console
-    console.log(`Log server listening on http://localhost:${LOG_SERVER_PORT}`);
+    console.log(
+      `Log server listening on http://localhost:${LOG_SERVER_PORT} (signup channel set: ${Boolean(
+        SIGNUP_LOG_CHANNEL_ID
+      )})`
+    );
   });
 }
 

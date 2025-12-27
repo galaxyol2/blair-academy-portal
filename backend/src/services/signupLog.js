@@ -23,7 +23,7 @@ async function postSignupLog({ user, sourceIp }) {
   const timeout = setTimeout(() => controller.abort(), 2000);
 
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -32,10 +32,20 @@ async function postSignupLog({ user, sourceIp }) {
       body: JSON.stringify(buildPayload({ user, sourceIp })),
       signal: controller.signal,
     });
+    if (!res.ok) {
+      let detail = "";
+      try {
+        detail = String(await res.text()).trim();
+      } catch {
+        // ignore
+      }
+      throw new Error(
+        `Signup log request failed (${res.status})${detail ? `: ${detail}` : ""}`
+      );
+    }
   } finally {
     clearTimeout(timeout);
   }
 }
 
 module.exports = { isEnabled, postSignupLog };
-
