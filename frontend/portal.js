@@ -235,12 +235,34 @@ async function handleAuthSubmit(form) {
     setSession({ token, user });
     window.location.href = "./index.html";
   } catch (err) {
-    const msg =
-      err?.message ||
-      "Login/signup failed. Start your backend auth server and try again.";
+    const apiHint = ` (API: ${apiBaseUrl()})`;
+
+    if (err?.status === 409 && mode === "signup") {
+      setFormError(form, "That email is already in use. Try logging in instead.");
+      return;
+    }
+
+    if (err?.status === 401 && mode === "login") {
+      setFormError(form, "Invalid email or password.");
+      return;
+    }
+
+    if (err?.status === 401 && mode === "reset") {
+      setFormError(form, "That reset link is invalid or expired. Request a new one.");
+      return;
+    }
+
+    // Helpful hint if the API base URL is still pointing to localhost / not configured.
+    const base = apiBaseUrl();
+    const baseMisconfigured =
+      base.includes("localhost") || base.includes("127.0.0.1") || base === "";
+
+    const msg = err?.message || "Request failed.";
     setFormError(
       form,
-      `${msg} (API: ${apiBaseUrl()}) — set it in frontend/config.js or localStorage blair.portal.apiBaseUrl`
+      baseMisconfigured
+        ? `${msg}${apiHint} — set your deployed API in frontend/config.js`
+        : `${msg}${apiHint}`
     );
   }
 }
