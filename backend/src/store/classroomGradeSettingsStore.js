@@ -161,9 +161,10 @@ function createPgClassroomGradeSettingsStore() {
       if (res.rows[0]) return rowToSettings(res.rows[0]);
 
       const created = defaultSettings({ classroomId, teacherId });
+      const categoriesJson = JSON.stringify(created.categories);
       const insert = await pool.query(
         `INSERT INTO classroom_grade_settings (id, classroom_id, teacher_id, categories, late_penalty_per_day_pct, max_late_penalty_pct)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6)
          RETURNING id,
                    classroom_id AS "classroomId",
                    teacher_id AS "teacherId",
@@ -176,7 +177,7 @@ function createPgClassroomGradeSettingsStore() {
           created.id,
           classroomId,
           teacherId,
-          created.categories,
+          categoriesJson,
           created.latePenaltyPerDayPct,
           created.maxLatePenaltyPct,
         ]
@@ -195,10 +196,11 @@ function createPgClassroomGradeSettingsStore() {
         latePenaltyPerDayPct: normalizePct(latePenaltyPerDayPct, base.latePenaltyPerDayPct, { min: 0, max: 100 }),
         maxLatePenaltyPct: normalizePct(maxLatePenaltyPct, base.maxLatePenaltyPct, { min: 0, max: 100 }),
       };
+      const categoriesJson = JSON.stringify(updated.categories);
 
       const res = await pool.query(
         `UPDATE classroom_grade_settings
-            SET categories = $3,
+            SET categories = $3::jsonb,
                 late_penalty_per_day_pct = $4,
                 max_late_penalty_pct = $5,
                 updated_at = NOW()
@@ -214,7 +216,7 @@ function createPgClassroomGradeSettingsStore() {
         [
           classroomId,
           teacherId,
-          updated.categories,
+          categoriesJson,
           updated.latePenaltyPerDayPct,
           updated.maxLatePenaltyPct,
         ]
@@ -229,4 +231,3 @@ const classroomGradeSettingsStore = process.env.DATABASE_URL
   : createJsonClassroomGradeSettingsStore();
 
 module.exports = { classroomGradeSettingsStore };
-
