@@ -528,7 +528,7 @@ function renderClassroomAnnouncements(container, items, { showDelete = false } =
 
     const body = document.createElement("p");
     body.className = "feed__text";
-    body.textContent = String(a.body || "");
+    setTextWithLinks(body, String(a.body || ""));
 
     let actions = null;
     if (showDelete) {
@@ -692,7 +692,7 @@ function renderStudentModules(container, modules, classroomId) {
 
         const body = document.createElement("p");
         body.className = "feed__text";
-        body.textContent = String(a.body || "");
+        setTextWithLinks(body, String(a.body || ""));
 
         const actions = document.createElement("div");
         actions.className = "feed__actions";
@@ -1226,7 +1226,7 @@ function renderModules(container, modules) {
 
         const body = document.createElement("p");
         body.className = "feed__text";
-        body.textContent = String(a.body || "");
+        setTextWithLinks(body, String(a.body || ""));
 
         const actions = document.createElement("div");
         actions.className = "feed__actions";
@@ -1758,6 +1758,52 @@ function initResetToken() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token") || "";
   tokenInput.value = token;
+}
+
+function linkifyTextToFragment(text) {
+  const fragment = document.createDocumentFragment();
+  const raw = String(text || "");
+  if (!raw) return fragment;
+
+  const urlRe = /\bhttps?:\/\/[^\s<]+/gi;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = urlRe.exec(raw))) {
+    const start = match.index;
+    const end = urlRe.lastIndex;
+
+    if (start > lastIndex) {
+      fragment.appendChild(document.createTextNode(raw.slice(lastIndex, start)));
+    }
+
+    const full = match[0];
+    const trimmed = full.replace(/[)\].,;!?]+$/g, "");
+    const trailing = full.slice(trimmed.length);
+
+    const a = document.createElement("a");
+    a.textContent = trimmed;
+    a.href = trimmed;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    fragment.appendChild(a);
+
+    if (trailing) fragment.appendChild(document.createTextNode(trailing));
+
+    lastIndex = end;
+  }
+
+  if (lastIndex < raw.length) {
+    fragment.appendChild(document.createTextNode(raw.slice(lastIndex)));
+  }
+
+  return fragment;
+}
+
+function setTextWithLinks(el, text) {
+  if (!el) return;
+  el.textContent = "";
+  el.appendChild(linkifyTextToFragment(text));
 }
 
 function formatShortDate(value) {
