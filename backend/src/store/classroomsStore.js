@@ -87,6 +87,15 @@ function createJsonClassroomsStore() {
       await writeDb(db);
       return classroom;
     },
+
+    async deleteForTeacher({ teacherId, id }) {
+      const db = await readDb();
+      const idx = db.classrooms.findIndex((c) => c.id === id && c.teacherId === teacherId);
+      if (idx === -1) return null;
+      const [deleted] = db.classrooms.splice(idx, 1);
+      await writeDb(db);
+      return deleted || null;
+    },
   };
 }
 
@@ -217,6 +226,22 @@ function createPgClassroomsStore() {
       }
 
       throw new Error("Unable to create classroom (join code collision)");
+    },
+
+    async deleteForTeacher({ teacherId, id }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classrooms
+          WHERE id = $1 AND teacher_id = $2
+          RETURNING id,
+                    teacher_id AS "teacherId",
+                    name,
+                    section,
+                    join_code AS "joinCode",
+                    created_at AS "createdAt"`,
+        [id, teacherId]
+      );
+      return res.rows[0] || null;
     },
   };
 }

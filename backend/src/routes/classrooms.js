@@ -405,6 +405,47 @@ function buildClassroomsRouter() {
     res.json({ ok: true });
   });
 
+  router.delete("/:id", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    try {
+      const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+      const removed = {
+        memberships: await classroomMembershipsStore.removeByClassroom({ classroomId: classroom.id }),
+        submissions: await classroomSubmissionsStore.deleteByClassroom({ classroomId: classroom.id }),
+        grades: await classroomGradesStore.deleteByClassroom({ classroomId: classroom.id }),
+        rubrics: await classroomRubricsStore.deleteByClassroom({ classroomId: classroom.id }),
+        gradeSettings: await classroomGradeSettingsStore.deleteByClassroom({ classroomId: classroom.id }),
+        announcements: await classroomAnnouncementsStore.deleteByClassroom({ classroomId: classroom.id }),
+      };
+
+      const moduleRemoved = await classroomModulesStore.deleteByClassroom({
+        classroomId: classroom.id,
+        teacherId: classroom.teacherId,
+      });
+
+      const deletedClassroom = await classroomsStore.deleteForTeacher({ teacherId: req.userId, id: classroom.id });
+      if (!deletedClassroom) return res.status(404).json({ error: "Classroom not found" });
+
+      res.json({
+        ok: true,
+        classroom: deletedClassroom,
+        removed: {
+          ...removed,
+          modules: moduleRemoved.removedModules,
+          assignments: moduleRemoved.removedAssignments,
+        },
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[classrooms.delete] failed", err);
+      return res.status(500).json({ error: "Unable to delete classroom" });
+    }
+  });
+
   router.get("/:id/grade-settings", requireAuth, requireTeacher, async (req, res) => {
     const id = String(req.params?.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing classroom id" });

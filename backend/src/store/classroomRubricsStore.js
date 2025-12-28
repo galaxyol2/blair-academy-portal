@@ -69,6 +69,15 @@ function createJsonClassroomRubricsStore() {
       await writeDb(db);
       return item;
     },
+
+    async deleteByClassroom({ classroomId }) {
+      const db = await readDb();
+      const before = db.rubrics.length;
+      db.rubrics = db.rubrics.filter((r) => r.classroomId !== classroomId);
+      const removed = before - db.rubrics.length;
+      if (removed) await writeDb(db);
+      return removed;
+    },
   };
 }
 
@@ -142,6 +151,15 @@ function createPgClassroomRubricsStore() {
       );
       return res.rows[0];
     },
+
+    async deleteByClassroom({ classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classroom_rubrics WHERE classroom_id = $1`,
+        [classroomId]
+      );
+      return res.rowCount || 0;
+    },
   };
 }
 
@@ -150,4 +168,3 @@ const classroomRubricsStore = process.env.DATABASE_URL
   : createJsonClassroomRubricsStore();
 
 module.exports = { classroomRubricsStore };
-

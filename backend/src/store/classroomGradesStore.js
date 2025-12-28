@@ -131,6 +131,15 @@ function createJsonClassroomGradesStore() {
       await writeDb(db);
       return item;
     },
+
+    async deleteByClassroom({ classroomId }) {
+      const db = await readDb();
+      const before = db.grades.length;
+      db.grades = db.grades.filter((g) => g.classroomId !== classroomId);
+      const removed = before - db.grades.length;
+      if (removed) await writeDb(db);
+      return removed;
+    },
   };
 }
 
@@ -263,6 +272,15 @@ function createPgClassroomGradesStore() {
         [id, classroomId, assignmentId, studentId, teacherId, pe, st, rs, lateDays, fb]
       );
       return res.rows[0];
+    },
+
+    async deleteByClassroom({ classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classroom_grades WHERE classroom_id = $1`,
+        [classroomId]
+      );
+      return res.rowCount || 0;
     },
   };
 }

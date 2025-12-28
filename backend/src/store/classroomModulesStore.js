@@ -152,6 +152,22 @@ function createJsonClassroomModulesStore() {
       await writeDb(db);
       return deleted || null;
     },
+
+    async deleteByClassroom({ classroomId, teacherId }) {
+      const db = await readDb();
+      const beforeModules = db.modules.length;
+      const beforeAssignments = db.assignments.length;
+      db.modules = db.modules.filter(
+        (m) => !(m.classroomId === classroomId && (!teacherId || m.teacherId === teacherId))
+      );
+      db.assignments = db.assignments.filter(
+        (a) => !(a.classroomId === classroomId && (!teacherId || a.teacherId === teacherId))
+      );
+      const removedModules = beforeModules - db.modules.length;
+      const removedAssignments = beforeAssignments - db.assignments.length;
+      if (removedModules || removedAssignments) await writeDb(db);
+      return { removedModules, removedAssignments };
+    },
   };
 }
 
@@ -349,6 +365,27 @@ function createPgClassroomModulesStore() {
         [assignmentId, moduleId, classroomId, teacherId]
       );
       return res.rows[0] || null;
+    },
+
+    async deleteByClassroom({ classroomId, teacherId }) {
+      await ensureSchema();
+      const params = [classroomId];
+      const teacherClause = teacherId ? " AND teacher_id = $2" : "";
+      if (teacherId) params.push(teacherId);
+
+      const deletedAssignments = await pool.query(
+        `DELETE FROM classroom_assignments WHERE classroom_id = $1${teacherClause}`,
+        params
+      );
+      const deletedModules = await pool.query(
+        `DELETE FROM classroom_modules WHERE classroom_id = $1${teacherClause}`,
+        params
+      );
+
+      return {
+        removedModules: deletedModules.rowCount || 0,
+        removedAssignments: deletedAssignments.rowCount || 0,
+      };
     },
   };
 }

@@ -2956,6 +2956,44 @@ function initTeacherPeopleInteractions() {
   });
 }
 
+function initTeacherDeleteClassroom() {
+  const btn = document.querySelector("[data-classroom-delete]");
+  if (!btn) return;
+  if (pageRole() !== "teacher") return;
+
+  btn.addEventListener("click", async () => {
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const nameEl = document.querySelector("[data-classroom-name]");
+    const classroomName = String(nameEl?.textContent || "").trim() || "this classroom";
+
+    const ok = window.confirm(
+      `Delete ${classroomName}? This removes all modules, assignments, announcements, grades, submissions, and kicks all students.`
+    );
+    if (!ok) return;
+
+    btn.disabled = true;
+    const prevText = btn.textContent;
+    btn.textContent = "Deleting...";
+
+    try {
+      await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}`, { method: "DELETE" });
+      try {
+        sessionStorage.removeItem(`blair.portal.teacher.modules:${classroomId}`);
+        sessionStorage.removeItem(`blair.portal.teacher.gradebook:${classroomId}`);
+      } catch (_e) {
+        // ignore
+      }
+      window.location.href = teacherDashboardUrl();
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = prevText;
+      window.alert(err?.message || "Unable to delete classroom.");
+    }
+  });
+}
+
 function initTeacherClassroomCreate() {
   const form = document.querySelector("form[data-classroom-create]");
   if (!form) return;
@@ -3411,6 +3449,7 @@ function initPasswordToggles() {
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomTabs();
     loadTeacherClassroomDetails();
+    initTeacherDeleteClassroom();
   }
 
   if (pageKind() === "dashboard" && pageRole() === "teacher") {

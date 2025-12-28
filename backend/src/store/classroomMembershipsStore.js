@@ -65,6 +65,15 @@ function createJsonClassroomMembershipsStore() {
       await writeDb(db);
       return { ...item, existed: false };
     },
+
+    async removeByClassroom({ classroomId }) {
+      const db = await readDb();
+      const before = db.memberships.length;
+      db.memberships = db.memberships.filter((m) => m.classroomId !== classroomId);
+      const removed = before - db.memberships.length;
+      if (removed) await writeDb(db);
+      return removed;
+    },
   };
 }
 
@@ -151,6 +160,15 @@ function createPgClassroomMembershipsStore() {
         if (err && err.code === "23505") return { classroomId, studentId, existed: true };
         throw err;
       }
+    },
+
+    async removeByClassroom({ classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classroom_memberships WHERE classroom_id = $1`,
+        [classroomId]
+      );
+      return res.rowCount || 0;
     },
   };
 }

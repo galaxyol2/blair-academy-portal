@@ -63,6 +63,15 @@ function createJsonClassroomAnnouncementsStore() {
       await writeDb(db);
       return deleted || null;
     },
+
+    async deleteByClassroom({ classroomId }) {
+      const db = await readDb();
+      const before = db.announcements.length;
+      db.announcements = db.announcements.filter((a) => a.classroomId !== classroomId);
+      const removed = before - db.announcements.length;
+      if (removed) await writeDb(db);
+      return removed;
+    },
   };
 }
 
@@ -145,6 +154,15 @@ function createPgClassroomAnnouncementsStore() {
         [id, teacherId, classroomId]
       );
       return res.rows[0] || null;
+    },
+
+    async deleteByClassroom({ classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classroom_announcements WHERE classroom_id = $1`,
+        [classroomId]
+      );
+      return res.rowCount || 0;
     },
   };
 }
