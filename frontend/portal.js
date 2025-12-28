@@ -1532,7 +1532,7 @@ async function handleAuthSubmit(form) {
     }
 
     if (err?.status === 403 && mode === "login") {
-      setFormError(form, "Teacher account detected. Use Teacher/Employee log in.");
+      setFormError(form, "Invalid login.");
       return;
     }
 
