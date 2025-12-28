@@ -434,7 +434,7 @@ function initTeacherClassroomTabs() {
   });
 }
 
-function renderClassroomAnnouncements(container, items) {
+function renderClassroomAnnouncements(container, items, { showDelete = false } = {}) {
   container.innerHTML = "";
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -466,20 +466,23 @@ function renderClassroomAnnouncements(container, items) {
     body.className = "feed__text";
     body.textContent = String(a.body || "");
 
-    const actions = document.createElement("div");
-    actions.className = "feed__actions";
+    let actions = null;
+    if (showDelete) {
+      actions = document.createElement("div");
+      actions.className = "feed__actions";
 
-    const del = document.createElement("button");
-    del.type = "button";
-    del.className = "btn btn--danger";
-    del.textContent = "Delete";
-    del.setAttribute("data-announcement-delete", String(a.id || ""));
-    actions.appendChild(del);
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "btn btn--danger";
+      del.textContent = "Delete";
+      del.setAttribute("data-announcement-delete", String(a.id || ""));
+      actions.appendChild(del);
+    }
 
     item.appendChild(meta);
     item.appendChild(title);
     item.appendChild(body);
-    item.appendChild(actions);
+    if (actions) item.appendChild(actions);
     list.appendChild(item);
   }
 
@@ -509,12 +512,33 @@ async function loadClassroomAnnouncements() {
     const data = await apiFetch(
       `/api/classrooms/${encodeURIComponent(id)}/announcements?limit=50`
     );
-    renderClassroomAnnouncements(container, data?.items || []);
+    renderClassroomAnnouncements(container, data?.items || [], { showDelete: true });
   } catch (_err) {
     container.innerHTML = "";
     const msg = document.createElement("p");
     msg.className = "empty-state";
     msg.textContent = "Unable to load announcements.";
+    container.appendChild(msg);
+  }
+}
+
+async function loadClassroomRecentActivity() {
+  const container = document.querySelector("[data-classroom-recent]");
+  if (!container) return;
+
+  const id = currentClassroomIdFromQuery();
+  if (!id) return;
+
+  try {
+    const data = await apiFetch(
+      `/api/classrooms/${encodeURIComponent(id)}/announcements?limit=5`
+    );
+    renderClassroomAnnouncements(container, data?.items || [], { showDelete: false });
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load recent activity.";
     container.appendChild(msg);
   }
 }
@@ -551,6 +575,7 @@ function initClassroomAnnouncementComposer() {
       });
       form.reset();
       setFormSuccess(form, "Posted.");
+      await loadClassroomRecentActivity();
       await loadClassroomAnnouncements();
     } catch (err) {
       if (err?.status === 403) {
@@ -583,6 +608,7 @@ function initClassroomAnnouncementDelete() {
         `/api/classrooms/${encodeURIComponent(classroomId)}/announcements/${encodeURIComponent(id)}`,
         { method: "DELETE" }
       );
+      await loadClassroomRecentActivity();
       await loadClassroomAnnouncements();
     } catch (err) {
       // eslint-disable-next-line no-alert
@@ -937,15 +963,17 @@ if (routeGuards()) {
       if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
         const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
         if (tab === "announcements") loadClassroomAnnouncements();
+        if (tab === "home") loadClassroomRecentActivity();
       }
     };
 
     window.addEventListener("blair:classroomTab", (e) => {
       const tab = e?.detail?.tab;
       if (tab === "announcements") loadClassroomAnnouncements();
+      if (tab === "home") loadClassroomRecentActivity();
     });
 
-    // Load on first visit if the hash is already #announcements
+    // Load on first visit based on current tab
     maybeLoad();
   }
 }
