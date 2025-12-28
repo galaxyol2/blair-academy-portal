@@ -923,6 +923,19 @@ a:hover {
   color: var(--muted);
 }
 
+.feed__text a,
+.announcement__body a {
+  color: rgba(0, 75, 141, 0.98);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.feed__text a:hover,
+.announcement__body a:hover {
+  text-decoration-thickness: 3px;
+}
+
 .assignment-submissions {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
