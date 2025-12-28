@@ -927,11 +927,25 @@ function renderStudentModules(container, modules, classroomId) {
         setTextWithLinks(body, String(a.body || ""));
 
         const actions = document.createElement("div");
-        actions.className = "feed__actions";
+        actions.className = "feed__actions feed__actions--between";
+
+        const submitted = Boolean(a.submitted);
+        if (submitted) {
+          const status = document.createElement("span");
+          status.className = "feed__status feed__status--submitted";
+          status.textContent = "Submitted";
+          actions.appendChild(status);
+        } else {
+          const spacer = document.createElement("span");
+          spacer.className = "feed__status";
+          spacer.textContent = "";
+          actions.appendChild(spacer);
+        }
+
         const submit = document.createElement("a");
-        submit.className = "btn btn--primary btn--sm";
+        submit.className = submitted ? "btn btn--secondary btn--sm" : "btn btn--primary btn--sm";
         submit.href = studentAssignmentUrl({ classroomId, assignmentId: a.id });
-        submit.textContent = "Submit";
+        submit.textContent = submitted ? "Re-submit" : "Submit";
         actions.appendChild(submit);
 
         row.appendChild(meta);
@@ -1328,8 +1342,15 @@ function initStudentAssignmentSubmission() {
         `/api/student/classrooms/${encodeURIComponent(classroomId)}/assignments/${encodeURIComponent(assignmentId)}/submissions`,
         { method: "POST", body: JSON.stringify({ type, payload }) }
       );
-      setFormSuccess(form, "Submitted.");
-      await loadStudentAssignmentSubmissions({ classroomId, assignmentId });
+      // Invalidate modules cache so the classroom Modules tab can immediately show "Submitted".
+      try {
+        sessionStorage.removeItem(`blair.portal.student.modules:${classroomId}`);
+      } catch (_e) {
+        // ignore
+      }
+
+      const target = `${studentClassroomUrl(classroomId)}#modules`;
+      window.location.href = target;
     } catch (err) {
       setFormError(form, err?.message || "Failed to submit.");
     }

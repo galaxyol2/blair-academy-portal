@@ -148,12 +148,28 @@ function buildStudentClassroomsRouter() {
     const classroom = await classroomsStore.getById(req.classroomId);
     if (!classroom) return res.status(404).json({ error: "Classroom not found" });
 
+    const submittedAssignmentIds = new Set(
+      await classroomSubmissionsStore.listSubmittedAssignmentIdsInClassroom({
+        classroomId: classroom.id,
+        studentId: req.userId,
+      })
+    );
+
     const items = await classroomModulesStore.listWithAssignments({
       classroomId: classroom.id,
       teacherId: classroom.teacherId,
       limit: req.query?.limit,
     });
-    res.json({ items });
+
+    const modules = (Array.isArray(items) ? items : []).map((m) => ({
+      ...m,
+      assignments: (Array.isArray(m.assignments) ? m.assignments : []).map((a) => ({
+        ...a,
+        submitted: submittedAssignmentIds.has(String(a.id || "")),
+      })),
+    }));
+
+    res.json({ items: modules });
   });
 
   router.get("/:id/grades", requireAuth, requireStudent, requireMembership, async (req, res) => {

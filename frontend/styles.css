@@ -773,6 +773,21 @@ a:hover {
   gap: 0.5rem;
 }
 
+.feed__actions--between {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feed__status {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: rgba(26, 28, 31, 0.62);
+}
+
+.feed__status--submitted {
+  color: rgba(20, 110, 60, 0.95);
+}
+
 .module-card {
   border: 1px solid var(--border);
   border-radius: var(--radius);
