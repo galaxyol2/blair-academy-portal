@@ -10,6 +10,7 @@ const { classroomGradesStore } = require("../store/classroomGradesStore");
 const { classroomGradeSettingsStore } = require("../store/classroomGradeSettingsStore");
 const { classroomRubricsStore } = require("../store/classroomRubricsStore");
 const { usersStore } = require("../store/usersStore");
+const { computeStudentCurrentGradePercent, letterFromPercent } = require("../services/gradeSummary");
 
 function buildClassroomsRouter() {
   const router = express.Router();
@@ -311,10 +312,61 @@ function buildClassroomsRouter() {
       if (u) students.set(sid, { id: u.id, name: u.name, email: u.email, role: u.role });
     }
 
+    const settings = await classroomGradeSettingsStore.getOrCreate({
+      classroomId: classroom.id,
+      teacherId: classroom.teacherId,
+    });
+
+    const modules = await classroomModulesStore.listWithAssignments({
+      classroomId: classroom.id,
+      teacherId: classroom.teacherId,
+      limit: 200,
+    });
+
+    const assignments = [];
+    for (const mod of modules) {
+      for (const a of Array.isArray(mod.assignments) ? mod.assignments : []) {
+        assignments.push({
+          id: a.id,
+          points: a.points || "",
+          dueAt: a.dueAt || "",
+          category: a.category || "Homework",
+        });
+      }
+    }
+
+    const allGrades = await classroomGradesStore.listByClassroom({ classroomId: classroom.id });
+    const gradesByStudentId = new Map();
+    for (const g of Array.isArray(allGrades) ? allGrades : []) {
+      const sid = String(g.studentId || "").trim();
+      if (!sid) continue;
+      if (!gradesByStudentId.has(sid)) gradesByStudentId.set(sid, []);
+      gradesByStudentId.get(sid).push(g);
+    }
+
+    const submittedByStudentId = await classroomSubmissionsStore.listSubmittedAssignmentIdsByStudentInClassroom({
+      classroomId: classroom.id,
+    });
+
     res.json({
       items: memberships.map((m) => ({
         classroomId: m.classroomId,
         student: students.get(m.studentId) || { id: m.studentId, name: "Student", email: "", role: "" },
+        grade:
+          m.studentId && students.get(m.studentId)?.role === "student"
+            ? (() => {
+                const percent = computeStudentCurrentGradePercent({
+                  settings,
+                  assignments,
+                  grades: gradesByStudentId.get(String(m.studentId)) || [],
+                  submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
+                });
+                return {
+                  percent: percent == null ? null : Math.round(percent),
+                  letter: percent == null ? "N/A" : letterFromPercent(percent),
+                };
+              })()
+            : { percent: null, letter: "N/A" },
         joinedAt: m.createdAt,
       })),
     });

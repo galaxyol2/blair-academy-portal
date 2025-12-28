@@ -950,6 +950,21 @@ a:hover {
   padding-bottom: 0;
 }
 
+.people-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.4rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: rgba(0, 75, 141, 0.1);
+  border: 1px solid rgba(0, 75, 141, 0.22);
+  color: rgba(0, 75, 141, 0.95);
+}
+
 .feed__meta {
   margin: 0 0 0.25rem;
   color: rgba(26, 28, 31, 0.62);

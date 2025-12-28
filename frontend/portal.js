@@ -1668,7 +1668,19 @@ function renderTeacherPeople(container, items) {
 
     const title = document.createElement("h4");
     title.className = "feed__title";
-    title.textContent = email ? `${name} (${email})` : name;
+    const baseLabel = email ? `${name} (${email})` : name;
+    title.appendChild(document.createTextNode(baseLabel));
+
+    const letter = String(entry?.grade?.letter || "").trim();
+    const percentRaw = entry?.grade?.percent;
+    const percent = Number.isFinite(Number(percentRaw)) ? Number(percentRaw) : null;
+    if (letter && letter !== "N/A" && percent !== null) {
+      const badge = document.createElement("span");
+      badge.className = "people-grade";
+      badge.textContent = `${letter} ${percent}%`;
+      title.appendChild(document.createTextNode(" "));
+      title.appendChild(badge);
+    }
 
     const actions = document.createElement("div");
     actions.className = "feed__actions";

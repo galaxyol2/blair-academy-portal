@@ -57,6 +57,23 @@ function createJsonClassroomSubmissionsStore() {
       return [...ids];
     },
 
+    async listSubmittedAssignmentIdsByStudentInClassroom({ classroomId }) {
+      const db = await readDb();
+      const out = new Map();
+      for (const s of db.submissions) {
+        if (s.classroomId !== classroomId) continue;
+        const sid = String(s.studentId || "").trim();
+        if (!sid) continue;
+        const aid = String(s.assignmentId || "").trim();
+        if (!aid) continue;
+        if (!out.has(sid)) out.set(sid, new Set());
+        out.get(sid).add(aid);
+      }
+      const obj = {};
+      for (const [sid, set] of out.entries()) obj[sid] = [...set];
+      return obj;
+    },
+
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {
       const db = await readDb();
       const l = normalizeLimit(limit, 10);
@@ -169,6 +186,25 @@ function createPgClassroomSubmissionsStore() {
         [classroomId, studentId]
       );
       return res.rows.map((r) => String(r.assignmentId));
+    },
+
+    async listSubmittedAssignmentIdsByStudentInClassroom({ classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT student_id AS "studentId",
+                array_agg(DISTINCT assignment_id) AS "assignmentIds"
+           FROM classroom_submissions
+          WHERE classroom_id = $1
+          GROUP BY student_id`,
+        [classroomId]
+      );
+      const obj = {};
+      for (const row of res.rows) {
+        obj[String(row.studentId)] = Array.isArray(row.assignmentIds)
+          ? row.assignmentIds.map((id) => String(id))
+          : [];
+      }
+      return obj;
     },
 
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {
