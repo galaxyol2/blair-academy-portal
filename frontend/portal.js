@@ -451,6 +451,7 @@ function renderClassroomAnnouncements(container, items) {
   for (const a of items) {
     const item = document.createElement("div");
     item.className = "feed__item";
+    item.setAttribute("data-announcement-id", String(a.id || ""));
 
     const meta = document.createElement("p");
     meta.className = "feed__meta";
@@ -465,9 +466,20 @@ function renderClassroomAnnouncements(container, items) {
     body.className = "feed__text";
     body.textContent = String(a.body || "");
 
+    const actions = document.createElement("div");
+    actions.className = "feed__actions";
+
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn btn--danger";
+    del.textContent = "Delete";
+    del.setAttribute("data-announcement-delete", String(a.id || ""));
+    actions.appendChild(del);
+
     item.appendChild(meta);
     item.appendChild(title);
     item.appendChild(body);
+    item.appendChild(actions);
     list.appendChild(item);
   }
 
@@ -546,6 +558,35 @@ function initClassroomAnnouncementComposer() {
         return;
       }
       setFormError(form, err?.message || "Failed to post.");
+    }
+  });
+}
+
+function initClassroomAnnouncementDelete() {
+  const container = document.querySelector("[data-classroom-announcements]");
+  if (!container) return;
+
+  container.addEventListener("click", async (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const id = target.getAttribute("data-announcement-delete");
+    if (!id) return;
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const ok = window.confirm("Delete this announcement?");
+    if (!ok) return;
+
+    try {
+      await apiFetch(
+        `/api/classrooms/${encodeURIComponent(classroomId)}/announcements/${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      await loadClassroomAnnouncements();
+    } catch (err) {
+      // eslint-disable-next-line no-alert
+      alert(err?.message || "Failed to delete.");
     }
   });
 }
@@ -890,6 +931,7 @@ if (routeGuards()) {
 
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initClassroomAnnouncementComposer();
+    initClassroomAnnouncementDelete();
 
     const maybeLoad = () => {
       if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {

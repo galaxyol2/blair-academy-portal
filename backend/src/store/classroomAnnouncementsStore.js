@@ -52,6 +52,17 @@ function createJsonClassroomAnnouncementsStore() {
       await writeDb(db);
       return item;
     },
+
+    async deleteById({ id, teacherId, classroomId }) {
+      const db = await readDb();
+      const idx = db.announcements.findIndex(
+        (a) => a.id === id && a.teacherId === teacherId && a.classroomId === classroomId
+      );
+      if (idx === -1) return null;
+      const [deleted] = db.announcements.splice(idx, 1);
+      await writeDb(db);
+      return deleted || null;
+    },
   };
 }
 
@@ -119,6 +130,22 @@ function createPgClassroomAnnouncementsStore() {
       );
       return res.rows[0];
     },
+
+    async deleteById({ id, teacherId, classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classroom_announcements
+          WHERE id = $1 AND teacher_id = $2 AND classroom_id = $3
+          RETURNING id,
+                    classroom_id AS "classroomId",
+                    teacher_id AS "teacherId",
+                    title,
+                    body,
+                    created_at AS "createdAt"`,
+        [id, teacherId, classroomId]
+      );
+      return res.rows[0] || null;
+    },
   };
 }
 
@@ -127,4 +154,3 @@ const classroomAnnouncementsStore = process.env.DATABASE_URL
   : createJsonClassroomAnnouncementsStore();
 
 module.exports = { classroomAnnouncementsStore };
-

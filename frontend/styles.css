@@ -733,6 +733,24 @@ a:hover {
   white-space: nowrap;
 }
 
+/* Announcement actions */
+.feed__actions {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn--danger {
+  border-color: rgba(200, 40, 40, 0.35);
+  background: rgba(255, 255, 255, 0.96);
+  color: rgba(150, 20, 20, 0.95);
+}
+
+.btn--danger:hover {
+  border-color: rgba(200, 40, 40, 0.55);
+  background: rgba(255, 230, 230, 0.75);
+}
+
 @media (max-width: 520px) {
   .tile--row {
     flex-direction: column;

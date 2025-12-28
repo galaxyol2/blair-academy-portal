@@ -58,6 +58,30 @@ function buildClassroomsRouter() {
     res.status(201).json({ item });
   });
 
+  router.delete(
+    "/:id/announcements/:announcementId",
+    requireAuth,
+    requireTeacher,
+    async (req, res) => {
+      const id = String(req.params?.id || "").trim();
+      const announcementId = String(req.params?.announcementId || "").trim();
+      if (!id) return res.status(400).json({ error: "Missing classroom id" });
+      if (!announcementId) return res.status(400).json({ error: "Missing announcement id" });
+
+      const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+      const deleted = await classroomAnnouncementsStore.deleteById({
+        id: announcementId,
+        teacherId: req.userId,
+        classroomId: classroom.id,
+      });
+      if (!deleted) return res.status(404).json({ error: "Announcement not found" });
+
+      res.json({ ok: true, deleted });
+    }
+  );
+
   router.post("/", requireAuth, requireTeacher, async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const section = String(req.body?.section || "").trim();
