@@ -1039,7 +1039,7 @@ function renderStudentClassrooms(container, items) {
   container.appendChild(grid);
 }
 
-function renderStudentSidebarGrades(container, items) {
+function renderStudentGradesSummary(container, items) {
   container.innerHTML = "";
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -1050,27 +1050,27 @@ function renderStudentSidebarGrades(container, items) {
     return;
   }
 
-  const list = document.createElement("div");
-  list.className = "sidebar-grades__list";
+  const grid = document.createElement("div");
+  grid.className = "tile-grid tile-grid--compact tile-grid--rows";
 
   for (const item of items) {
     const link = document.createElement("a");
-    link.className = "sidebar-grade";
+    link.className = "tile tile--compact tile--row grade-tile";
     link.href = `${studentClassroomUrl(item.id)}#grades`;
 
     const name = document.createElement("div");
-    name.className = "sidebar-grade__name";
+    name.className = "grade-tile__name";
     name.textContent = String(item.name || "Untitled");
 
     const grade = document.createElement("div");
-    grade.className = "sidebar-grade__grade";
+    grade.className = "grade-tile__grade";
 
     const letter = document.createElement("div");
-    letter.className = "sidebar-grade__letter";
+    letter.className = "grade-tile__letter";
     letter.textContent = String(item.letter || "N/A");
 
     const percent = document.createElement("div");
-    percent.className = "sidebar-grade__percent";
+    percent.className = "grade-tile__percent";
     percent.textContent =
       item.percent == null || item.percent === ""
         ? "No grade"
@@ -1081,20 +1081,20 @@ function renderStudentSidebarGrades(container, items) {
 
     link.appendChild(name);
     link.appendChild(grade);
-    list.appendChild(link);
+    grid.appendChild(link);
   }
 
-  container.appendChild(list);
+  container.appendChild(grid);
 }
 
-async function loadStudentSidebarGrades() {
-  const container = document.querySelector("[data-sidebar-grades]");
+async function loadStudentGradesSummaryPage() {
+  const container = document.querySelector("[data-student-grades-summary]");
   if (!container) return;
 
-  const cacheKey = "blair.portal.student.sidebarGrades";
+  const cacheKey = "blair.portal.student.gradesSummary";
   const cached = readSessionCache(cacheKey);
   if (cached && Array.isArray(cached.items)) {
-    renderStudentSidebarGrades(container, cached.items);
+    renderStudentGradesSummary(container, cached.items);
   } else {
     container.innerHTML = `<p class="empty-state">Loading...</p>`;
   }
@@ -1102,7 +1102,7 @@ async function loadStudentSidebarGrades() {
   try {
     const data = await apiFetch("/api/student/classrooms/grades-summary");
     const items = Array.isArray(data?.items) ? data.items : [];
-    renderStudentSidebarGrades(container, items);
+    renderStudentGradesSummary(container, items);
     writeSessionCache(cacheKey, { items, cachedAt: new Date().toISOString() });
   } catch (_err) {
     if (cached && Array.isArray(cached.items)) return;
@@ -1117,7 +1117,7 @@ async function loadStudentClassrooms() {
   try {
     const data = await apiFetch("/api/student/classrooms");
     renderStudentClassrooms(container, data?.items || []);
-    loadStudentSidebarGrades();
+    loadStudentGradesSummaryPage();
   } catch (_err) {
     container.innerHTML = "";
     const msg = document.createElement("p");
@@ -1151,7 +1151,7 @@ function initStudentJoinClassroom() {
       form.reset();
       setFormSuccess(form, "Joined classroom.");
       await loadStudentClassrooms();
-      await loadStudentSidebarGrades();
+      await loadStudentGradesSummaryPage();
     } catch (err) {
       setFormError(form, err?.message || "Failed to join.");
     }
@@ -3358,7 +3358,7 @@ function initPasswordToggles() {
 
   initStudentJoinClassroom();
   loadStudentClassrooms();
-  loadStudentSidebarGrades();
+  loadStudentGradesSummaryPage();
 
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomCreate();

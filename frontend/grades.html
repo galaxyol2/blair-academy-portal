@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dashboard • Blair Academy Student Portal</title>
-    <meta name="description" content="Student portal home." />
+    <title>Grades - Blair Academy Student Portal</title>
+    <meta name="description" content="View your grades across all classes." />
     <link rel="icon" type="image/png" href="./assets/logo.png" />
     <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -33,14 +33,7 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     <div class="video-bg" aria-hidden="true">
-      <video
-        class="video-bg__media"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="metadata"
-      >
+      <video class="video-bg__media" autoplay muted loop playsinline preload="metadata">
         <source src="./assets/Campus.mp4" type="video/mp4" />
       </video>
     </div>
@@ -56,22 +49,11 @@
 
         <form class="portal-search" role="search" aria-label="Search">
           <label class="sr-only" for="q">Search</label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            placeholder="Search portal…"
-            autocomplete="off"
-          />
+          <input id="q" name="q" type="search" placeholder="Search portal..." autocomplete="off" />
         </form>
 
         <div class="portal-header__actions">
-          <button
-            class="sidebar-toggle"
-            type="button"
-            aria-expanded="false"
-            aria-controls="sidebar"
-          >
+          <button class="sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebar">
             Menu
           </button>
           <div class="portal-user">
@@ -86,8 +68,7 @@
               <span class="portal-user__name" data-user-name>Student</span>
             </button>
             <div id="user-menu" class="user-menu" role="menu" data-user-menu hidden>
-              <a class="user-menu__item" role="menuitem" href="/settings" data-settings
-                >Settings</a>
+              <a class="user-menu__item" role="menuitem" href="/settings" data-settings>Settings</a>
               <button
                 class="user-menu__item user-menu__item--danger"
                 role="menuitem"
@@ -102,12 +83,12 @@
       </div>
     </header>
 
-    <div class="portal-shell" data-role="student">
+    <div class="portal-shell">
       <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
         <nav class="portal-nav" aria-label="Portal">
-          <a class="portal-nav__link is-active" href="/dashboard">Home</a>
+          <a class="portal-nav__link" href="/dashboard">Home</a>
           <a class="portal-nav__link" href="/announcements">Announcements</a>
-          <a class="portal-nav__link" href="/grades">Grades</a>
+          <a class="portal-nav__link is-active" href="/grades">Grades</a>
           <a class="portal-nav__link" href="/settings">Settings</a>
         </nav>
         <div class="portal-sidebar__footer">
@@ -119,76 +100,25 @@
         <div class="container portal-main__inner">
           <div class="portal-titlebar">
             <div>
-              <p class="portal-eyebrow">Welcome</p>
-              <h1 class="portal-title">
-                <span data-user-greeting>Student</span> dashboard
-              </h1>
+              <p class="portal-eyebrow">Academics</p>
+              <h1 class="portal-title">Grades</h1>
             </div>
           </div>
 
-          <section class="portal-section" aria-label="Quick actions">
-            <div class="tile-grid">
-              <a class="tile" href="#">
-                <p class="tile__kicker">Academics</p>
-                <h2 class="tile__title">Schedule</h2>
-              </a>
-              <a class="tile" href="#">
-                <p class="tile__kicker">Campus</p>
-                <h2 class="tile__title">Dorms</h2>
-
-              </a>
-            </div>
-          </section>
-
-          <section class="portal-section portal-section--two">
+          <section class="portal-section" aria-label="All class grades">
             <div class="widget">
               <div class="widget__header">
-                <h2 class="widget__title">Announcements</h2>
-                <a class="widget__link" href="/announcements">View all</a>
+                <h2 class="widget__title">All classes</h2>
+                <a class="widget__link" href="/dashboard">Back</a>
               </div>
-              <div class="feed" data-announcements-preview>
-                <p class="empty-state" data-announcements-empty>Loading…</p>
+              <div data-student-grades-summary>
+                <p class="empty-state">Loading...</p>
               </div>
             </div>
-
-            <aside class="widget" aria-label="Classrooms">
-              <div class="widget__header">
-                <h2 class="widget__title">Classrooms</h2>
-              </div>
-
-              <form class="auth-form" data-student-join-classroom novalidate>
-                <label class="field">
-                  <span class="field__label">Join code</span>
-                  <input
-                    name="joinCode"
-                    type="text"
-                    inputmode="latin"
-                    placeholder="Enter code"
-                    required
-                  />
-                </label>
-
-                <p class="form-success" data-form-success hidden></p>
-                <p class="form-error" data-form-error hidden></p>
-
-                <button class="btn btn--primary btn--sm" type="submit">Join</button>
-              </form>
-
-              <div style="margin-top: 0.85rem" data-student-classrooms>
-                <p class="empty-state">Loading…</p>
-              </div>
-            </aside>
-
-            <aside class="widget" aria-label="My week">
-              <div class="widget__header">
-                <h2 class="widget__title">This week</h2>
-                <a class="widget__link" href="#">Calendar</a>
-              </div>
-              <p class="empty-state">No upcoming events yet.</p>
-            </aside>
           </section>
         </div>
       </main>
     </div>
   </body>
 </html>
+
