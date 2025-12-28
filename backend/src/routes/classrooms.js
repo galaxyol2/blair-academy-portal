@@ -146,7 +146,7 @@ function buildClassroomsRouter() {
         if (!Number.isFinite(p) || !Number.isInteger(p) || p <= 0) {
           return res.status(400).json({ error: "Points must be a whole number" });
         }
-        if (p > 500) return res.status(400).json({ error: "Points is too high" });
+        if (p > 100) return res.status(400).json({ error: "Points must be between 1 and 100" });
         points = p;
       }
 
