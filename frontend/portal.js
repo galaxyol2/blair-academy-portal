@@ -17,6 +17,24 @@ function clearSession() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+function readSessionCache(key) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (_err) {
+    return null;
+  }
+}
+
+function writeSessionCache(key, value) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch (_err) {
+    // ignore
+  }
+}
+
 function apiBaseUrl() {
   const override = localStorage.getItem("blair.portal.apiBaseUrl");
   if (override) {
@@ -705,15 +723,37 @@ async function loadStudentClassroomModules() {
   const id = currentClassroomIdFromQuery();
   if (!id) return;
 
+  const cacheKey = `blair.portal.student.modules:${id}`;
+  const cached = readSessionCache(cacheKey);
+  if (cached && Array.isArray(cached.items)) {
+    renderStudentModules(container, cached.items, id);
+  } else {
+    container.innerHTML = `<p class="empty-state">Loading.</p>`;
+  }
+
   try {
     const data = await apiFetch(`/api/student/classrooms/${encodeURIComponent(id)}/modules?limit=50`);
     renderStudentModules(container, data?.items || [], id);
+    writeSessionCache(cacheKey, { items: data?.items || [], cachedAt: new Date().toISOString() });
   } catch (_err) {
-    container.innerHTML = "";
-    const msg = document.createElement("p");
-    msg.className = "empty-state";
-    msg.textContent = "Unable to load modules.";
-    container.appendChild(msg);
+    if (cached && Array.isArray(cached.items)) return;
+    container.innerHTML = `<p class="empty-state">Unable to load modules.</p>`;
+  }
+}
+
+async function prefetchStudentModules(classroomId) {
+  const cid = String(classroomId || "").trim();
+  if (!cid) return;
+
+  const cacheKey = `blair.portal.student.modules:${cid}`;
+  const cached = readSessionCache(cacheKey);
+  if (cached && cached.cachedAt) return;
+
+  try {
+    const data = await apiFetch(`/api/student/classrooms/${encodeURIComponent(cid)}/modules?limit=50`);
+    writeSessionCache(cacheKey, { items: data?.items || [], cachedAt: new Date().toISOString() });
+  } catch (_err) {
+    // ignore
   }
 }
 
@@ -1236,15 +1276,37 @@ async function loadClassroomModules() {
   const classroomId = currentClassroomIdFromQuery();
   if (!classroomId) return;
 
+  const cacheKey = `blair.portal.teacher.modules:${classroomId}`;
+  const cached = readSessionCache(cacheKey);
+  if (cached && Array.isArray(cached.items)) {
+    renderModules(container, cached.items);
+  } else {
+    container.innerHTML = `<p class="empty-state">Loading.</p>`;
+  }
+
   try {
     const data = await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/modules?limit=50`);
     renderModules(container, data?.items || []);
+    writeSessionCache(cacheKey, { items: data?.items || [], cachedAt: new Date().toISOString() });
   } catch (_err) {
-    container.innerHTML = "";
-    const msg = document.createElement("p");
-    msg.className = "empty-state";
-    msg.textContent = "Unable to load modules.";
-    container.appendChild(msg);
+    if (cached && Array.isArray(cached.items)) return;
+    container.innerHTML = `<p class="empty-state">Unable to load modules.</p>`;
+  }
+}
+
+async function prefetchTeacherModules(classroomId) {
+  const cid = String(classroomId || "").trim();
+  if (!cid) return;
+
+  const cacheKey = `blair.portal.teacher.modules:${cid}`;
+  const cached = readSessionCache(cacheKey);
+  if (cached && cached.cachedAt) return;
+
+  try {
+    const data = await apiFetch(`/api/classrooms/${encodeURIComponent(cid)}/modules?limit=50`);
+    writeSessionCache(cacheKey, { items: data?.items || [], cachedAt: new Date().toISOString() });
+  } catch (_err) {
+    // ignore
   }
 }
 
@@ -1837,11 +1899,16 @@ function initPasswordToggles() {
     initModuleCreate();
     initModulesInteractions();
 
+    if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
+      prefetchTeacherModules(currentClassroomIdFromQuery());
+    }
+
     const maybeLoad = () => {
       if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
         const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
         if (tab === "announcements") loadClassroomAnnouncements();
         if (tab === "home") loadClassroomRecentActivity();
+        if (tab === "modules") loadClassroomModules();
       }
     };
 
@@ -1861,6 +1928,7 @@ function initPasswordToggles() {
     if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
       initTeacherClassroomTabs(); // reuse tab UI
       loadStudentClassroomDetails();
+      prefetchStudentModules(currentClassroomIdFromQuery());
 
       const maybeLoad = () => {
         const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
