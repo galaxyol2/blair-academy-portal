@@ -37,6 +37,20 @@ function allowedOrigins() {
 }
 
 const allowed = allowedOrigins();
+const allowedWildcards = (allowed || []).filter((o) => o.includes("*."));
+
+function originMatchesWildcard(origin, pattern) {
+  // pattern like: https://*.vercel.app
+  try {
+    const o = new URL(origin);
+    const p = new URL(pattern.replace("*.", "wildcard."));
+    if (o.protocol !== p.protocol) return false;
+    const suffix = p.hostname.replace(/^wildcard\./, "");
+    return o.hostname === suffix || o.hostname.endsWith(`.${suffix}`);
+  } catch {
+    return false;
+  }
+}
 
 app.use(
   cors({
@@ -44,7 +58,9 @@ app.use(
       if (!allowed) return callback(null, true);
       if (!origin) return callback(null, true); // non-browser requests
       const o = normalizeOrigin(origin);
-      return callback(null, allowed.includes(o));
+      if (allowed.includes(o)) return callback(null, true);
+      if (allowedWildcards.some((p) => originMatchesWildcard(o, p))) return callback(null, true);
+      return callback(null, false);
     },
     credentials: true,
   })
