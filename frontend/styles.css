@@ -550,6 +550,14 @@ a:hover {
   gap: 1rem;
 }
 
+.tile-grid--compact {
+  grid-template-columns: 1fr;
+}
+
+.tile-grid--rows .tile {
+  grid-column: 1 / -1;
+}
+
 .tile {
   grid-column: span 12;
   border: 1px solid var(--border);
@@ -655,6 +663,7 @@ a:hover {
     "Courier New", monospace;
   font-weight: 800;
   letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 @media (max-width: 520px) {
@@ -979,6 +988,10 @@ a:hover {
     grid-column: span 6;
   }
 
+  .tile-grid--rows .tile {
+    grid-column: 1 / -1;
+  }
+
   .portal-section--two {
     grid-template-columns: 1.6fr 1fr;
     gap: 1.25rem;
@@ -989,6 +1002,10 @@ a:hover {
 @media (min-width: 1020px) {
   .tile {
     grid-column: span 3;
+  }
+
+  .tile-grid--rows .tile {
+    grid-column: 1 / -1;
   }
 }
 

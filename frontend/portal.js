@@ -285,7 +285,7 @@ function renderTeacherClassrooms(container, items) {
   }
 
   const grid = document.createElement("div");
-  grid.className = "tile-grid tile-grid--compact";
+  grid.className = "tile-grid tile-grid--compact tile-grid--rows";
 
   for (const c of items) {
     const tile = document.createElement("div");
