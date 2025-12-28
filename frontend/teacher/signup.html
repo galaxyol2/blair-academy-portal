@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Teacher sign up - Blair Academy Student Portal</title>
+    <meta name="description" content="Create a teacher/employee portal account." />
+    <link rel="icon" type="image/png" href="../assets/logo.png" />
+    <link rel="apple-touch-icon" href="../assets/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <script defer src="../config.js"></script>
+    <script defer src="../portal.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="video-bg" aria-hidden="true">
+      <video
+        class="video-bg__media"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      >
+        <source src="../assets/Campus.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <header class="portal-header portal-header--auth">
+      <div class="container portal-header__inner">
+        <a class="portal-brand" href="../" aria-label="Student log in">
+          <span class="portal-brand__text">
+            <span class="portal-brand__name">Blair Academy</span>
+            <span class="portal-brand__sub">Student Portal</span>
+          </span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main" class="auth-main">
+      <div class="container">
+        <div class="auth-card">
+          <h1 class="auth-title">Teacher/Employee sign up</h1>
+          <p class="auth-subtitle">Create your teacher dashboard account.</p>
+
+          <form class="auth-form" data-auth="teacher-signup" novalidate>
+            <label class="field">
+              <span class="field__label">First name</span>
+              <input name="firstName" type="text" autocomplete="given-name" required />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Last name</span>
+              <input name="lastName" type="text" autocomplete="family-name" required />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Staff sign up code</span>
+              <input
+                name="signupCode"
+                type="text"
+                inputmode="latin"
+                autocomplete="off"
+                placeholder="Enter your staff code"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Email</span>
+              <input name="email" type="email" autocomplete="email" required />
+            </label>
+
+            <label class="field field--with-toggle">
+              <span class="field__label">Password</span>
+              <span class="field__control">
+                <input
+                  name="password"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="8"
+                  required
+                />
+                <button
+                  class="field__toggle"
+                  type="button"
+                  data-password-toggle
+                  aria-label="Show password"
+                  aria-pressed="false"
+                >
+                  Show
+                </button>
+              </span>
+            </label>
+
+            <p class="form-error" data-form-error hidden></p>
+
+            <button class="btn btn--primary btn--lg" type="submit">
+              Create account
+            </button>
+            <p class="auth-foot">
+              Already have an account? <a href="/teacher/login">Teacher log in</a>.
+            </p>
+            <p class="auth-foot">
+              Student? <a href="/">Go to student log in</a>.
+            </p>
+          </form>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+

@@ -70,12 +70,12 @@ function isTeacherPath() {
 }
 
 function teacherLoginUrl() {
-  if (window.location.protocol === "file:") return "./teacher-login.html";
+  if (window.location.protocol === "file:") return "./teacher/login.html";
   return "/teacher/login";
 }
 
 function teacherDashboardUrl() {
-  if (window.location.protocol === "file:") return "./teacher-dashboard.html";
+  if (window.location.protocol === "file:") return "./teacher/dashboard.html";
   return "/teacher/dashboard";
 }
 
@@ -374,7 +374,7 @@ async function handleAuthSubmit(form) {
 
     setSession({ token, user });
     if (window.location.protocol === "file:") {
-      window.location.href = user?.role === "teacher" ? "./teacher-dashboard.html" : "./dashboard.html";
+      window.location.href = user?.role === "teacher" ? "./teacher/dashboard.html" : "./dashboard.html";
     } else {
       window.location.href = user?.role === "teacher" ? "/teacher/dashboard" : "/dashboard";
     }
