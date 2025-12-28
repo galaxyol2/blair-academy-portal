@@ -303,83 +303,89 @@ function buildClassroomsRouter() {
     const id = String(req.params?.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing classroom id" });
 
-    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
-    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+    try {
+      const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
 
-    const memberships = await classroomMembershipsStore.listByClassroom({ classroomId: classroom.id });
-    const uniqueStudentIds = [...new Set(memberships.map((m) => m.studentId).filter(Boolean))];
+      const memberships = await classroomMembershipsStore.listByClassroom({ classroomId: classroom.id });
+      const uniqueStudentIds = [...new Set(memberships.map((m) => m.studentId).filter(Boolean))];
 
-    const students = new Map();
-    for (const sid of uniqueStudentIds) {
-      // eslint-disable-next-line no-await-in-loop
-      const u = await usersStore.findById(sid);
-      if (u) students.set(sid, { id: u.id, name: u.name, email: u.email, role: u.role });
-    }
-
-    const settings = await classroomGradeSettingsStore.getOrCreate({
-      classroomId: classroom.id,
-      teacherId: classroom.teacherId,
-    });
-
-    const modules = await classroomModulesStore.listWithAssignments({
-      classroomId: classroom.id,
-      teacherId: classroom.teacherId,
-      limit: 200,
-    });
-
-    const assignments = [];
-    for (const mod of modules) {
-      for (const a of Array.isArray(mod.assignments) ? mod.assignments : []) {
-        assignments.push({
-          id: a.id,
-          points: a.points || "",
-          dueAt: a.dueAt || "",
-          category: a.category || "Homework",
-        });
+      const students = new Map();
+      for (const sid of uniqueStudentIds) {
+        // eslint-disable-next-line no-await-in-loop
+        const u = await usersStore.findById(sid);
+        if (u) students.set(sid, { id: u.id, name: u.name, email: u.email, role: u.role });
       }
+
+      const settings = await classroomGradeSettingsStore.getOrCreate({
+        classroomId: classroom.id,
+        teacherId: classroom.teacherId,
+      });
+
+      const modules = await classroomModulesStore.listWithAssignments({
+        classroomId: classroom.id,
+        teacherId: classroom.teacherId,
+        limit: 200,
+      });
+
+      const assignments = [];
+      for (const mod of modules) {
+        for (const a of Array.isArray(mod.assignments) ? mod.assignments : []) {
+          assignments.push({
+            id: a.id,
+            points: a.points || "",
+            dueAt: a.dueAt || "",
+            category: a.category || "Homework",
+          });
+        }
+      }
+
+      const allGrades = await classroomGradesStore.listByClassroom({ classroomId: classroom.id });
+      const gradesByStudentId = new Map();
+      for (const g of Array.isArray(allGrades) ? allGrades : []) {
+        const sid = String(g.studentId || "").trim();
+        if (!sid) continue;
+        if (!gradesByStudentId.has(sid)) gradesByStudentId.set(sid, []);
+        gradesByStudentId.get(sid).push(g);
+      }
+
+      const submittedByStudentId = await classroomSubmissionsStore.listSubmittedAssignmentIdsByStudentInClassroom({
+        classroomId: classroom.id,
+      });
+
+      res.json({
+        items: memberships.map((m) => ({
+          classroomId: m.classroomId,
+          student: students.get(m.studentId) || { id: m.studentId, name: "Student", email: "", role: "" },
+          grade:
+            m.studentId && students.get(m.studentId)?.role === "student"
+              ? (() => {
+                  const percent = computeStudentCurrentGradePercent({
+                    settings,
+                    assignments,
+                    grades: gradesByStudentId.get(String(m.studentId)) || [],
+                    submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
+                  });
+                  const missingCount = computeMissingAssignmentCount({
+                    assignments,
+                    grades: gradesByStudentId.get(String(m.studentId)) || [],
+                    submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
+                  });
+                  return {
+                    percent: percent == null ? null : Math.round(percent),
+                    letter: percent == null ? "N/A" : letterFromPercent(percent),
+                    missingCount,
+                  };
+                })()
+              : { percent: null, letter: "N/A" },
+          joinedAt: m.createdAt,
+        })),
+      });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[classrooms.people] failed", err);
+      return res.status(500).json({ error: "Unable to load students" });
     }
-
-    const allGrades = await classroomGradesStore.listByClassroom({ classroomId: classroom.id });
-    const gradesByStudentId = new Map();
-    for (const g of Array.isArray(allGrades) ? allGrades : []) {
-      const sid = String(g.studentId || "").trim();
-      if (!sid) continue;
-      if (!gradesByStudentId.has(sid)) gradesByStudentId.set(sid, []);
-      gradesByStudentId.get(sid).push(g);
-    }
-
-    const submittedByStudentId = await classroomSubmissionsStore.listSubmittedAssignmentIdsByStudentInClassroom({
-      classroomId: classroom.id,
-    });
-
-    res.json({
-      items: memberships.map((m) => ({
-        classroomId: m.classroomId,
-        student: students.get(m.studentId) || { id: m.studentId, name: "Student", email: "", role: "" },
-        grade:
-          m.studentId && students.get(m.studentId)?.role === "student"
-            ? (() => {
-                const percent = computeStudentCurrentGradePercent({
-                  settings,
-                  assignments,
-                  grades: gradesByStudentId.get(String(m.studentId)) || [],
-                  submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
-                });
-                const missingCount = computeMissingAssignmentCount({
-                  assignments,
-                  grades: gradesByStudentId.get(String(m.studentId)) || [],
-                  submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
-                });
-                return {
-                  percent: percent == null ? null : Math.round(percent),
-                  letter: percent == null ? "N/A" : letterFromPercent(percent),
-                  missingCount,
-                };
-              })()
-            : { percent: null, letter: "N/A" },
-        joinedAt: m.createdAt,
-      })),
-    });
   });
 
   router.delete("/:id/people/:studentId", requireAuth, requireTeacher, async (req, res) => {
