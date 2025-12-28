@@ -417,7 +417,7 @@ async function loadTeacherClassroomDetails() {
     if (titleEl) titleEl.textContent = className;
     const section = String(c.section || "").trim();
     const joinCode = String(c.joinCode || "").trim();
-    metaEl.textContent = `${section ? `${section} • ` : ""}Join code: ${joinCode || "—"}`;
+    metaEl.textContent = `${section ? `${section} - ` : ""}Join code: ${joinCode || "—"}`;
     if (termEl) termEl.textContent = section || " ";
   } catch (err) {
     nameEl.textContent = "Classroom not found";
@@ -548,6 +548,237 @@ function renderClassroomAnnouncements(container, items, { showDelete = false } =
     item.appendChild(body);
     if (actions) item.appendChild(actions);
     list.appendChild(item);
+  }
+
+  container.appendChild(list);
+}
+
+// Override student grade view with a more realistic system:
+// - Weighted categories
+// - Missing/late/excused statuses
+// - Late penalty based on settings and submission time
+function renderStudentGrades(container, payload) {
+  container.innerHTML = "";
+
+  const assignments = Array.isArray(payload?.assignments) ? payload.assignments : [];
+  const grades = Array.isArray(payload?.grades) ? payload.grades : [];
+  const submissions = Array.isArray(payload?.submissions) ? payload.submissions : [];
+  const settings = payload?.settings || {};
+
+  const categories = Array.isArray(settings?.categories) ? settings.categories : [];
+  const perDayPct = Number(settings?.latePenaltyPerDayPct) || 0;
+  const maxPct = Number(settings?.maxLatePenaltyPct) || 0;
+
+  const gradeByAssignment = new Map(grades.map((g) => [String(g.assignmentId || ""), g]));
+  const latestSubmissionByAssignment = new Map();
+  for (const s of submissions) {
+    const aid = String(s.assignmentId || "").trim();
+    if (!aid) continue;
+    if (!latestSubmissionByAssignment.has(aid)) latestSubmissionByAssignment.set(aid, s);
+  }
+
+  const percentToLetter = (pct) => {
+    if (!Number.isFinite(pct)) return "";
+    if (pct >= 93) return "A";
+    if (pct >= 90) return "A-";
+    if (pct >= 87) return "B+";
+    if (pct >= 83) return "B";
+    if (pct >= 80) return "B-";
+    if (pct >= 77) return "C+";
+    if (pct >= 73) return "C";
+    if (pct >= 70) return "C-";
+    if (pct >= 67) return "D+";
+    if (pct >= 63) return "D";
+    if (pct >= 60) return "D-";
+    return "F";
+  };
+
+  if (assignments.length === 0) {
+    container.innerHTML = `<p class="empty-state">No assignments yet.</p>`;
+    return;
+  }
+
+  const now = Date.now();
+  const computed = assignments.map((a) => {
+    const id = String(a.id || "");
+    const g = gradeByAssignment.get(id) || null;
+    const submission = latestSubmissionByAssignment.get(id) || null;
+
+    const pointsMax = Number(String(a.points || "").trim());
+    const hasPoints = Number.isFinite(pointsMax) && pointsMax > 0;
+    const earnedRaw = g && g.pointsEarned !== null && g.pointsEarned !== undefined ? Number(g.pointsEarned) : null;
+    const status = String(g?.status || "").trim().toLowerCase() || "";
+
+    const due = a.dueAt ? new Date(a.dueAt) : null;
+    const dueMs = due && !Number.isNaN(due.getTime()) ? due.getTime() : null;
+    const derivedMissing = !g && hasPoints && dueMs !== null && dueMs < now && !submission;
+
+    let finalStatus = status || (derivedMissing ? "missing" : earnedRaw !== null ? "graded" : "ungraded");
+    if (!["graded", "late", "missing", "excused", "ungraded"].includes(finalStatus)) finalStatus = "ungraded";
+
+    let earned = earnedRaw;
+    if (finalStatus === "excused") earned = null;
+    if (finalStatus === "missing") earned = 0;
+
+    let adjustedEarned = earned;
+    let daysLate = 0;
+    if (finalStatus === "late" && earned !== null) {
+      const override =
+        g?.lateDaysOverride !== null && g?.lateDaysOverride !== undefined ? Number(g.lateDaysOverride) : null;
+      daysLate = Number.isFinite(override)
+        ? Math.max(0, Math.floor(override))
+        : computeDaysLate({ dueAt: a.dueAt, submittedAt: submission?.createdAt });
+      adjustedEarned = applyLatePenalty({ earned, daysLate, perDayPct, maxPct });
+    }
+
+    return {
+      assignment: a,
+      grade: g,
+      submission,
+      pointsMax: hasPoints ? pointsMax : null,
+      earned,
+      adjustedEarned,
+      status: finalStatus,
+      daysLate,
+    };
+  });
+
+  const totalsByCategory = new Map();
+  for (const item of computed) {
+    const cat = String(item.assignment.category || "Homework").trim() || "Homework";
+    const t = totalsByCategory.get(cat) || { earned: 0, possible: 0 };
+
+    if (item.pointsMax !== null && item.status !== "excused") {
+      if (item.status === "missing") {
+        t.possible += item.pointsMax;
+      } else if (item.earned !== null) {
+        t.earned += Number(item.adjustedEarned) || 0;
+        t.possible += item.pointsMax;
+      }
+    }
+
+    totalsByCategory.set(cat, t);
+  }
+
+  const catWeights = new Map(categories.map((c) => [String(c.name || "").trim(), Number(c.weightPct) || 0]));
+  let activeWeightSum = 0;
+  let weightedSum = 0;
+
+  for (const [cat, totals] of totalsByCategory.entries()) {
+    if (!(totals.possible > 0)) continue;
+    const w = catWeights.get(cat) ?? 0;
+    activeWeightSum += w;
+    const pct = (totals.earned / totals.possible) * 100;
+    weightedSum += pct * w;
+  }
+
+  const overallPct = activeWeightSum > 0 ? Math.round((weightedSum / activeWeightSum) * 10) / 10 : null;
+  const overallLetter = overallPct !== null ? percentToLetter(overallPct) : "";
+
+  const summary = document.createElement("div");
+  summary.className = "grade-summary";
+
+  const header = document.createElement("div");
+  header.className = "grade-summary__header";
+
+  const h = document.createElement("h3");
+  h.className = "grade-summary__title";
+  h.textContent = "Current grade";
+
+  const sub = document.createElement("p");
+  sub.className = "grade-summary__meta";
+  const gradedCount = computed.filter((i) => i.earned !== null && i.status !== "ungraded").length;
+  sub.textContent = gradedCount ? `${gradedCount} graded` : "No grades yet.";
+
+  header.appendChild(h);
+  header.appendChild(sub);
+  summary.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "grade-summary__body";
+
+  const big = document.createElement("p");
+  big.className = "grade-summary__big";
+  big.textContent = overallPct === null ? "—" : `${overallPct}% - ${overallLetter}`;
+  body.appendChild(big);
+
+  summary.appendChild(body);
+  container.appendChild(summary);
+
+  const breakdown = document.createElement("div");
+  breakdown.className = "grade-breakdown";
+
+  const bdTitle = document.createElement("h4");
+  bdTitle.className = "grade-breakdown__title";
+  bdTitle.textContent = "Category breakdown";
+  breakdown.appendChild(bdTitle);
+
+  const bdList = document.createElement("div");
+  bdList.className = "grade-breakdown__list";
+
+  for (const c of categories) {
+    const name = String(c.name || "").trim();
+    const w = Number(c.weightPct) || 0;
+    const totals = totalsByCategory.get(name) || { earned: 0, possible: 0 };
+    const pct = totals.possible > 0 ? Math.round((totals.earned / totals.possible) * 1000) / 10 : null;
+
+    const row = document.createElement("div");
+    row.className = "grade-breakdown__row";
+    row.textContent = pct === null ? `${name} (${w}%): —` : `${name} (${w}%): ${pct}%`;
+    bdList.appendChild(row);
+  }
+
+  breakdown.appendChild(bdList);
+  container.appendChild(breakdown);
+
+  const list = document.createElement("div");
+  list.className = "feed";
+
+  for (const item of computed) {
+    const a = item.assignment;
+    const row = document.createElement("div");
+    row.className = "feed__item";
+
+    const meta = document.createElement("p");
+    meta.className = "feed__meta";
+    const cat = String(a.category || "Homework").trim() || "Homework";
+    const points = item.pointsMax !== null ? `${item.pointsMax} pts` : "";
+    meta.textContent = [cat, points].filter(Boolean).join(" - ");
+
+    const title = document.createElement("h3");
+    title.className = "feed__title";
+    title.textContent = String(a.title || "Assignment");
+
+    const text = document.createElement("p");
+    text.className = "feed__text";
+
+    if (item.status === "excused") {
+      text.textContent = "Excused.";
+    } else if (item.status === "missing") {
+      text.textContent = "Missing (0).";
+    } else if (item.earned === null) {
+      text.textContent = "Not graded yet.";
+    } else if (item.pointsMax !== null) {
+      const pct = Math.round((Number(item.adjustedEarned) / item.pointsMax) * 1000) / 10;
+      const letter = percentToLetter(pct);
+      const lateNote = item.status === "late" ? ` (late - ${item.daysLate} days)` : "";
+      text.textContent = `Score: ${item.adjustedEarned} / ${item.pointsMax} (${pct}% - ${letter})${lateNote}`;
+    } else {
+      text.textContent = `Score: ${item.adjustedEarned}`;
+    }
+
+    row.appendChild(meta);
+    row.appendChild(title);
+    row.appendChild(text);
+
+    if (item.grade && item.grade.feedback) {
+      const fb = document.createElement("p");
+      fb.className = "feed__text";
+      fb.textContent = `Feedback: ${String(item.grade.feedback)}`;
+      row.appendChild(fb);
+    }
+
+    list.appendChild(row);
   }
 
   container.appendChild(list);
@@ -685,7 +916,7 @@ function renderStudentModules(container, modules, classroomId) {
         const due = String(a.dueAt || "").trim();
         const when = due ? formatShortDate(due) : "";
         const pts = Number.isFinite(Number(a.points)) ? `${Number(a.points)} pts` : "";
-        meta.textContent = [when ? `Due ${when}` : "Assignment", pts].filter(Boolean).join(" • ");
+        meta.textContent = [when ? `Due ${when}` : "Assignment", pts].filter(Boolean).join(" - ");
 
         const t = document.createElement("h4");
         t.className = "feed__title";
@@ -1205,8 +1436,12 @@ function renderModules(container, modules) {
           <input name="dueAt" type="datetime-local" />
         </label>
         <label class="field">
-          <span class="field__label">Points (optional)</span>
-          <input name="points" type="number" min="0" step="1" placeholder="100" />
+          <span class="field__label">Category</span>
+          <input name="category" type="text" placeholder="Homework" value="Homework" />
+        </label>
+        <label class="field">
+          <span class="field__label">Points (1-100)</span>
+          <input name="points" type="number" min="1" max="100" step="1" placeholder="100" />
         </label>
         <p class="form-success" data-form-success hidden></p>
         <p class="form-error" data-form-error hidden></p>
@@ -1237,7 +1472,7 @@ function renderModules(container, modules) {
         const due = String(a.dueAt || "").trim();
         const when = due ? formatShortDate(due) : "";
         const pts = Number.isFinite(Number(a.points)) ? `${Number(a.points)} pts` : "";
-        meta.textContent = [when ? `Due ${when}` : "Assignment", pts].filter(Boolean).join(" • ");
+        meta.textContent = [when ? `Due ${when}` : "Assignment", pts].filter(Boolean).join(" - ");
 
         const t = document.createElement("h4");
         t.className = "feed__title";
@@ -1383,68 +1618,545 @@ function normalizePointsDisplay(value) {
   return String(n);
 }
 
-function renderTeacherGradebook(container, payload, { selectedAssignmentId }) {
+let teacherGradebookMeta = null;
+let teacherGradebookAssignment = null;
+
+function renderTeacherGradeSettings(container, settings) {
   container.innerHTML = "";
 
-  const assignments = Array.isArray(payload?.assignments) ? payload.assignments : [];
-  const people = Array.isArray(payload?.people) ? payload.people : [];
-  const grades = Array.isArray(payload?.grades) ? payload.grades : [];
+  const categories = Array.isArray(settings?.categories) ? settings.categories : [];
+  const latePenaltyPerDayPct = Number(settings?.latePenaltyPerDayPct) || 0;
+  const maxLatePenaltyPct = Number(settings?.maxLatePenaltyPct) || 0;
 
-  const gradeByStudent = new Map();
-  for (const g of grades) {
-    if (g.assignmentId !== selectedAssignmentId) continue;
-    gradeByStudent.set(String(g.studentId || ""), g);
+  const form = document.createElement("form");
+  form.className = "auth-form";
+  form.setAttribute("data-grade-settings-form", "");
+  form.noValidate = true;
+
+  const header = document.createElement("div");
+  header.className = "widget__header";
+  header.innerHTML = `<h3 class="widget__title">Grade settings</h3>`;
+
+  const note = document.createElement("p");
+  note.className = "empty-state";
+  note.textContent = "Weights must add up to 100.";
+
+  const catWrap = document.createElement("div");
+  catWrap.className = "grade-settings__categories";
+  catWrap.innerHTML = `<h4 class="grade-settings__subhead">Categories</h4>`;
+
+  const list = document.createElement("div");
+  list.className = "grade-settings__list";
+
+  const renderRow = (c) => {
+    const row = document.createElement("div");
+    row.className = "grade-settings__row";
+    row.innerHTML = `
+      <label class="field field--inline">
+        <span class="field__label">Name</span>
+        <input name="catName" type="text" value="${escapeHtml(String(c?.name || ""))}" />
+      </label>
+      <label class="field field--inline">
+        <span class="field__label">Weight %</span>
+        <input name="catWeight" type="number" min="0" max="100" step="1" value="${escapeHtml(String(c?.weightPct ?? ""))}" />
+      </label>
+      <button class="btn btn--danger btn--sm" type="button" data-grade-settings-remove>Remove</button>
+    `;
+    return row;
+  };
+
+  for (const c of categories) list.appendChild(renderRow(c));
+  catWrap.appendChild(list);
+
+  const addRow = document.createElement("button");
+  addRow.type = "button";
+  addRow.className = "btn btn--secondary btn--sm";
+  addRow.textContent = "Add category";
+  addRow.addEventListener("click", () => list.appendChild(renderRow({ name: "", weightPct: 0 })));
+
+  const penalties = document.createElement("div");
+  penalties.className = "grade-settings__penalties";
+  penalties.innerHTML = `
+    <h4 class="grade-settings__subhead">Late policy</h4>
+    <div class="grade-settings__row">
+      <label class="field field--inline">
+        <span class="field__label">Penalty per day (%)</span>
+        <input name="latePenaltyPerDayPct" type="number" min="0" max="100" step="1" value="${escapeHtml(String(latePenaltyPerDayPct))}" />
+      </label>
+      <label class="field field--inline">
+        <span class="field__label">Max penalty (%)</span>
+        <input name="maxLatePenaltyPct" type="number" min="0" max="100" step="1" value="${escapeHtml(String(maxLatePenaltyPct))}" />
+      </label>
+    </div>
+  `;
+
+  const sumEl = document.createElement("p");
+  sumEl.className = "grade-settings__sum";
+
+  const error = document.createElement("p");
+  error.className = "form-error";
+  error.hidden = true;
+
+  const success = document.createElement("p");
+  success.className = "form-success";
+  success.hidden = true;
+
+  const save = document.createElement("button");
+  save.type = "submit";
+  save.className = "btn btn--primary";
+  save.textContent = "Save settings";
+
+  const recomputeSum = () => {
+    const weights = Array.from(list.querySelectorAll('input[name="catWeight"]')).map((i) => Number(i.value) || 0);
+    const sum = weights.reduce((a, b) => a + b, 0);
+    sumEl.textContent = `Total weight: ${sum}%`;
+  };
+
+  list.addEventListener("input", recomputeSum);
+  recomputeSum();
+
+  list.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    if (t.hasAttribute("data-grade-settings-remove")) {
+      const row = t.closest(".grade-settings__row");
+      if (row) row.remove();
+      recomputeSum();
+    }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.hidden = true;
+    success.hidden = true;
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const rows = Array.from(list.querySelectorAll(".grade-settings__row"));
+    const cats = rows
+      .map((r) => {
+        const name = String(r.querySelector('input[name="catName"]')?.value || "").trim();
+        const weightPct = Number(r.querySelector('input[name="catWeight"]')?.value || 0);
+        return { name, weightPct };
+      })
+      .filter((c) => c.name);
+
+    const sum = cats.reduce((a, c) => a + (Number(c.weightPct) || 0), 0);
+    if (Math.round(sum) !== 100) {
+      error.textContent = "Category weights must add up to 100.";
+      error.hidden = false;
+      return;
+    }
+
+    try {
+      const data = await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/grade-settings`, {
+        method: "PUT",
+        body: JSON.stringify({
+          categories: cats,
+          latePenaltyPerDayPct: Number(form.querySelector('input[name="latePenaltyPerDayPct"]')?.value || 0),
+          maxLatePenaltyPct: Number(form.querySelector('input[name="maxLatePenaltyPct"]')?.value || 0),
+        }),
+      });
+      teacherGradebookMeta = teacherGradebookMeta ? { ...teacherGradebookMeta, settings: data.item } : teacherGradebookMeta;
+      success.textContent = "Saved.";
+      success.hidden = false;
+    } catch (err) {
+      error.textContent = err?.message || "Failed to save settings.";
+      error.hidden = false;
+    }
+  });
+
+  form.appendChild(header);
+  form.appendChild(note);
+  form.appendChild(catWrap);
+  form.appendChild(addRow);
+  form.appendChild(penalties);
+  form.appendChild(sumEl);
+  form.appendChild(success);
+  form.appendChild(error);
+  form.appendChild(save);
+
+  container.appendChild(form);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function computeDaysLate({ dueAt, submittedAt }) {
+  const due = dueAt ? new Date(dueAt) : null;
+  const sub = submittedAt ? new Date(submittedAt) : null;
+  if (!due || Number.isNaN(due.getTime())) return 0;
+  if (!sub || Number.isNaN(sub.getTime())) return 0;
+  const ms = sub.getTime() - due.getTime();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
+function applyLatePenalty({ earned, daysLate, perDayPct, maxPct }) {
+  if (!Number.isFinite(earned) || earned <= 0) return earned;
+  const penaltyPct = Math.min(Math.max(0, daysLate * perDayPct), maxPct);
+  const adjusted = earned * (1 - penaltyPct / 100);
+  return Math.round(adjusted * 100) / 100;
+}
+
+function renderSubmissionPreview(submission) {
+  const wrap = document.createElement("div");
+  wrap.className = "gradebook__submission";
+
+  if (!submission) {
+    wrap.innerHTML = `<p class="empty-state">No submission.</p>`;
+    return wrap;
   }
 
-  const assignment = assignments.find((a) => a.id === selectedAssignmentId) || null;
-  const maxPointsRaw = assignment ? String(assignment.points || "").trim() : "";
-  const maxPoints = maxPointsRaw ? Number(maxPointsRaw) : null;
+  const when = formatShortDate(submission.createdAt);
+  const meta = document.createElement("p");
+  meta.className = "feed__meta";
+  meta.textContent = when ? `Submitted ${when}` : "Submitted";
+  wrap.appendChild(meta);
+
+  if (submission.type === "text") {
+    const p = document.createElement("p");
+    p.className = "feed__text";
+    p.textContent = String(submission.payload?.text || "");
+    wrap.appendChild(p);
+  } else if (submission.type === "url") {
+    const url = String(submission.payload?.url || "").trim();
+    const p = document.createElement("p");
+    p.className = "feed__text";
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noreferrer";
+    a.textContent = url || "(no url)";
+    p.appendChild(a);
+    wrap.appendChild(p);
+  } else if (submission.type === "upload") {
+    wrap.appendChild(
+      renderUploadContent({
+        fileName: submission.payload?.fileName,
+        dataUrl: submission.payload?.dataUrl,
+      })
+    );
+  }
+
+  return wrap;
+}
+
+function renderTeacherGradebookAssignment(container, payload) {
+  container.innerHTML = "";
+
+  const assignment = payload?.assignment;
+  const people = Array.isArray(payload?.people) ? payload.people : [];
+  const grades = Array.isArray(payload?.grades) ? payload.grades : [];
+  const submissions = Array.isArray(payload?.submissions) ? payload.submissions : [];
+  const rubric = Array.isArray(payload?.rubric) ? payload.rubric : [];
+  const settings = payload?.settings || {};
 
   if (!assignment) {
     container.innerHTML = `<p class="empty-state">Select an assignment.</p>`;
     return;
   }
-
   if (people.length === 0) {
     container.innerHTML = `<p class="empty-state">No students have joined yet.</p>`;
     return;
   }
 
+  const gradeByStudent = new Map(grades.map((g) => [String(g.studentId || ""), g]));
+  const submissionByStudent = new Map(submissions.map((s) => [String(s.studentId || ""), s]));
+
+  const maxPoints = Number(assignment.points);
+  const perDayPct = Number(settings.latePenaltyPerDayPct) || 0;
+  const maxPct = Number(settings.maxLatePenaltyPct) || 0;
+
+  const header = document.createElement("div");
+  header.className = "gradebook-head";
+  header.innerHTML = `
+    <h4 class="gradebook-head__title">${escapeHtml(String(assignment.title || "Assignment"))}</h4>
+    <p class="gradebook-head__meta">${escapeHtml(String(assignment.category || "Homework"))} - ${escapeHtml(String(maxPoints || ""))} pts</p>
+  `;
+  header.innerHTML = header.innerHTML.replaceAll("\u0007", " - ");
+  container.appendChild(header);
+
+  const rubricBox = document.createElement("div");
+  rubricBox.className = "rubric-box";
+
+  const rubricHeader = document.createElement("div");
+  rubricHeader.className = "rubric-box__header";
+
+  const rubricTitle = document.createElement("h4");
+  rubricTitle.className = "rubric-box__title";
+  rubricTitle.textContent = "Rubric";
+
+  const rubricToggle = document.createElement("button");
+  rubricToggle.type = "button";
+  rubricToggle.className = "btn btn--secondary btn--sm";
+  rubricToggle.textContent = "Edit rubric";
+
+  rubricHeader.appendChild(rubricTitle);
+  rubricHeader.appendChild(rubricToggle);
+  rubricBox.appendChild(rubricHeader);
+
+  const rubricMeta = document.createElement("p");
+  rubricMeta.className = "empty-state";
+  rubricMeta.textContent = rubric.length ? `Enabled (${rubric.length} criteria)` : "No rubric set.";
+  rubricBox.appendChild(rubricMeta);
+
+  const editor = document.createElement("div");
+  editor.className = "rubric-box__editor";
+  editor.hidden = true;
+
+  const rows = document.createElement("div");
+  rows.className = "rubric-box__rows";
+
+  const renderRubricRow = (r) => {
+    const row = document.createElement("div");
+    row.className = "rubric-box__row";
+    row.innerHTML = `
+      <label class="field field--inline">
+        <span class="field__label">Criterion</span>
+        <input name="rubricTitle" type="text" value="${escapeHtml(String(r?.title || ""))}" placeholder="e.g., Work shown" />
+      </label>
+      <label class="field field--inline">
+        <span class="field__label">Points</span>
+        <input name="rubricPoints" type="number" min="1" max="100" step="1" value="${escapeHtml(String(r?.pointsMax ?? ""))}" />
+      </label>
+      <button class="btn btn--danger btn--sm" type="button" data-rubric-remove>Remove</button>
+    `;
+    return row;
+  };
+
+  for (const r of rubric) rows.appendChild(renderRubricRow(r));
+  if (!rubric.length) rows.appendChild(renderRubricRow({ title: "Total", pointsMax: maxPoints }));
+
+  const addCrit = document.createElement("button");
+  addCrit.type = "button";
+  addCrit.className = "btn btn--secondary btn--sm";
+  addCrit.textContent = "Add criterion";
+  addCrit.addEventListener("click", () => rows.appendChild(renderRubricRow({ title: "", pointsMax: 1 })));
+
+  const sumEl = document.createElement("p");
+  sumEl.className = "empty-state";
+
+  const errEl = document.createElement("p");
+  errEl.className = "form-error";
+  errEl.hidden = true;
+
+  const okEl = document.createElement("p");
+  okEl.className = "form-success";
+  okEl.hidden = true;
+
+  const saveRubric = document.createElement("button");
+  saveRubric.type = "button";
+  saveRubric.className = "btn btn--primary btn--sm";
+  saveRubric.textContent = "Save rubric";
+
+  const computeSum = () => {
+    const pts = Array.from(rows.querySelectorAll('input[name="rubricPoints"]')).map((i) => Number(i.value) || 0);
+    const sum = pts.reduce((a, b) => a + b, 0);
+    sumEl.textContent = `Total rubric points: ${sum} (must equal ${maxPoints})`;
+    return sum;
+  };
+  rows.addEventListener("input", computeSum);
+  computeSum();
+
+  rows.addEventListener("click", (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLElement)) return;
+    if (t.hasAttribute("data-rubric-remove")) {
+      const row = t.closest(".rubric-box__row");
+      if (row) row.remove();
+      computeSum();
+    }
+  });
+
+  saveRubric.addEventListener("click", async () => {
+    errEl.hidden = true;
+    okEl.hidden = true;
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const rubricRows = Array.from(rows.querySelectorAll(".rubric-box__row"));
+    const nextRubric = rubricRows
+      .map((r) => ({
+        title: String(r.querySelector('input[name="rubricTitle"]')?.value || "").trim(),
+        pointsMax: Number(r.querySelector('input[name="rubricPoints"]')?.value || 0),
+      }))
+      .filter((r) => r.title);
+
+    const sum = nextRubric.reduce((a, r) => a + (Number(r.pointsMax) || 0), 0);
+    if (Math.floor(sum) !== Math.floor(maxPoints)) {
+      errEl.textContent = `Rubric points must add up to ${maxPoints}.`;
+      errEl.hidden = false;
+      return;
+    }
+
+    try {
+      await apiFetch(
+        `/api/classrooms/${encodeURIComponent(classroomId)}/assignments/${encodeURIComponent(String(assignment.id))}/rubric`,
+        { method: "PUT", body: JSON.stringify({ rubric: nextRubric }) }
+      );
+      okEl.textContent = "Rubric saved.";
+      okEl.hidden = false;
+      editor.hidden = true;
+      await loadTeacherGradebookAssignment(String(assignment.id));
+    } catch (err) {
+      errEl.textContent = err?.message || "Failed to save rubric.";
+      errEl.hidden = false;
+    }
+  });
+
+  editor.appendChild(rows);
+  editor.appendChild(addCrit);
+  editor.appendChild(sumEl);
+  editor.appendChild(okEl);
+  editor.appendChild(errEl);
+  editor.appendChild(saveRubric);
+  rubricBox.appendChild(editor);
+
+  rubricToggle.addEventListener("click", () => {
+    editor.hidden = !editor.hidden;
+  });
+
+  container.appendChild(rubricBox);
+
   const list = document.createElement("div");
   list.className = "gradebook";
 
   for (const p of people) {
+    const sid = String(p.id || "");
+    const current = gradeByStudent.get(sid) || null;
+    const submission = submissionByStudent.get(sid) || null;
+
     const row = document.createElement("div");
     row.className = "gradebook__row";
+    row.setAttribute("data-gradebook-student-row", sid);
 
     const left = document.createElement("div");
     left.className = "gradebook__left";
 
-    const name = document.createElement("h4");
-    name.className = "gradebook__name";
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "gradebook__name gradebook__name--link";
     const email = String(p.email || "").trim();
     name.textContent = email ? `${p.name || "Student"} (${email})` : String(p.name || "Student");
-
-    const meta = document.createElement("p");
-    meta.className = "gradebook__meta";
-    meta.textContent = maxPoints !== null && Number.isFinite(maxPoints) ? `Out of ${maxPoints}` : "Points";
+    name.setAttribute("data-gradebook-student-report", sid);
 
     left.appendChild(name);
-    left.appendChild(meta);
+    left.appendChild(renderSubmissionPreview(submission));
 
     const right = document.createElement("div");
     right.className = "gradebook__right";
 
-    const current = gradeByStudent.get(String(p.id || "")) || null;
+    const statusField = document.createElement("label");
+    statusField.className = "field field--inline";
+    statusField.innerHTML = `
+      <span class="field__label">Status</span>
+      <select name="status">
+        <option value="graded">Graded</option>
+        <option value="late">Late</option>
+        <option value="missing">Missing</option>
+        <option value="excused">Excused</option>
+      </select>
+    `;
+    const statusSelect = statusField.querySelector("select");
+    if (statusSelect) statusSelect.value = String(current?.status || "graded");
+
+    const lateField = document.createElement("label");
+    lateField.className = "field field--inline";
+    lateField.innerHTML = `
+      <span class="field__label">Late days (optional)</span>
+      <input name="lateDaysOverride" type="number" min="0" max="60" step="1" placeholder="auto" />
+    `;
+    const lateInput = lateField.querySelector("input");
+    if (lateInput && current?.lateDaysOverride !== null && current?.lateDaysOverride !== undefined) {
+      lateInput.value = String(current.lateDaysOverride);
+    }
 
     const pointsField = document.createElement("label");
     pointsField.className = "field field--inline";
     pointsField.innerHTML = `
-      <span class="field__label">Score</span>
-      <input name="pointsEarned" type="number" step="0.01" min="0" placeholder="-" />
+      <span class="field__label">Points earned</span>
+      <input name="pointsEarned" type="number" min="0" max="${escapeHtml(String(maxPoints || 100))}" step="1" placeholder="-" />
     `;
     const pointsInput = pointsField.querySelector("input");
     if (pointsInput) pointsInput.value = normalizePointsDisplay(current?.pointsEarned);
+
+    const rubricScoresWrap = document.createElement("div");
+    rubricScoresWrap.className = "rubric-scores";
+
+    if (rubric.length) {
+      for (const r of rubric) {
+        const rid = String(r.id || "");
+        const crit = document.createElement("label");
+        crit.className = "field field--inline";
+        crit.innerHTML = `
+          <span class="field__label">${escapeHtml(String(r.title || "Criterion"))} (${escapeHtml(String(r.pointsMax || ""))})</span>
+          <input name="rubric:${escapeHtml(rid)}" type="number" min="0" max="${escapeHtml(String(r.pointsMax || 0))}" step="1" />
+        `;
+        const input = crit.querySelector("input");
+        const existing = current?.rubricScores && typeof current.rubricScores === "object" ? current.rubricScores : null;
+        if (input && existing && existing[rid] !== undefined && existing[rid] !== null) {
+          input.value = String(existing[rid]);
+        }
+        rubricScoresWrap.appendChild(crit);
+      }
+    }
+
+    const adjusted = document.createElement("p");
+    adjusted.className = "gradebook__meta";
+
+    const computeAdjustedText = () => {
+      const status = String(statusSelect?.value || "graded");
+      const earned = Number(pointsInput?.value || "");
+      if (!Number.isFinite(earned)) {
+        adjusted.textContent = "";
+        return;
+      }
+      if (status === "excused") {
+        adjusted.textContent = "Excluded from totals.";
+        return;
+      }
+      if (status === "missing") {
+        adjusted.textContent = "Counts as 0 (missing).";
+        return;
+      }
+      if (status === "late") {
+        const override = lateInput?.value === "" ? null : Number(lateInput?.value);
+        const daysLate = Number.isFinite(override)
+          ? Math.max(0, Math.floor(override))
+          : computeDaysLate({ dueAt: assignment.dueAt, submittedAt: submission?.createdAt });
+        const adj = applyLatePenalty({ earned, daysLate, perDayPct, maxPct });
+        adjusted.textContent = `Adjusted: ${adj} / ${maxPoints} (${daysLate} days late)`;
+        return;
+      }
+      adjusted.textContent = `Out of ${maxPoints}`;
+    };
+
+    const syncRubricSum = () => {
+      if (!rubric.length) return;
+      let sum = 0;
+      const scores = {};
+      for (const r of rubric) {
+        const rid = String(r.id || "");
+        const input = rubricScoresWrap.querySelector(`input[name="rubric:${CSS.escape(rid)}"]`);
+        const n = Number(input?.value || "");
+        if (Number.isFinite(n)) {
+          scores[rid] = n;
+          sum += n;
+        }
+      }
+      if (pointsInput) pointsInput.value = sum ? String(Math.min(maxPoints, Math.round(sum))) : "";
+      computeAdjustedText();
+      return scores;
+    };
 
     const feedbackField = document.createElement("label");
     feedbackField.className = "field field--inline";
@@ -1462,14 +2174,30 @@ function renderTeacherGradebook(container, payload, { selectedAssignmentId }) {
     save.type = "button";
     save.className = "btn btn--primary btn--sm";
     save.textContent = "Save";
-    save.setAttribute("data-gradebook-save", String(p.id || ""));
+    save.setAttribute("data-gradebook-save", sid);
     actions.appendChild(save);
 
     const msg = document.createElement("p");
     msg.className = "gradebook__status";
-    msg.setAttribute("data-gradebook-status", String(p.id || ""));
+    msg.setAttribute("data-gradebook-status", sid);
 
+    const showLate = () => {
+      lateField.hidden = String(statusSelect?.value || "graded") !== "late";
+      computeAdjustedText();
+    };
+
+    if (statusSelect) statusSelect.addEventListener("change", showLate);
+    if (lateInput) lateInput.addEventListener("input", computeAdjustedText);
+    if (pointsInput) pointsInput.addEventListener("input", computeAdjustedText);
+    rubricScoresWrap.addEventListener("input", syncRubricSum);
+    showLate();
+    computeAdjustedText();
+
+    right.appendChild(statusField);
+    right.appendChild(lateField);
+    if (rubric.length) right.appendChild(rubricScoresWrap);
     right.appendChild(pointsField);
+    right.appendChild(adjusted);
     right.appendChild(feedbackField);
     right.appendChild(actions);
     right.appendChild(msg);
@@ -1482,19 +2210,24 @@ function renderTeacherGradebook(container, payload, { selectedAssignmentId }) {
   container.appendChild(list);
 }
 
-async function loadTeacherGradebook({ selectedAssignmentId } = {}) {
-  const container = document.querySelector("[data-gradebook]");
+async function loadTeacherGradebookMeta() {
   const filterForm = document.querySelector("form[data-gradebook-filter]");
-  if (!container || !filterForm) return;
+  const settingsWrap = document.querySelector("[data-grade-settings]");
+  const gradebookWrap = document.querySelector("[data-gradebook]");
+  if (!filterForm || !settingsWrap || !gradebookWrap) return;
 
   const classroomId = currentClassroomIdFromQuery();
   if (!classroomId) return;
 
-  container.innerHTML = `<p class="empty-state">Loading...</p>`;
+  gradebookWrap.innerHTML = `<p class="empty-state">Loading...</p>`;
+  settingsWrap.innerHTML = `<p class="empty-state">Loading grade settings...</p>`;
+
   try {
     const data = await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/gradebook`);
+    teacherGradebookMeta = data;
+    renderTeacherGradeSettings(settingsWrap, data?.settings);
 
-    const select = filterForm.querySelector("select[name=\"assignmentId\"]");
+    const select = filterForm.querySelector('select[name="assignmentId"]');
     if (select) {
       const assignments = Array.isArray(data?.assignments) ? data.assignments : [];
       select.innerHTML = "";
@@ -1502,7 +2235,6 @@ async function loadTeacherGradebook({ selectedAssignmentId } = {}) {
       placeholder.value = "";
       placeholder.textContent = "Select an assignment";
       select.appendChild(placeholder);
-
       for (const a of assignments) {
         const opt = document.createElement("option");
         opt.value = String(a.id || "");
@@ -1510,60 +2242,147 @@ async function loadTeacherGradebook({ selectedAssignmentId } = {}) {
         opt.textContent = moduleLabel ? `${moduleLabel} - ${a.title || "Assignment"}` : String(a.title || "Assignment");
         select.appendChild(opt);
       }
-
-      const desired = String(selectedAssignmentId || select.value || "");
-      if (desired) select.value = desired;
     }
 
-    const selected =
-      String(selectedAssignmentId || (filterForm.querySelector("select[name=\"assignmentId\"]")?.value || "")).trim();
-
-    renderTeacherGradebook(container, data, { selectedAssignmentId: selected });
+    gradebookWrap.innerHTML = `<p class="empty-state">Select an assignment to start grading.</p>`;
   } catch (_err) {
-    container.innerHTML = `<p class="empty-state">Unable to load gradebook.</p>`;
+    gradebookWrap.innerHTML = `<p class="empty-state">Unable to load gradebook.</p>`;
+    settingsWrap.innerHTML = `<p class="empty-state">Unable to load grade settings.</p>`;
+  }
+}
+
+async function loadTeacherGradebookAssignment(assignmentId) {
+  const gradebookWrap = document.querySelector("[data-gradebook]");
+  if (!gradebookWrap) return;
+
+  const classroomId = currentClassroomIdFromQuery();
+  if (!classroomId) return;
+
+  if (!assignmentId) {
+    gradebookWrap.innerHTML = `<p class="empty-state">Select an assignment.</p>`;
+    return;
+  }
+
+  gradebookWrap.innerHTML = `<p class="empty-state">Loading...</p>`;
+  try {
+    const data = await apiFetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/gradebook/assignment/${encodeURIComponent(assignmentId)}`
+    );
+    teacherGradebookAssignment = data;
+    renderTeacherGradebookAssignment(gradebookWrap, data);
+  } catch (_err) {
+    gradebookWrap.innerHTML = `<p class="empty-state">Unable to load gradebook.</p>`;
+  }
+}
+
+async function loadTeacherStudentReport(studentId) {
+  const report = document.querySelector("[data-grade-report]");
+  if (!report) return;
+
+  const classroomId = currentClassroomIdFromQuery();
+  if (!classroomId) return;
+
+  report.hidden = false;
+  report.innerHTML = `<p class="empty-state">Loading...</p>`;
+  try {
+    const data = await apiFetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/gradebook/student/${encodeURIComponent(studentId)}`
+    );
+    report.innerHTML = "";
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "btn btn--secondary btn--sm";
+    back.textContent = "Close";
+    back.addEventListener("click", () => {
+      report.hidden = true;
+      report.innerHTML = "";
+    });
+
+    const title = document.createElement("h3");
+    title.className = "widget__title";
+    title.textContent = `Report: ${data?.student?.name || "Student"}`;
+
+    report.appendChild(back);
+    report.appendChild(title);
+
+    // Reuse student-grade rendering in a simple container
+    const inner = document.createElement("div");
+    report.appendChild(inner);
+    renderStudentGrades(inner, {
+      settings: data?.settings,
+      assignments: data?.assignments,
+      grades: data?.grades,
+      submissions: data?.submissions,
+    });
+  } catch (_err) {
+    report.innerHTML = `<p class="empty-state">Unable to load report.</p>`;
   }
 }
 
 function initTeacherGradebookInteractions() {
   const filterForm = document.querySelector("form[data-gradebook-filter]");
-  if (filterForm) {
-    filterForm.addEventListener("change", () => {
-      const selected = String(filterForm.querySelector("select[name=\"assignmentId\"]")?.value || "");
-      loadTeacherGradebook({ selectedAssignmentId: selected });
-    });
-  }
+  if (!filterForm) return;
 
-  const container = document.querySelector("[data-gradebook]");
-  if (!container) return;
+  filterForm.addEventListener("change", () => {
+    const selected = String(filterForm.querySelector('select[name="assignmentId"]')?.value || "").trim();
+    loadTeacherGradebookAssignment(selected);
+  });
 
-  container.addEventListener("click", async (e) => {
+  const gradebook = document.querySelector("[data-gradebook]");
+  if (!gradebook) return;
+
+  gradebook.addEventListener("click", async (e) => {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
 
     const studentId = target.getAttribute("data-gradebook-save");
-    if (!studentId) return;
+    if (studentId) {
+      const classroomId = currentClassroomIdFromQuery();
+      if (!classroomId) return;
+      const assignmentId = String(filterForm.querySelector('select[name="assignmentId"]')?.value || "").trim();
+      if (!assignmentId) return;
 
-    const classroomId = currentClassroomIdFromQuery();
-    if (!classroomId) return;
+      const row = gradebook.querySelector(`[data-gradebook-student-row="${CSS.escape(studentId)}"]`);
+      const pointsEarned = row?.querySelector('input[name="pointsEarned"]')?.value ?? "";
+      const feedback = row?.querySelector('input[name="feedback"]')?.value ?? "";
+      const statusValue = row?.querySelector('select[name="status"]')?.value ?? "graded";
+      const lateDaysOverride = row?.querySelector('input[name="lateDaysOverride"]')?.value ?? "";
 
-    const assignmentId = String(filterForm?.querySelector("select[name=\"assignmentId\"]")?.value || "").trim();
-    if (!assignmentId) return;
-
-    const row = target.closest(".gradebook__row");
-    const pointsEarned = row?.querySelector('input[name="pointsEarned"]')?.value ?? "";
-    const feedback = row?.querySelector('input[name="feedback"]')?.value ?? "";
-
-    const status = container.querySelector(`[data-gradebook-status="${CSS.escape(studentId)}"]`);
-    if (status) status.textContent = "Saving...";
-
-    try {
-      await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/grades`, {
-        method: "PUT",
-        body: JSON.stringify({ assignmentId, studentId, pointsEarned, feedback }),
+      const rubricScores = {};
+      row?.querySelectorAll('input[name^="rubric:"]').forEach((input) => {
+        const name = input.getAttribute("name") || "";
+        const id = name.replace(/^rubric:/, "");
+        const n = Number(input.value);
+        if (id && Number.isFinite(n)) rubricScores[id] = n;
       });
-      if (status) status.textContent = "Saved.";
-    } catch (err) {
-      if (status) status.textContent = err?.message || "Failed to save.";
+
+      const status = gradebook.querySelector(`[data-gradebook-status="${CSS.escape(studentId)}"]`);
+      if (status) status.textContent = "Saving...";
+
+      try {
+        await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/grades`, {
+          method: "PUT",
+          body: JSON.stringify({
+            assignmentId,
+            studentId,
+            pointsEarned,
+            feedback,
+            status: statusValue,
+            lateDaysOverride,
+            rubricScores: Object.keys(rubricScores).length ? rubricScores : null,
+          }),
+        });
+        if (status) status.textContent = "Saved.";
+      } catch (err) {
+        if (status) status.textContent = err?.message || "Failed to save.";
+      }
+      return;
+    }
+
+    const reportId = target.getAttribute("data-gradebook-student-report");
+    if (reportId) {
+      loadTeacherStudentReport(reportId);
     }
   });
 }
@@ -1647,7 +2466,7 @@ function renderStudentGrades(container, payload) {
 
     const big = document.createElement("p");
     big.className = "grade-summary__big";
-    big.textContent = `${pct}% • ${letter}`;
+    big.textContent = `${pct}% - ${letter}`;
 
     const pts = document.createElement("p");
     pts.className = "grade-summary__points";
@@ -1701,7 +2520,7 @@ function renderStudentGrades(container, payload) {
     } else if (Number.isFinite(maxPoints) && maxPoints > 0) {
       const pct = Math.round((Number(score) / maxPoints) * 1000) / 10;
       const letter = percentToLetter(pct);
-      text.textContent = `Score: ${score} / ${pointsRaw} (${pct}% • ${letter})`;
+      text.textContent = `Score: ${score} / ${pointsRaw} (${pct}% - ${letter})`;
     } else {
       text.textContent = `Score: ${score}`;
     }
@@ -1960,6 +2779,7 @@ function initModulesInteractions() {
     const title = String(payload.title || "").trim();
     const body = String(payload.body || "").trim();
     const dueAt = String(payload.dueAt || "").trim();
+    const category = String(payload.category || "").trim();
     const points = String(payload.points || "").trim();
 
     if (!body) {
@@ -1976,6 +2796,7 @@ function initModulesInteractions() {
             title,
             body,
             dueAt: dueAt ? new Date(dueAt).toISOString() : "",
+            category,
             points: points ? Number(points) : null,
           }),
         }
@@ -2494,7 +3315,7 @@ function initPasswordToggles() {
         if (tab === "home") loadClassroomRecentActivity();
         if (tab === "modules") loadClassroomModules();
         if (tab === "people") loadTeacherPeople();
-        if (tab === "grades") loadTeacherGradebook();
+        if (tab === "grades") loadTeacherGradebookMeta();
       }
     };
 
@@ -2504,7 +3325,7 @@ function initPasswordToggles() {
       if (tab === "home") loadClassroomRecentActivity();
       if (tab === "modules") loadClassroomModules();
       if (tab === "people") loadTeacherPeople();
-      if (tab === "grades") loadTeacherGradebook();
+      if (tab === "grades") loadTeacherGradebookMeta();
     });
 
     // Load on first visit based on current tab

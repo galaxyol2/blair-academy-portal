@@ -7,10 +7,37 @@ const { classroomModulesStore } = require("../store/classroomModulesStore");
 const { classroomSubmissionsStore } = require("../store/classroomSubmissionsStore");
 const { classroomMembershipsStore } = require("../store/classroomMembershipsStore");
 const { classroomGradesStore } = require("../store/classroomGradesStore");
+const { classroomGradeSettingsStore } = require("../store/classroomGradeSettingsStore");
+const { classroomRubricsStore } = require("../store/classroomRubricsStore");
 const { usersStore } = require("../store/usersStore");
 
 function buildClassroomsRouter() {
   const router = express.Router();
+
+  function flattenAssignments(modules) {
+    const out = [];
+    for (const m of Array.isArray(modules) ? modules : []) {
+      for (const a of Array.isArray(m.assignments) ? m.assignments : []) {
+        out.push({ module: m, assignment: a });
+      }
+    }
+    return out;
+  }
+
+  function findAssignmentOrNull(modules, assignmentId) {
+    return (
+      flattenAssignments(modules)
+        .map(({ assignment }) => assignment)
+        .find((a) => a.id === assignmentId) || null
+    );
+  }
+
+  function weightSum(categories) {
+    return (Array.isArray(categories) ? categories : []).reduce(
+      (sum, c) => sum + (Number(c?.weightPct) || 0),
+      0
+    );
+  }
 
   router.get("/", requireAuth, requireTeacher, async (req, res) => {
     const items = await classroomsStore.listByTeacher({ teacherId: req.userId });
@@ -135,6 +162,7 @@ function buildClassroomsRouter() {
       const body = String(req.body?.body || "").trim();
       const dueAt = String(req.body?.dueAt || "").trim();
       const pointsRaw = req.body?.points;
+      const category = String(req.body?.category || "").trim();
 
       if (!body) return res.status(400).json({ error: "Instructions are required" });
       if (title.length > 120) return res.status(400).json({ error: "Title is too long" });
@@ -158,6 +186,7 @@ function buildClassroomsRouter() {
         body,
         dueAt,
         points,
+        category,
       });
       if (!item) return res.status(404).json({ error: "Module not found" });
       res.status(201).json({ item });
@@ -308,12 +337,115 @@ function buildClassroomsRouter() {
     res.json({ ok: true });
   });
 
+  router.get("/:id/grade-settings", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const item = await classroomGradeSettingsStore.getOrCreate({
+      classroomId: classroom.id,
+      teacherId: req.userId,
+    });
+    res.json({ item });
+  });
+
+  router.put("/:id/grade-settings", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const categories = req.body?.categories;
+    const sum = weightSum(categories);
+    if (Math.round(sum) !== 100) {
+      return res.status(400).json({ error: "Category weights must add up to 100" });
+    }
+
+    const item = await classroomGradeSettingsStore.upsert({
+      classroomId: classroom.id,
+      teacherId: req.userId,
+      categories,
+      latePenaltyPerDayPct: req.body?.latePenaltyPerDayPct,
+      maxLatePenaltyPct: req.body?.maxLatePenaltyPct,
+    });
+    res.json({ item });
+  });
+
+  router.get("/:id/assignments/:assignmentId/rubric", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    const assignmentId = String(req.params?.assignmentId || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+    if (!assignmentId) return res.status(400).json({ error: "Missing assignment id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const modules = await classroomModulesStore.listWithAssignments({
+      classroomId: classroom.id,
+      teacherId: req.userId,
+      limit: 200,
+    });
+    const assignment = findAssignmentOrNull(modules, assignmentId);
+    if (!assignment) return res.status(404).json({ error: "Assignment not found" });
+
+    const rubric = await classroomRubricsStore.getByAssignment({ classroomId: classroom.id, assignmentId });
+    res.json({ item: rubric || { classroomId: classroom.id, assignmentId, rubric: [] } });
+  });
+
+  router.put("/:id/assignments/:assignmentId/rubric", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    const assignmentId = String(req.params?.assignmentId || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+    if (!assignmentId) return res.status(400).json({ error: "Missing assignment id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const modules = await classroomModulesStore.listWithAssignments({
+      classroomId: classroom.id,
+      teacherId: req.userId,
+      limit: 200,
+    });
+    const assignment = findAssignmentOrNull(modules, assignmentId);
+    if (!assignment) return res.status(404).json({ error: "Assignment not found" });
+
+    const maxPoints = Number(assignment.points);
+    if (!Number.isFinite(maxPoints) || !Number.isInteger(maxPoints) || maxPoints <= 0) {
+      return res.status(400).json({ error: "Assignment points not set" });
+    }
+
+    const rubric = req.body?.rubric;
+    const sum = (Array.isArray(rubric) ? rubric : []).reduce(
+      (total, r) => total + (Number(r?.pointsMax) || 0),
+      0
+    );
+    if (Math.floor(sum) !== maxPoints) {
+      return res.status(400).json({ error: `Rubric points must add up to ${maxPoints}` });
+    }
+
+    const item = await classroomRubricsStore.upsert({
+      classroomId: classroom.id,
+      assignmentId,
+      teacherId: req.userId,
+      rubric,
+    });
+    res.json({ item });
+  });
+
   router.get("/:id/gradebook", requireAuth, requireTeacher, async (req, res) => {
     const id = String(req.params?.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing classroom id" });
 
     const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
     if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const settings = await classroomGradeSettingsStore.getOrCreate({
+      classroomId: classroom.id,
+      teacherId: req.userId,
+    });
 
     const modules = await classroomModulesStore.listWithAssignments({
       classroomId: classroom.id,
@@ -329,6 +461,7 @@ function buildClassroomsRouter() {
           body: a.body || "",
           dueAt: a.dueAt || "",
           points: a.points || "",
+          category: a.category || "Homework",
           moduleId: m.id,
           moduleTitle: m.title || "",
         });
@@ -352,10 +485,144 @@ function buildClassroomsRouter() {
       joinedAt: m.createdAt,
     }));
 
-    const grades = await classroomGradesStore.listByClassroom({ classroomId: classroom.id });
-
-    res.json({ classroom: { id: classroom.id, name: classroom.name }, assignments, people, grades });
+    res.json({ classroom: { id: classroom.id, name: classroom.name }, settings, assignments, people });
   });
+
+  router.get(
+    "/:id/gradebook/assignment/:assignmentId",
+    requireAuth,
+    requireTeacher,
+    async (req, res) => {
+      const id = String(req.params?.id || "").trim();
+      const assignmentId = String(req.params?.assignmentId || "").trim();
+      if (!id) return res.status(400).json({ error: "Missing classroom id" });
+      if (!assignmentId) return res.status(400).json({ error: "Missing assignment id" });
+
+      const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+      const settings = await classroomGradeSettingsStore.getOrCreate({
+        classroomId: classroom.id,
+        teacherId: req.userId,
+      });
+
+      const modules = await classroomModulesStore.listWithAssignments({
+        classroomId: classroom.id,
+        teacherId: req.userId,
+        limit: 200,
+      });
+      const assignment = findAssignmentOrNull(modules, assignmentId);
+      if (!assignment) return res.status(404).json({ error: "Assignment not found" });
+
+      const memberships = await classroomMembershipsStore.listByClassroom({ classroomId: classroom.id });
+      const uniqueStudentIds = [...new Set(memberships.map((m) => m.studentId).filter(Boolean))];
+
+      const students = new Map();
+      for (const sid of uniqueStudentIds) {
+        // eslint-disable-next-line no-await-in-loop
+        const u = await usersStore.findById(sid);
+        if (u) students.set(sid, { id: u.id, name: u.name, email: u.email });
+      }
+
+      const people = memberships.map((m) => ({
+        id: m.studentId,
+        name: students.get(m.studentId)?.name || "Student",
+        email: students.get(m.studentId)?.email || "",
+        joinedAt: m.createdAt,
+      }));
+
+      const allGrades = await classroomGradesStore.listByClassroom({ classroomId: classroom.id });
+      const grades = allGrades.filter((g) => g.assignmentId === assignmentId);
+
+      const submissions = await classroomSubmissionsStore.listByAssignment({
+        classroomId: classroom.id,
+        assignmentId,
+        limit: 800,
+      });
+      const latestByStudent = new Map();
+      for (const s of submissions) {
+        if (!s.studentId) continue;
+        if (!latestByStudent.has(s.studentId)) latestByStudent.set(s.studentId, s);
+      }
+
+      const rubric = await classroomRubricsStore.getByAssignment({ classroomId: classroom.id, assignmentId });
+
+      res.json({
+        classroom: { id: classroom.id, name: classroom.name },
+        settings,
+        assignment: {
+          id: assignment.id,
+          title: assignment.title || "Assignment",
+          dueAt: assignment.dueAt || "",
+          points: assignment.points || "",
+          category: assignment.category || "Homework",
+        },
+        rubric: rubric ? rubric.rubric : [],
+        people,
+        grades,
+        submissions: [...latestByStudent.values()].map((s) => ({
+          studentId: s.studentId,
+          type: s.type,
+          payload: s.payload,
+          createdAt: s.createdAt,
+        })),
+      });
+    }
+  );
+
+  router.get(
+    "/:id/gradebook/student/:studentId",
+    requireAuth,
+    requireTeacher,
+    async (req, res) => {
+      const id = String(req.params?.id || "").trim();
+      const studentId = String(req.params?.studentId || "").trim();
+      if (!id) return res.status(400).json({ error: "Missing classroom id" });
+      if (!studentId) return res.status(400).json({ error: "Missing student id" });
+
+      const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+      const membershipOk = await classroomMembershipsStore.isMember({
+        classroomId: classroom.id,
+        studentId,
+      });
+      if (!membershipOk) return res.status(404).json({ error: "Student not found in this classroom" });
+
+      const settings = await classroomGradeSettingsStore.getOrCreate({
+        classroomId: classroom.id,
+        teacherId: req.userId,
+      });
+
+      const modules = await classroomModulesStore.listWithAssignments({
+        classroomId: classroom.id,
+        teacherId: req.userId,
+        limit: 200,
+      });
+      const assignments = flattenAssignments(modules).map(({ module, assignment }) => ({
+        id: assignment.id,
+        title: assignment.title || "Assignment",
+        dueAt: assignment.dueAt || "",
+        points: assignment.points || "",
+        category: assignment.category || "Homework",
+        moduleTitle: module.title || "",
+      }));
+
+      const allGrades = await classroomGradesStore.listByClassroom({ classroomId: classroom.id });
+      const grades = allGrades.filter((g) => g.studentId === studentId);
+
+      const submissions = await classroomSubmissionsStore.listByStudentInClassroom({
+        classroomId: classroom.id,
+        studentId,
+        limit: 500,
+      });
+
+      const user = await usersStore.findById(studentId);
+      const student = user ? { id: user.id, name: user.name, email: user.email } : { id: studentId, name: "Student", email: "" };
+
+      res.json({ classroom: { id: classroom.id, name: classroom.name }, settings, student, assignments, grades, submissions });
+    }
+  );
 
   router.put("/:id/grades", requireAuth, requireTeacher, async (req, res) => {
     const id = String(req.params?.id || "").trim();
@@ -365,6 +632,9 @@ function buildClassroomsRouter() {
     const studentId = String(req.body?.studentId || "").trim();
     const pointsEarned = req.body?.pointsEarned;
     const feedback = String(req.body?.feedback || "").trim();
+    const status = String(req.body?.status || "graded").trim().toLowerCase();
+    const rubricScores = req.body?.rubricScores;
+    const lateDaysOverride = req.body?.lateDaysOverride;
 
     if (!assignmentId) return res.status(400).json({ error: "Missing assignment id" });
     if (!studentId) return res.status(400).json({ error: "Missing student id" });
@@ -394,13 +664,26 @@ function buildClassroomsRouter() {
       return res.status(400).json({ error: "Assignment points not set" });
     }
 
+    const allowedStatus = new Set(["graded", "late", "missing", "excused"]);
+    if (!allowedStatus.has(status)) return res.status(400).json({ error: "Invalid status" });
+
     const peNum =
       pointsEarned === "" || pointsEarned === null || pointsEarned === undefined ? null : Number(pointsEarned);
-    if (peNum !== null) {
-      if (!Number.isFinite(peNum) || peNum < 0 || !Number.isInteger(peNum)) {
+    if (status === "excused") {
+      // Excused work is excluded from totals; store as null.
+      // eslint-disable-next-line no-param-reassign
+      // peNum is const; use a separate variable below.
+    }
+
+    let points = peNum;
+    if (status === "missing") points = 0;
+    if (status === "excused") points = null;
+
+    if (points !== null) {
+      if (!Number.isFinite(points) || points < 0 || !Number.isInteger(points)) {
         return res.status(400).json({ error: "Points must be a whole number" });
       }
-      if (peNum > maxPoints) return res.status(400).json({ error: `Points cannot exceed ${maxPoints}` });
+      if (points > maxPoints) return res.status(400).json({ error: `Points cannot exceed ${maxPoints}` });
     }
 
     const item = await classroomGradesStore.upsert({
@@ -408,8 +691,11 @@ function buildClassroomsRouter() {
       assignmentId,
       studentId,
       teacherId: req.userId,
-      pointsEarned: peNum,
+      pointsEarned: points,
       feedback,
+      status,
+      rubricScores,
+      lateDaysOverride,
     });
     res.json({ item });
   });

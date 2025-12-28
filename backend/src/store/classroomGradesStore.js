@@ -20,6 +20,34 @@ function normalizePoints(value) {
   return Math.round(n * 100) / 100;
 }
 
+function normalizeStatus(value) {
+  const v = String(value || "").trim().toLowerCase();
+  if (v === "missing") return "missing";
+  if (v === "late") return "late";
+  if (v === "excused") return "excused";
+  return "graded";
+}
+
+function normalizeRubricScores(value) {
+  if (!value || typeof value !== "object") return null;
+  const out = {};
+  for (const [k, v] of Object.entries(value)) {
+    const key = String(k || "").trim();
+    if (!key) continue;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) continue;
+    out[key] = Math.round(n * 100) / 100;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function normalizeLateDays(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
+  return Math.min(n, 60);
+}
+
 function createJsonClassroomGradesStore() {
   async function readDb() {
     return readJsonFile(dataFilePath(), defaultDb);
@@ -44,11 +72,24 @@ function createJsonClassroomGradesStore() {
         .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
     },
 
-    async upsert({ classroomId, assignmentId, studentId, teacherId, pointsEarned, feedback }) {
+    async upsert({
+      classroomId,
+      assignmentId,
+      studentId,
+      teacherId,
+      pointsEarned,
+      feedback,
+      status,
+      rubricScores,
+      lateDaysOverride,
+    }) {
       const db = await readDb();
       const now = new Date().toISOString();
       const pe = normalizePoints(pointsEarned);
       const fb = String(feedback || "").trim();
+      const st = normalizeStatus(status);
+      const rs = normalizeRubricScores(rubricScores);
+      const lateDays = normalizeLateDays(lateDaysOverride);
 
       const idx = db.grades.findIndex(
         (g) =>
@@ -62,6 +103,9 @@ function createJsonClassroomGradesStore() {
           teacherId,
           pointsEarned: pe,
           feedback: fb,
+          status: st,
+          rubricScores: rs,
+          lateDaysOverride: lateDays,
           updatedAt: now,
         };
         db.grades[idx] = updated;
@@ -77,6 +121,9 @@ function createJsonClassroomGradesStore() {
         teacherId,
         pointsEarned: pe,
         feedback: fb,
+        status: st,
+        rubricScores: rs,
+        lateDaysOverride: lateDays,
         createdAt: now,
         updatedAt: now,
       };
@@ -109,12 +156,18 @@ function createPgClassroomGradesStore() {
         student_id TEXT NOT NULL,
         teacher_id TEXT NOT NULL,
         points_earned NUMERIC,
+        status TEXT NOT NULL DEFAULT 'graded',
+        rubric_scores JSONB,
+        late_days_override INT,
         feedback TEXT NOT NULL DEFAULT '',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE (classroom_id, assignment_id, student_id)
       );
     `);
+    await pool.query(`ALTER TABLE classroom_grades ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'graded';`);
+    await pool.query(`ALTER TABLE classroom_grades ADD COLUMN IF NOT EXISTS rubric_scores JSONB;`);
+    await pool.query(`ALTER TABLE classroom_grades ADD COLUMN IF NOT EXISTS late_days_override INT;`);
     schemaReady = true;
   }
 
@@ -128,6 +181,9 @@ function createPgClassroomGradesStore() {
                 student_id AS "studentId",
                 teacher_id AS "teacherId",
                 points_earned AS "pointsEarned",
+                status,
+                rubric_scores AS "rubricScores",
+                late_days_override AS "lateDaysOverride",
                 feedback,
                 created_at AS "createdAt",
                 updated_at AS "updatedAt"
@@ -148,6 +204,9 @@ function createPgClassroomGradesStore() {
                 student_id AS "studentId",
                 teacher_id AS "teacherId",
                 points_earned AS "pointsEarned",
+                status,
+                rubric_scores AS "rubricScores",
+                late_days_override AS "lateDaysOverride",
                 feedback,
                 created_at AS "createdAt",
                 updated_at AS "updatedAt"
@@ -159,18 +218,34 @@ function createPgClassroomGradesStore() {
       return res.rows;
     },
 
-    async upsert({ classroomId, assignmentId, studentId, teacherId, pointsEarned, feedback }) {
+    async upsert({
+      classroomId,
+      assignmentId,
+      studentId,
+      teacherId,
+      pointsEarned,
+      feedback,
+      status,
+      rubricScores,
+      lateDaysOverride,
+    }) {
       await ensureSchema();
       const id = crypto.randomUUID();
       const pe = normalizePoints(pointsEarned);
       const fb = String(feedback || "").trim();
+      const st = normalizeStatus(status);
+      const rs = normalizeRubricScores(rubricScores);
+      const lateDays = normalizeLateDays(lateDaysOverride);
 
       const res = await pool.query(
-        `INSERT INTO classroom_grades (id, classroom_id, assignment_id, student_id, teacher_id, points_earned, feedback)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO classroom_grades (id, classroom_id, assignment_id, student_id, teacher_id, points_earned, status, rubric_scores, late_days_override, feedback)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (classroom_id, assignment_id, student_id)
          DO UPDATE SET teacher_id = EXCLUDED.teacher_id,
                        points_earned = EXCLUDED.points_earned,
+                       status = EXCLUDED.status,
+                       rubric_scores = EXCLUDED.rubric_scores,
+                       late_days_override = EXCLUDED.late_days_override,
                        feedback = EXCLUDED.feedback,
                        updated_at = NOW()
          RETURNING id,
@@ -179,10 +254,13 @@ function createPgClassroomGradesStore() {
                    student_id AS "studentId",
                    teacher_id AS "teacherId",
                    points_earned AS "pointsEarned",
+                   status,
+                   rubric_scores AS "rubricScores",
+                   late_days_override AS "lateDaysOverride",
                    feedback,
                    created_at AS "createdAt",
                    updated_at AS "updatedAt"`,
-        [id, classroomId, assignmentId, studentId, teacherId, pe, fb]
+        [id, classroomId, assignmentId, studentId, teacherId, pe, st, rs, lateDays, fb]
       );
       return res.rows[0];
     },
@@ -194,4 +272,3 @@ const classroomGradesStore = process.env.DATABASE_URL
   : createJsonClassroomGradesStore();
 
 module.exports = { classroomGradesStore };
-

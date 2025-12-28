@@ -113,7 +113,7 @@ function createJsonClassroomModulesStore() {
       return { module: deleted || null, removedAssignments };
     },
 
-    async createAssignment({ classroomId, teacherId, moduleId, title, body, dueAt, points }) {
+    async createAssignment({ classroomId, teacherId, moduleId, title, body, dueAt, points, category }) {
       const db = await readDb();
       const module = db.modules.find(
         (m) => m.id === moduleId && m.classroomId === classroomId && m.teacherId === teacherId
@@ -130,6 +130,7 @@ function createJsonClassroomModulesStore() {
         body: normalizeText(body, { max: 5000 }),
         dueAt: toNullableIsoDate(dueAt),
         points: Number.isFinite(Number(points)) ? Math.max(0, Math.floor(Number(points))) : null,
+        category: normalizeText(category, { max: 40 }) || "Homework",
         createdAt: now,
       };
       db.assignments.push(item);
@@ -189,9 +190,11 @@ function createPgClassroomModulesStore() {
         body TEXT NOT NULL,
         due_at TIMESTAMPTZ,
         points INT,
+        category TEXT NOT NULL DEFAULT 'Homework',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+    await pool.query(`ALTER TABLE classroom_assignments ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'Homework';`);
     schemaReady = true;
   }
 
@@ -223,6 +226,7 @@ function createPgClassroomModulesStore() {
                 body,
                 due_at AS "dueAt",
                 points,
+                category,
                 created_at AS "createdAt"
            FROM classroom_assignments
           WHERE classroom_id = $1 AND teacher_id = $2
@@ -290,7 +294,7 @@ function createPgClassroomModulesStore() {
       return { module, removedAssignments: deletedAssignmentsRes.rowCount || 0 };
     },
 
-    async createAssignment({ classroomId, teacherId, moduleId, title, body, dueAt, points }) {
+    async createAssignment({ classroomId, teacherId, moduleId, title, body, dueAt, points, category }) {
       await ensureSchema();
       const existsRes = await pool.query(
         `SELECT id FROM classroom_modules WHERE id = $1 AND classroom_id = $2 AND teacher_id = $3 LIMIT 1`,
@@ -300,8 +304,8 @@ function createPgClassroomModulesStore() {
 
       const id = crypto.randomUUID();
       const res = await pool.query(
-        `INSERT INTO classroom_assignments (id, classroom_id, teacher_id, module_id, title, body, due_at, points)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO classroom_assignments (id, classroom_id, teacher_id, module_id, title, body, due_at, points, category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING id,
                    classroom_id AS "classroomId",
                    teacher_id AS "teacherId",
@@ -310,6 +314,7 @@ function createPgClassroomModulesStore() {
                    body,
                    due_at AS "dueAt",
                    points,
+                   category,
                    created_at AS "createdAt"`,
         [
           id,
@@ -320,6 +325,7 @@ function createPgClassroomModulesStore() {
           normalizeText(body, { max: 5000 }),
           toNullableIsoDate(dueAt),
           Number.isFinite(Number(points)) ? Math.max(0, Math.floor(Number(points))) : null,
+          normalizeText(category, { max: 40 }) || "Homework",
         ]
       );
       return res.rows[0];
@@ -338,6 +344,7 @@ function createPgClassroomModulesStore() {
                     body,
                     due_at AS "dueAt",
                     points,
+                    category,
                     created_at AS "createdAt"`,
         [assignmentId, moduleId, classroomId, teacherId]
       );
@@ -351,4 +358,3 @@ const classroomModulesStore = process.env.DATABASE_URL
   : createJsonClassroomModulesStore();
 
 module.exports = { classroomModulesStore };
-

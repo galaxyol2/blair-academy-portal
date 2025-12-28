@@ -37,6 +37,15 @@ function createJsonClassroomSubmissionsStore() {
         .slice(0, l);
     },
 
+    async listByStudentInClassroom({ classroomId, studentId, limit = 300 }) {
+      const db = await readDb();
+      const l = normalizeLimit(limit, 300);
+      return [...db.submissions]
+        .filter((s) => s.classroomId === classroomId && s.studentId === studentId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, l);
+    },
+
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {
       const db = await readDb();
       const l = normalizeLimit(limit, 10);
@@ -116,6 +125,26 @@ function createPgClassroomSubmissionsStore() {
           ORDER BY created_at DESC
           LIMIT $3`,
         [classroomId, assignmentId, l]
+      );
+      return res.rows;
+    },
+
+    async listByStudentInClassroom({ classroomId, studentId, limit = 300 }) {
+      await ensureSchema();
+      const l = normalizeLimit(limit, 300);
+      const res = await pool.query(
+        `SELECT id,
+                classroom_id AS "classroomId",
+                assignment_id AS "assignmentId",
+                student_id AS "studentId",
+                type,
+                payload,
+                created_at AS "createdAt"
+           FROM classroom_submissions
+          WHERE classroom_id = $1 AND student_id = $2
+          ORDER BY created_at DESC
+          LIMIT $3`,
+        [classroomId, studentId, l]
       );
       return res.rows;
     },
