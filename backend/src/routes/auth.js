@@ -93,7 +93,15 @@ function buildAuthRouter() {
     }
 
     const existing = await usersStore.findByEmail(email);
-    if (existing) return res.status(409).json({ error: "Email already in use" });
+    if (existing) {
+      const existingRole = String(existing.role || "student").toLowerCase();
+      return res.status(409).json({
+        error:
+          existingRole === "teacher"
+            ? "That email is already linked to a teacher/employee account"
+            : "That email is already linked to a student account",
+      });
+    }
 
     const passwordHash = await hashPassword(password);
     const user = await usersStore.create({ name, email, passwordHash, role: "student" });
@@ -129,7 +137,15 @@ function buildAuthRouter() {
     }
 
     const existing = await usersStore.findByEmail(email);
-    if (existing) return res.status(409).json({ error: "Email already in use" });
+    if (existing) {
+      const existingRole = String(existing.role || "student").toLowerCase();
+      return res.status(409).json({
+        error:
+          existingRole === "teacher"
+            ? "That email is already linked to a teacher/employee account"
+            : "That email is already linked to a student account",
+      });
+    }
 
     const passwordHash = await hashPassword(password);
     const user = await usersStore.create({ name, email, passwordHash, role: "teacher" });
