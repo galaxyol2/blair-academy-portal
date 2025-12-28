@@ -45,16 +45,21 @@
       </video>
     </div>
 
-    <header class="portal-header">
-      <div class="container portal-header__inner">
-        <a class="portal-brand" href="/teacher/dashboard" aria-label="Teacher home">
-          <span class="portal-brand__text">
-            <span class="portal-brand__name">Blair Academy</span>
-            <span class="portal-brand__sub">Teacher Portal</span>
-          </span>
-        </a>
-
-        <div></div>
+    <header class="portal-header portal-header--classroom">
+      <div class="container portal-header__inner portal-header__inner--classroom">
+        <div class="classroom-topbar">
+          <button
+            class="sidebar-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="sidebar"
+          >
+            Menu
+          </button>
+          <a class="classroom-topbar__title" href="/teacher/dashboard" data-classroom-title
+            >Loading…</a
+          >
+        </div>
 
         <div class="portal-header__actions">
           <div class="portal-user">
@@ -84,11 +89,19 @@
       </div>
     </header>
 
-    <div class="portal-shell" data-role="teacher">
+    <div class="portal-shell portal-shell--classroom" data-role="teacher">
       <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
-        <nav class="portal-nav" aria-label="Teacher">
-          <a class="portal-nav__link" href="/teacher/dashboard">Home</a>
-          <a class="portal-nav__link is-active" href="/teacher/classroom">Classroom</a>
+        <div class="classroom-sidebar__meta">
+          <p class="classroom-sidebar__term" data-classroom-term></p>
+        </div>
+        <nav class="portal-nav portal-nav--classroom" aria-label="Classroom">
+          <a class="portal-nav__link is-active" href="#" data-classroom-tab="home">Home</a>
+          <a class="portal-nav__link" href="#" data-classroom-tab="announcements"
+            >Announcements</a
+          >
+          <a class="portal-nav__link" href="#" data-classroom-tab="modules">Modules</a>
+          <a class="portal-nav__link" href="#" data-classroom-tab="grades">Grades</a>
+          <a class="portal-nav__link" href="#" data-classroom-tab="people">People</a>
         </nav>
         <div class="portal-sidebar__footer">
           <p class="portal-sidebar__fineprint"></p>
@@ -109,11 +122,49 @@
           </div>
 
           <section class="portal-section" aria-label="Classroom content">
-            <div class="widget">
-              <div class="widget__header">
-                <h2 class="widget__title">Stream</h2>
+            <div data-classroom-panel="home">
+              <div class="widget">
+                <div class="widget__header">
+                  <h2 class="widget__title">Recent Activity</h2>
+                </div>
+                <p class="empty-state">Nothing new yet.</p>
               </div>
-              <p class="empty-state">Assignments, posts, and students coming next.</p>
+            </div>
+
+            <div data-classroom-panel="announcements" hidden>
+              <div class="widget">
+                <div class="widget__header">
+                  <h2 class="widget__title">Announcements</h2>
+                </div>
+                <p class="empty-state">Class announcements coming next.</p>
+              </div>
+            </div>
+
+            <div data-classroom-panel="modules" hidden>
+              <div class="widget">
+                <div class="widget__header">
+                  <h2 class="widget__title">Modules</h2>
+                </div>
+                <p class="empty-state">Module folders coming next.</p>
+              </div>
+            </div>
+
+            <div data-classroom-panel="grades" hidden>
+              <div class="widget">
+                <div class="widget__header">
+                  <h2 class="widget__title">Grades</h2>
+                </div>
+                <p class="empty-state">Gradebook coming next.</p>
+              </div>
+            </div>
+
+            <div data-classroom-panel="people" hidden>
+              <div class="widget">
+                <div class="widget__header">
+                  <h2 class="widget__title">People</h2>
+                </div>
+                <p class="empty-state">Students list coming next.</p>
+              </div>
             </div>
           </section>
         </div>
@@ -121,4 +172,3 @@
     </div>
   </body>
 </html>
-

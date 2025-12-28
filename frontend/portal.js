@@ -365,6 +365,8 @@ async function loadTeacherClassrooms() {
 async function loadTeacherClassroomDetails() {
   const nameEl = document.querySelector("[data-classroom-name]");
   const metaEl = document.querySelector("[data-classroom-meta]");
+  const titleEl = document.querySelector("[data-classroom-title]");
+  const termEl = document.querySelector("[data-classroom-term]");
   if (!nameEl || !metaEl) return;
 
   const params = new URLSearchParams(window.location.search);
@@ -379,14 +381,56 @@ async function loadTeacherClassroomDetails() {
     const data = await apiFetch(`/api/classrooms/${encodeURIComponent(id)}`);
     const c = data?.item;
     if (!c) throw new Error("Not found");
-    nameEl.textContent = String(c.name || "Untitled");
+    const className = String(c.name || "Untitled");
+    nameEl.textContent = className;
+    if (titleEl) titleEl.textContent = className;
     const section = String(c.section || "").trim();
     const joinCode = String(c.joinCode || "").trim();
     metaEl.textContent = `${section ? `${section} • ` : ""}Join code: ${joinCode || "—"}`;
+    if (termEl) termEl.textContent = section || " ";
   } catch (err) {
     nameEl.textContent = "Classroom not found";
     metaEl.textContent = err?.status === 403 ? "Forbidden" : "";
+    if (titleEl) titleEl.textContent = "Classroom";
+    if (termEl) termEl.textContent = "";
   }
+}
+
+function initTeacherClassroomTabs() {
+  const links = Array.from(document.querySelectorAll("[data-classroom-tab]"));
+  if (links.length === 0) return;
+
+  const panels = new Map();
+  document.querySelectorAll("[data-classroom-panel]").forEach((el) => {
+    panels.set(String(el.getAttribute("data-classroom-panel") || ""), el);
+  });
+
+  const setActive = (tab) => {
+    for (const a of links) {
+      const t = String(a.getAttribute("data-classroom-tab") || "");
+      a.classList.toggle("is-active", t === tab);
+    }
+    for (const [t, el] of panels.entries()) {
+      el.hidden = t !== tab;
+    }
+  };
+
+  const initial = String((window.location.hash || "").replace(/^#/, "") || "home");
+  setActive(panels.has(initial) ? initial : "home");
+
+  for (const a of links) {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const tab = String(a.getAttribute("data-classroom-tab") || "home");
+      window.location.hash = tab;
+      setActive(tab);
+    });
+  }
+
+  window.addEventListener("hashchange", () => {
+    const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
+    if (panels.has(tab)) setActive(tab);
+  });
 }
 
 function initTeacherClassroomCreate() {
@@ -723,6 +767,7 @@ if (routeGuards()) {
   }
 
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
+    initTeacherClassroomTabs();
     loadTeacherClassroomDetails();
   }
 }
