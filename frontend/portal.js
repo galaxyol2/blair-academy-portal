@@ -1531,6 +1531,11 @@ async function handleAuthSubmit(form) {
       return;
     }
 
+    if (err?.status === 403 && mode === "login") {
+      setFormError(form, "Teacher account detected. Use Teacher/Employee log in.");
+      return;
+    }
+
     if (err?.status === 401 && mode === "reset") {
       setFormError(form, "That reset link is invalid or expired. Request a new one.");
       return;

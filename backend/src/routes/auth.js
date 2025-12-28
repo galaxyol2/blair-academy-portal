@@ -164,6 +164,9 @@ function buildAuthRouter() {
 
     const user = await usersStore.findByEmail(email);
     if (!user) return res.status(401).json({ error: "Invalid email or password" });
+    if (String(user.role || "student").toLowerCase() === "teacher") {
+      return res.status(403).json({ error: "Use teacher login" });
+    }
 
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
