@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Submit assignment - Blair Academy Student Portal</title>
+    <meta name="description" content="Submit an assignment." />
+    <link rel="icon" type="image/png" href="./assets/logo.png" />
+    <link rel="apple-touch-icon" href="./assets/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <script>
+      (function () {
+        if (window.location.protocol === "file:") return;
+        try {
+          var raw = localStorage.getItem("blair.portal.session");
+          var session = raw ? JSON.parse(raw) : null;
+          if (!session || !session.token) window.location.replace("/");
+        } catch (_e) {
+          window.location.replace("/");
+        }
+      })();
+    </script>
+    <script defer src="./config.js"></script>
+    <script defer src="./portal.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="portal-header portal-header--classroom">
+      <div class="container portal-header__inner portal-header__inner--classroom">
+        <div class="classroom-topbar">
+          <a class="classroom-topbar__title" href="/dashboard">Blair Academy</a>
+        </div>
+        <div class="portal-header__actions">
+          <a class="btn btn--secondary" href="#" data-assignment-back>Back</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="portal-main">
+      <div class="container portal-main__inner">
+        <div class="portal-titlebar">
+          <div>
+            <p class="portal-eyebrow">Submit</p>
+            <h1 class="portal-title" data-assignment-title>Assignment</h1>
+            <p class="portal-subtitle" data-assignment-meta></p>
+          </div>
+        </div>
+
+        <div class="widget">
+          <div class="widget__header">
+            <h2 class="widget__title">Choose a submission type</h2>
+          </div>
+
+          <div class="submit-types" role="tablist" aria-label="Submission type">
+            <button class="submit-type is-active" type="button" data-submit-type="text">Text</button>
+            <button class="submit-type" type="button" data-submit-type="url">Web URL</button>
+            <button class="submit-type" type="button" data-submit-type="upload">Upload</button>
+          </div>
+
+          <form class="submit-form" data-assignment-submit novalidate>
+            <div data-submit-panel="text">
+              <label class="field">
+                <span class="field__label">Text</span>
+                <textarea name="text" rows="8" placeholder="Type your submission…" required></textarea>
+              </label>
+            </div>
+
+            <div data-submit-panel="url" hidden>
+              <label class="field">
+                <span class="field__label">Web URL</span>
+                <input name="url" type="url" placeholder="https://…" />
+              </label>
+            </div>
+
+            <div data-submit-panel="upload" hidden>
+              <label class="field">
+                <span class="field__label">Upload file</span>
+                <input name="file" type="file" />
+              </label>
+              <p class="empty-state">Uploads are supported (max ~2MB). PDFs recommended.</p>
+            </div>
+
+            <p class="form-success" data-form-success hidden></p>
+            <p class="form-error" data-form-error hidden></p>
+
+            <div class="submit-actions">
+              <a class="btn btn--secondary" href="#" data-assignment-cancel>Cancel</a>
+              <button class="btn btn--primary" type="submit">Submit Assignment</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="widget">
+          <div class="widget__header">
+            <h2 class="widget__title">Your submissions</h2>
+          </div>
+          <div data-assignment-submissions>
+            <p class="empty-state">Loading…</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+

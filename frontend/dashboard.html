@@ -148,6 +148,34 @@
               </div>
             </div>
 
+            <aside class="widget" aria-label="Classrooms">
+              <div class="widget__header">
+                <h2 class="widget__title">Classrooms</h2>
+              </div>
+
+              <form class="auth-form" data-student-join-classroom novalidate>
+                <label class="field">
+                  <span class="field__label">Join code</span>
+                  <input
+                    name="joinCode"
+                    type="text"
+                    inputmode="latin"
+                    placeholder="Enter code"
+                    required
+                  />
+                </label>
+
+                <p class="form-success" data-form-success hidden></p>
+                <p class="form-error" data-form-error hidden></p>
+
+                <button class="btn btn--primary btn--sm" type="submit">Join</button>
+              </form>
+
+              <div style="margin-top: 0.85rem" data-student-classrooms>
+                <p class="empty-state">Loading…</p>
+              </div>
+            </aside>
+
             <aside class="widget" aria-label="My week">
               <div class="widget__header">
                 <h2 class="widget__title">This week</h2>

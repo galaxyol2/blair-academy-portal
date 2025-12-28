@@ -38,6 +38,18 @@ function createJsonClassroomsStore() {
   }
 
   return {
+    async getById(id) {
+      const db = await readDb();
+      return db.classrooms.find((c) => c.id === id) || null;
+    },
+
+    async findByJoinCode(joinCode) {
+      const code = String(joinCode || "").trim().toUpperCase();
+      if (!code) return null;
+      const db = await readDb();
+      return db.classrooms.find((c) => String(c.joinCode || "").toUpperCase() === code) || null;
+    },
+
     async getByIdForTeacher({ teacherId, id }) {
       const db = await readDb();
       return (
@@ -107,6 +119,42 @@ function createPgClassroomsStore() {
   }
 
   return {
+    async getById(id) {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT id,
+                teacher_id AS "teacherId",
+                name,
+                section,
+                join_code AS "joinCode",
+                created_at AS "createdAt"
+           FROM classrooms
+          WHERE id = $1
+          LIMIT 1`,
+        [id]
+      );
+      return res.rows[0] || null;
+    },
+
+    async findByJoinCode(joinCode) {
+      await ensureSchema();
+      const code = String(joinCode || "").trim().toUpperCase();
+      if (!code) return null;
+      const res = await pool.query(
+        `SELECT id,
+                teacher_id AS "teacherId",
+                name,
+                section,
+                join_code AS "joinCode",
+                created_at AS "createdAt"
+           FROM classrooms
+          WHERE UPPER(join_code) = $1
+          LIMIT 1`,
+        [code]
+      );
+      return res.rows[0] || null;
+    },
+
     async getByIdForTeacher({ teacherId, id }) {
       await ensureSchema();
       const res = await pool.query(

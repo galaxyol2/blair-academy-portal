@@ -95,6 +95,19 @@ function studentDashboardUrl() {
   return "/dashboard";
 }
 
+function studentClassroomUrl(classroomId) {
+  const id = encodeURIComponent(String(classroomId || "").trim());
+  if (window.location.protocol === "file:") return `./classroom.html?id=${id}`;
+  return `/classroom?id=${id}`;
+}
+
+function studentAssignmentUrl({ classroomId, assignmentId }) {
+  const cid = encodeURIComponent(String(classroomId || "").trim());
+  const aid = encodeURIComponent(String(assignmentId || "").trim());
+  if (window.location.protocol === "file:") return `./assignment.html?classroomId=${cid}&assignmentId=${aid}`;
+  return `/assignment?classroomId=${cid}&assignmentId=${aid}`;
+}
+
 function initBackgroundVideo() {
   const video = document.querySelector(".video-bg__media");
   if (!video || typeof video.play !== "function") return;
@@ -396,6 +409,39 @@ async function loadTeacherClassroomDetails() {
   }
 }
 
+async function loadStudentClassroomDetails() {
+  const nameEl = document.querySelector("[data-classroom-name]");
+  const metaEl = document.querySelector("[data-classroom-meta]");
+  const titleEl = document.querySelector("[data-classroom-title]");
+  const termEl = document.querySelector("[data-classroom-term]");
+  if (!nameEl || !metaEl) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const id = String(params.get("id") || "").trim();
+  if (!id) {
+    nameEl.textContent = "Missing classroom id";
+    metaEl.textContent = "";
+    return;
+  }
+
+  try {
+    const data = await apiFetch(`/api/student/classrooms/${encodeURIComponent(id)}`);
+    const c = data?.item;
+    if (!c) throw new Error("Not found");
+    const className = String(c.name || "Untitled");
+    nameEl.textContent = className;
+    if (titleEl) titleEl.textContent = className;
+    const section = String(c.section || "").trim();
+    metaEl.textContent = section ? section : "";
+    if (termEl) termEl.textContent = section || " ";
+  } catch (err) {
+    nameEl.textContent = "Classroom not found";
+    metaEl.textContent = err?.status === 403 ? "Forbidden" : "";
+    if (titleEl) titleEl.textContent = "Classroom";
+    if (termEl) termEl.textContent = "";
+  }
+}
+
 function initTeacherClassroomTabs() {
   const links = Array.from(document.querySelectorAll("[data-classroom-tab]"));
   if (links.length === 0) return;
@@ -520,6 +566,406 @@ async function loadClassroomAnnouncements() {
     msg.textContent = "Unable to load announcements.";
     container.appendChild(msg);
   }
+}
+
+async function loadStudentClassroomAnnouncements() {
+  const container = document.querySelector("[data-classroom-announcements]");
+  if (!container) return;
+
+  const id = currentClassroomIdFromQuery();
+  if (!id) return;
+
+  try {
+    const data = await apiFetch(
+      `/api/student/classrooms/${encodeURIComponent(id)}/announcements?limit=50`
+    );
+    renderClassroomAnnouncements(container, data?.items || [], { showDelete: false });
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load announcements.";
+    container.appendChild(msg);
+  }
+}
+
+async function loadStudentClassroomRecentActivity() {
+  const container = document.querySelector("[data-classroom-recent]");
+  if (!container) return;
+
+  const id = currentClassroomIdFromQuery();
+  if (!id) return;
+
+  try {
+    const data = await apiFetch(
+      `/api/student/classrooms/${encodeURIComponent(id)}/announcements?limit=5`
+    );
+    renderClassroomAnnouncements(container, data?.items || [], { showDelete: false });
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load recent activity.";
+    container.appendChild(msg);
+  }
+}
+
+function renderStudentModules(container, modules, classroomId) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(modules) || modules.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No modules yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const m of modules) {
+    const card = document.createElement("div");
+    card.className = "module-card";
+
+    const header = document.createElement("div");
+    header.className = "module-card__header";
+
+    const left = document.createElement("div");
+
+    const title = document.createElement("h3");
+    title.className = "module-card__title";
+    title.textContent = String(m.title || "Untitled module");
+    left.appendChild(title);
+
+    const desc = String(m.description || "").trim();
+    if (desc) {
+      const p = document.createElement("p");
+      p.className = "module-card__desc";
+      p.textContent = desc;
+      left.appendChild(p);
+    }
+
+    header.appendChild(left);
+    card.appendChild(header);
+
+    const listWrap = document.createElement("div");
+    listWrap.className = "assignment-list";
+
+    const assignments = Array.isArray(m.assignments) ? m.assignments : [];
+    if (assignments.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty-state";
+      empty.textContent = "No assignments yet.";
+      listWrap.appendChild(empty);
+    } else {
+      const list = document.createElement("div");
+      list.className = "feed";
+      for (const a of assignments) {
+        const row = document.createElement("div");
+        row.className = "feed__item";
+
+        const meta = document.createElement("p");
+        meta.className = "feed__meta";
+        const due = String(a.dueAt || "").trim();
+        const when = due ? formatShortDate(due) : "";
+        meta.textContent = when ? `Due ${when}` : "Assignment";
+
+        const t = document.createElement("h4");
+        t.className = "feed__title";
+        t.textContent = String(a.title || "Assignment");
+
+        const body = document.createElement("p");
+        body.className = "feed__text";
+        body.textContent = String(a.body || "");
+
+        const actions = document.createElement("div");
+        actions.className = "feed__actions";
+        const submit = document.createElement("a");
+        submit.className = "btn btn--primary btn--sm";
+        submit.href = studentAssignmentUrl({ classroomId, assignmentId: a.id });
+        submit.textContent = "Submit";
+        actions.appendChild(submit);
+
+        row.appendChild(meta);
+        row.appendChild(t);
+        row.appendChild(body);
+        row.appendChild(actions);
+        list.appendChild(row);
+      }
+      listWrap.appendChild(list);
+    }
+
+    card.appendChild(listWrap);
+    container.appendChild(card);
+  }
+}
+
+async function loadStudentClassroomModules() {
+  const container = document.querySelector("[data-student-modules]");
+  if (!container) return;
+
+  const id = currentClassroomIdFromQuery();
+  if (!id) return;
+
+  try {
+    const data = await apiFetch(`/api/student/classrooms/${encodeURIComponent(id)}/modules?limit=50`);
+    renderStudentModules(container, data?.items || [], id);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load modules.";
+    container.appendChild(msg);
+  }
+}
+
+function renderStudentClassrooms(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No classrooms yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "tile-grid tile-grid--compact tile-grid--rows";
+
+  for (const c of items) {
+    const tile = document.createElement("a");
+    tile.className = "tile tile--compact tile--row";
+    tile.href = studentClassroomUrl(c.id);
+
+    const left = document.createElement("div");
+    left.className = "tile__left";
+
+    const kicker = document.createElement("p");
+    kicker.className = "tile__kicker";
+    kicker.textContent = "Classroom";
+
+    const title = document.createElement("h3");
+    title.className = "tile__title";
+    title.textContent = String(c.name || "Untitled");
+
+    const section = String(c.section || "").trim();
+    if (section) {
+      const sec = document.createElement("p");
+      sec.className = "tile__text";
+      sec.textContent = section;
+      left.appendChild(kicker);
+      left.appendChild(title);
+      left.appendChild(sec);
+    } else {
+      left.appendChild(kicker);
+      left.appendChild(title);
+    }
+
+    tile.appendChild(left);
+    grid.appendChild(tile);
+  }
+
+  container.appendChild(grid);
+}
+
+async function loadStudentClassrooms() {
+  const container = document.querySelector("[data-student-classrooms]");
+  if (!container) return;
+
+  try {
+    const data = await apiFetch("/api/student/classrooms");
+    renderStudentClassrooms(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load classrooms.";
+    container.appendChild(msg);
+  }
+}
+
+function initStudentJoinClassroom() {
+  const form = document.querySelector("form[data-student-join-classroom]");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setFormError(form, "");
+    setFormSuccess(form, "");
+
+    const formData = new FormData(form);
+    const joinCode = String(formData.get("joinCode") || "").trim();
+    if (!joinCode) {
+      setFormError(form, "Join code is required.");
+      return;
+    }
+
+    try {
+      await apiFetch("/api/student/classrooms/join", {
+        method: "POST",
+        body: JSON.stringify({ joinCode }),
+      });
+      form.reset();
+      setFormSuccess(form, "Joined classroom.");
+      await loadStudentClassrooms();
+    } catch (err) {
+      setFormError(form, err?.message || "Failed to join.");
+    }
+  });
+}
+
+function initSubmissionTypePicker() {
+  const buttons = Array.from(document.querySelectorAll("[data-submit-type]"));
+  const panels = new Map();
+  document.querySelectorAll("[data-submit-panel]").forEach((el) => {
+    panels.set(String(el.getAttribute("data-submit-panel") || ""), el);
+  });
+  if (buttons.length === 0 || panels.size === 0) return;
+
+  const setActive = (type) => {
+    for (const b of buttons) {
+      b.classList.toggle("is-active", b.getAttribute("data-submit-type") === type);
+    }
+    for (const [t, el] of panels.entries()) el.hidden = t !== type;
+    document.documentElement.setAttribute("data-submit-type", type);
+  };
+
+  setActive("text");
+  for (const b of buttons) {
+    b.addEventListener("click", () => setActive(String(b.getAttribute("data-submit-type") || "text")));
+  }
+}
+
+function renderStudentSubmissions(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No submissions yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "feed";
+
+  for (const s of items) {
+    const row = document.createElement("div");
+    row.className = "feed__item";
+
+    const meta = document.createElement("p");
+    meta.className = "feed__meta";
+    meta.textContent = formatShortDate(s.createdAt) || "Submitted";
+
+    const title = document.createElement("h3");
+    title.className = "feed__title";
+    title.textContent = `Type: ${String(s.type || "").toUpperCase()}`;
+
+    const body = document.createElement("p");
+    body.className = "feed__text";
+    body.textContent =
+      s.type === "text"
+        ? String(s.payload?.text || "")
+        : s.type === "url"
+          ? String(s.payload?.url || "")
+          : s.type === "upload"
+            ? String(s.payload?.fileName || "File")
+            : "";
+
+    row.appendChild(meta);
+    row.appendChild(title);
+    row.appendChild(body);
+    list.appendChild(row);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadStudentAssignmentSubmissions({ classroomId, assignmentId }) {
+  const container = document.querySelector("[data-assignment-submissions]");
+  if (!container) return;
+
+  try {
+    const data = await apiFetch(
+      `/api/student/classrooms/${encodeURIComponent(classroomId)}/assignments/${encodeURIComponent(assignmentId)}/submissions?limit=10`
+    );
+    renderStudentSubmissions(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load submissions.";
+    container.appendChild(msg);
+  }
+}
+
+function initStudentAssignmentSubmission() {
+  const form = document.querySelector("form[data-assignment-submit]");
+  if (!form) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const classroomId = String(params.get("classroomId") || "").trim();
+  const assignmentId = String(params.get("assignmentId") || "").trim();
+
+  const back = document.querySelector("[data-assignment-back]");
+  const cancel = document.querySelector("[data-assignment-cancel]");
+  const backUrl = studentClassroomUrl(classroomId);
+  if (back) back.setAttribute("href", backUrl);
+  if (cancel) cancel.setAttribute("href", backUrl);
+
+  initSubmissionTypePicker();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setFormError(form, "");
+    setFormSuccess(form, "");
+
+    if (!classroomId || !assignmentId) {
+      setFormError(form, "Missing assignment.");
+      return;
+    }
+
+    const type = String(document.documentElement.getAttribute("data-submit-type") || "text");
+
+    const formData = new FormData(form);
+    let payload = {};
+
+    if (type === "text") {
+      payload = { text: String(formData.get("text") || "").trim() };
+    } else if (type === "url") {
+      payload = { url: String(formData.get("url") || "").trim() };
+    } else if (type === "upload") {
+      const file = formData.get("file");
+      if (!(file instanceof File) || !file.size) {
+        setFormError(form, "Choose a file.");
+        return;
+      }
+      if (file.size > 2_000_000) {
+        setFormError(form, "File is too large (max ~2MB).");
+        return;
+      }
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+      });
+      payload = { fileName: file.name, dataUrl };
+    }
+
+    try {
+      await apiFetch(
+        `/api/student/classrooms/${encodeURIComponent(classroomId)}/assignments/${encodeURIComponent(assignmentId)}/submissions`,
+        { method: "POST", body: JSON.stringify({ type, payload }) }
+      );
+      setFormSuccess(form, "Submitted.");
+      await loadStudentAssignmentSubmissions({ classroomId, assignmentId });
+    } catch (err) {
+      setFormError(form, err?.message || "Failed to submit.");
+    }
+  });
+
+  loadStudentAssignmentSubmissions({ classroomId, assignmentId });
 }
 
 async function loadClassroomRecentActivity() {
@@ -1242,6 +1688,9 @@ if (routeGuards()) {
   initPasswordToggles();
   initAnnouncements();
 
+  initStudentJoinClassroom();
+  loadStudentClassrooms();
+
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomCreate();
     loadTeacherClassrooms();
@@ -1275,5 +1724,34 @@ if (routeGuards()) {
 
     // Load on first visit based on current tab
     maybeLoad();
+  }
+
+  if (pageKind() === "dashboard" && pageRole() === "student") {
+    // Student classroom page
+    if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
+      initTeacherClassroomTabs(); // reuse tab UI
+      loadStudentClassroomDetails();
+
+      const maybeLoad = () => {
+        const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
+        if (tab === "home") loadStudentClassroomRecentActivity();
+        if (tab === "announcements") loadStudentClassroomAnnouncements();
+        if (tab === "modules") loadStudentClassroomModules();
+      };
+
+      window.addEventListener("blair:classroomTab", (e) => {
+        const tab = e?.detail?.tab;
+        if (tab === "home") loadStudentClassroomRecentActivity();
+        if (tab === "announcements") loadStudentClassroomAnnouncements();
+        if (tab === "modules") loadStudentClassroomModules();
+      });
+
+      maybeLoad();
+    }
+
+    // Student assignment submission page
+    if (window.location.pathname.endsWith("/assignment") || window.location.pathname.endsWith("/assignment.html")) {
+      initStudentAssignmentSubmission();
+    }
   }
 }

@@ -7,6 +7,7 @@ require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const { buildAuthRouter } = require("./routes/auth");
 const { buildAdminUsersRouter } = require("./routes/adminUsers");
 const { buildClassroomsRouter } = require("./routes/classrooms");
+const { buildStudentClassroomsRouter } = require("./routes/studentClassrooms");
 const {
   buildAnnouncementsRouter,
   buildAdminAnnouncementsRouter,
@@ -60,6 +61,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", buildAuthRouter());
 app.use("/api/announcements", buildAnnouncementsRouter());
 app.use("/api/classrooms", buildClassroomsRouter());
+app.use("/api/student/classrooms", buildStudentClassroomsRouter());
 app.use("/api/admin", buildAdminAnnouncementsRouter());
 app.use("/api/admin", buildAdminUsersRouter());
 

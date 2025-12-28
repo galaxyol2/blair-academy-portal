@@ -33,5 +33,10 @@ function requireTeacher(req, res, next) {
   return next();
 }
 
-module.exports = { requireAuth, requireTeacher };
+function requireStudent(req, res, next) {
+  const role = String(req.user?.role || "student").toLowerCase();
+  if (role !== "student") return res.status(403).json({ error: "Forbidden" });
+  return next();
+}
 
+module.exports = { requireAuth, requireTeacher, requireStudent };
