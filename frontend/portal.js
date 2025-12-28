@@ -684,7 +684,8 @@ function renderStudentModules(container, modules, classroomId) {
         meta.className = "feed__meta";
         const due = String(a.dueAt || "").trim();
         const when = due ? formatShortDate(due) : "";
-        meta.textContent = when ? `Due ${when}` : "Assignment";
+        const pts = Number.isFinite(Number(a.points)) ? `${Number(a.points)} pts` : "";
+        meta.textContent = [when ? `Due ${when}` : "Assignment", pts].filter(Boolean).join(" • ");
 
         const t = document.createElement("h4");
         t.className = "feed__title";
@@ -1235,7 +1236,8 @@ function renderModules(container, modules) {
         meta.className = "feed__meta";
         const due = String(a.dueAt || "").trim();
         const when = due ? formatShortDate(due) : "";
-        meta.textContent = when ? `Due ${when}` : "Assignment";
+        const pts = Number.isFinite(Number(a.points)) ? `${Number(a.points)} pts` : "";
+        meta.textContent = [when ? `Due ${when}` : "Assignment", pts].filter(Boolean).join(" • ");
 
         const t = document.createElement("h4");
         t.className = "feed__title";

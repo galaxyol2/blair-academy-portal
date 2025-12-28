@@ -134,11 +134,21 @@ function buildClassroomsRouter() {
       const title = String(req.body?.title || "").trim();
       const body = String(req.body?.body || "").trim();
       const dueAt = String(req.body?.dueAt || "").trim();
-      const points = req.body?.points;
+      const pointsRaw = req.body?.points;
 
       if (!body) return res.status(400).json({ error: "Instructions are required" });
       if (title.length > 120) return res.status(400).json({ error: "Title is too long" });
       if (body.length > 5000) return res.status(400).json({ error: "Instructions are too long" });
+
+      let points = 100;
+      if (pointsRaw !== "" && pointsRaw !== null && pointsRaw !== undefined) {
+        const p = Number(pointsRaw);
+        if (!Number.isFinite(p) || !Number.isInteger(p) || p <= 0) {
+          return res.status(400).json({ error: "Points must be a whole number" });
+        }
+        if (p > 500) return res.status(400).json({ error: "Points is too high" });
+        points = p;
+      }
 
       const item = await classroomModulesStore.createAssignment({
         classroomId: classroom.id,
@@ -379,13 +389,18 @@ function buildClassroomsRouter() {
       .find((a) => a.id === assignmentId);
     if (!assignment) return res.status(404).json({ error: "Assignment not found" });
 
-    const maxPoints = assignment.points === "" ? null : Number(assignment.points);
-    const peNum = pointsEarned === "" || pointsEarned === null || pointsEarned === undefined ? null : Number(pointsEarned);
+    const maxPoints = Number(assignment.points);
+    if (!Number.isFinite(maxPoints) || !Number.isInteger(maxPoints) || maxPoints <= 0) {
+      return res.status(400).json({ error: "Assignment points not set" });
+    }
+
+    const peNum =
+      pointsEarned === "" || pointsEarned === null || pointsEarned === undefined ? null : Number(pointsEarned);
     if (peNum !== null) {
-      if (!Number.isFinite(peNum) || peNum < 0) return res.status(400).json({ error: "Invalid points" });
-      if (Number.isFinite(maxPoints) && peNum > maxPoints) {
-        return res.status(400).json({ error: `Points cannot exceed ${maxPoints}` });
+      if (!Number.isFinite(peNum) || peNum < 0 || !Number.isInteger(peNum)) {
+        return res.status(400).json({ error: "Points must be a whole number" });
       }
+      if (peNum > maxPoints) return res.status(400).json({ error: `Points cannot exceed ${maxPoints}` });
     }
 
     const item = await classroomGradesStore.upsert({
