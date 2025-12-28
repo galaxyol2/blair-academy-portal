@@ -740,6 +740,58 @@ a:hover {
   gap: 0.5rem;
 }
 
+.module-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.module-card + .module-card {
+  margin-top: 0.9rem;
+}
+
+.module-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.module-card__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.module-card__desc {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+}
+
+.module-card__actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.btn--sm {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+.assignment-form {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.assignment-list {
+  margin-top: 0.9rem;
+}
+
 .btn--danger {
   border-color: rgba(200, 40, 40, 0.35);
   background: rgba(255, 255, 255, 0.96);

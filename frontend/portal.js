@@ -617,6 +617,303 @@ function initClassroomAnnouncementDelete() {
   });
 }
 
+function renderModules(container, modules) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(modules) || modules.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No modules yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  for (const m of modules) {
+    const card = document.createElement("div");
+    card.className = "module-card";
+    card.setAttribute("data-module-id", String(m.id || ""));
+
+    const header = document.createElement("div");
+    header.className = "module-card__header";
+
+    const left = document.createElement("div");
+
+    const title = document.createElement("h3");
+    title.className = "module-card__title";
+    title.textContent = String(m.title || "Untitled module");
+
+    left.appendChild(title);
+
+    const desc = String(m.description || "").trim();
+    if (desc) {
+      const p = document.createElement("p");
+      p.className = "module-card__desc";
+      p.textContent = desc;
+      left.appendChild(p);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "module-card__actions";
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn btn--secondary btn--sm";
+    addBtn.textContent = "Add assignment";
+    addBtn.setAttribute("data-module-add-assignment", String(m.id || ""));
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn btn--danger btn--sm";
+    delBtn.textContent = "Delete";
+    delBtn.setAttribute("data-module-delete", String(m.id || ""));
+
+    actions.appendChild(addBtn);
+    actions.appendChild(delBtn);
+
+    header.appendChild(left);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    const formWrap = document.createElement("div");
+    formWrap.className = "assignment-form";
+    formWrap.hidden = true;
+    formWrap.setAttribute("data-assignment-form", String(m.id || ""));
+    formWrap.innerHTML = `
+      <form class="auth-form" data-assignment-create="${String(m.id || "")}" novalidate>
+        <label class="field">
+          <span class="field__label">Assignment title (optional)</span>
+          <input name="title" type="text" placeholder="e.g., Homework 1" />
+        </label>
+        <label class="field">
+          <span class="field__label">Instructions</span>
+          <textarea name="body" rows="5" placeholder="What should students do?" required></textarea>
+        </label>
+        <label class="field">
+          <span class="field__label">Due date (optional)</span>
+          <input name="dueAt" type="datetime-local" />
+        </label>
+        <label class="field">
+          <span class="field__label">Points (optional)</span>
+          <input name="points" type="number" min="0" step="1" placeholder="100" />
+        </label>
+        <p class="form-success" data-form-success hidden></p>
+        <p class="form-error" data-form-error hidden></p>
+        <button class="btn btn--primary btn--sm" type="submit">Create assignment</button>
+      </form>
+    `;
+    card.appendChild(formWrap);
+
+    const listWrap = document.createElement("div");
+    listWrap.className = "assignment-list";
+
+    const assignments = Array.isArray(m.assignments) ? m.assignments : [];
+    if (assignments.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty-state";
+      empty.textContent = "No assignments yet.";
+      listWrap.appendChild(empty);
+    } else {
+      const list = document.createElement("div");
+      list.className = "feed";
+      for (const a of assignments) {
+        const row = document.createElement("div");
+        row.className = "feed__item";
+        row.setAttribute("data-assignment-id", String(a.id || ""));
+
+        const meta = document.createElement("p");
+        meta.className = "feed__meta";
+        const due = String(a.dueAt || "").trim();
+        const when = due ? formatShortDate(due) : "";
+        meta.textContent = when ? `Due ${when}` : "Assignment";
+
+        const t = document.createElement("h4");
+        t.className = "feed__title";
+        t.textContent = String(a.title || "Assignment");
+
+        const body = document.createElement("p");
+        body.className = "feed__text";
+        body.textContent = String(a.body || "");
+
+        const actions = document.createElement("div");
+        actions.className = "feed__actions";
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "btn btn--danger btn--sm";
+        del.textContent = "Delete";
+        del.setAttribute("data-assignment-delete", String(a.id || ""));
+        del.setAttribute("data-assignment-module", String(m.id || ""));
+        actions.appendChild(del);
+
+        row.appendChild(meta);
+        row.appendChild(t);
+        row.appendChild(body);
+        row.appendChild(actions);
+        list.appendChild(row);
+      }
+      listWrap.appendChild(list);
+    }
+
+    card.appendChild(listWrap);
+
+    container.appendChild(card);
+  }
+}
+
+async function loadClassroomModules() {
+  const container = document.querySelector("[data-classroom-modules]");
+  if (!container) return;
+
+  const classroomId = currentClassroomIdFromQuery();
+  if (!classroomId) return;
+
+  try {
+    const data = await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/modules?limit=50`);
+    renderModules(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load modules.";
+    container.appendChild(msg);
+  }
+}
+
+function initModuleCreate() {
+  const form = document.querySelector("form[data-classroom-module-create]");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setFormError(form, "");
+    setFormSuccess(form, "");
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const title = String(payload.title || "").trim();
+    const description = String(payload.description || "").trim();
+
+    if (!title) {
+      setFormError(form, "Module title is required.");
+      return;
+    }
+
+    try {
+      await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/modules`, {
+        method: "POST",
+        body: JSON.stringify({ title, description }),
+      });
+      form.reset();
+      setFormSuccess(form, "Module created.");
+      await loadClassroomModules();
+    } catch (err) {
+      setFormError(form, err?.message || "Failed to create module.");
+    }
+  });
+}
+
+function initModulesInteractions() {
+  const container = document.querySelector("[data-classroom-modules]");
+  if (!container) return;
+
+  container.addEventListener("click", async (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const add = target.getAttribute("data-module-add-assignment");
+    if (add) {
+      const formWrap = container.querySelector(`[data-assignment-form="${CSS.escape(add)}"]`);
+      if (formWrap) formWrap.hidden = !formWrap.hidden;
+      return;
+    }
+
+    const moduleDel = target.getAttribute("data-module-delete");
+    if (moduleDel) {
+      const ok = window.confirm("Delete this module and all its assignments?");
+      if (!ok) return;
+      try {
+        await apiFetch(
+          `/api/classrooms/${encodeURIComponent(classroomId)}/modules/${encodeURIComponent(moduleDel)}`,
+          { method: "DELETE" }
+        );
+        await loadClassroomModules();
+      } catch (err) {
+        // eslint-disable-next-line no-alert
+        alert(err?.message || "Failed to delete module.");
+      }
+      return;
+    }
+
+    const assignmentDel = target.getAttribute("data-assignment-delete");
+    if (assignmentDel) {
+      const moduleId = target.getAttribute("data-assignment-module") || "";
+      const ok = window.confirm("Delete this assignment?");
+      if (!ok) return;
+      try {
+        await apiFetch(
+          `/api/classrooms/${encodeURIComponent(classroomId)}/modules/${encodeURIComponent(moduleId)}/assignments/${encodeURIComponent(assignmentDel)}`,
+          { method: "DELETE" }
+        );
+        await loadClassroomModules();
+      } catch (err) {
+        // eslint-disable-next-line no-alert
+        alert(err?.message || "Failed to delete assignment.");
+      }
+    }
+  });
+
+  container.addEventListener("submit", async (e) => {
+    const form = e.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const moduleId = form.getAttribute("data-assignment-create");
+    if (!moduleId) return;
+    e.preventDefault();
+
+    setFormError(form, "");
+    setFormSuccess(form, "");
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const title = String(payload.title || "").trim();
+    const body = String(payload.body || "").trim();
+    const dueAt = String(payload.dueAt || "").trim();
+    const points = String(payload.points || "").trim();
+
+    if (!body) {
+      setFormError(form, "Instructions are required.");
+      return;
+    }
+
+    try {
+      await apiFetch(
+        `/api/classrooms/${encodeURIComponent(classroomId)}/modules/${encodeURIComponent(moduleId)}/assignments`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            title,
+            body,
+            dueAt: dueAt ? new Date(dueAt).toISOString() : "",
+            points: points ? Number(points) : null,
+          }),
+        }
+      );
+      form.reset();
+      setFormSuccess(form, "Assignment created.");
+      await loadClassroomModules();
+    } catch (err) {
+      setFormError(form, err?.message || "Failed to create assignment.");
+    }
+  });
+}
+
 function initTeacherClassroomCreate() {
   const form = document.querySelector("form[data-classroom-create]");
   if (!form) return;
@@ -958,6 +1255,8 @@ if (routeGuards()) {
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initClassroomAnnouncementComposer();
     initClassroomAnnouncementDelete();
+    initModuleCreate();
+    initModulesInteractions();
 
     const maybeLoad = () => {
       if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
@@ -971,6 +1270,7 @@ if (routeGuards()) {
       const tab = e?.detail?.tab;
       if (tab === "announcements") loadClassroomAnnouncements();
       if (tab === "home") loadClassroomRecentActivity();
+      if (tab === "modules") loadClassroomModules();
     });
 
     // Load on first visit based on current tab
