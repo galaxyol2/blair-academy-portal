@@ -1575,10 +1575,18 @@ function renderStudentGrades(container, payload) {
 
   const percentToLetter = (pct) => {
     if (!Number.isFinite(pct)) return "";
-    if (pct >= 90) return "A";
-    if (pct >= 80) return "B";
-    if (pct >= 70) return "C";
-    if (pct >= 60) return "D";
+    // Common US +/- grading scale
+    if (pct >= 93) return "A";
+    if (pct >= 90) return "A-";
+    if (pct >= 87) return "B+";
+    if (pct >= 83) return "B";
+    if (pct >= 80) return "B-";
+    if (pct >= 77) return "C+";
+    if (pct >= 73) return "C";
+    if (pct >= 70) return "C-";
+    if (pct >= 67) return "D+";
+    if (pct >= 63) return "D";
+    if (pct >= 60) return "D-";
     return "F";
   };
 
@@ -1590,6 +1598,7 @@ function renderStudentGrades(container, payload) {
   let earnedTotal = 0;
   let possibleTotal = 0;
   let gradedCount = 0;
+  let countedCount = 0;
   for (const a of assignments) {
     const g = gradeByAssignment.get(String(a.id || "")) || null;
     const earned = g && g.pointsEarned !== null && g.pointsEarned !== undefined ? Number(g.pointsEarned) : null;
@@ -1599,6 +1608,7 @@ function renderStudentGrades(container, payload) {
     if (Number.isFinite(max) && max > 0) {
       earnedTotal += earned;
       possibleTotal += max;
+      countedCount += 1;
     }
   }
 
@@ -1614,7 +1624,13 @@ function renderStudentGrades(container, payload) {
 
   const sub = document.createElement("p");
   sub.className = "grade-summary__meta";
-  sub.textContent = gradedCount ? `${gradedCount} graded` : "No grades yet.";
+  if (!gradedCount) {
+    sub.textContent = "No grades yet.";
+  } else if (countedCount !== gradedCount) {
+    sub.textContent = `${gradedCount} graded (${countedCount} counted)`;
+  } else {
+    sub.textContent = `${gradedCount} graded`;
+  }
 
   header.appendChild(h);
   header.appendChild(sub);
@@ -1629,7 +1645,7 @@ function renderStudentGrades(container, payload) {
 
     const big = document.createElement("p");
     big.className = "grade-summary__big";
-    big.textContent = `${pct}% (${letter})`;
+    big.textContent = `${pct}% • ${letter}`;
 
     const pts = document.createElement("p");
     pts.className = "grade-summary__points";
@@ -1642,6 +1658,13 @@ function renderStudentGrades(container, payload) {
     big.className = "grade-summary__big";
     big.textContent = "—";
     body.appendChild(big);
+
+    if (gradedCount) {
+      const hint = document.createElement("p");
+      hint.className = "grade-summary__points";
+      hint.textContent = "Tip: teachers need to set assignment points for totals.";
+      body.appendChild(hint);
+    }
   }
 
   summary.appendChild(body);
@@ -1675,7 +1698,8 @@ function renderStudentGrades(container, payload) {
       text.textContent = "Not graded yet.";
     } else if (Number.isFinite(maxPoints) && maxPoints > 0) {
       const pct = Math.round((Number(score) / maxPoints) * 1000) / 10;
-      text.textContent = `Score: ${score} / ${pointsRaw} (${pct}%)`;
+      const letter = percentToLetter(pct);
+      text.textContent = `Score: ${score} / ${pointsRaw} (${pct}% • ${letter})`;
     } else {
       text.textContent = `Score: ${score}`;
     }

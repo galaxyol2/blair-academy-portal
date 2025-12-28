@@ -1079,6 +1079,10 @@ a:hover {
   font-weight: 800;
 }
 
+.grade-summary__points strong {
+  color: rgba(0, 75, 141, 0.98);
+}
+
 @media (min-width: 860px) {
   .gradebook__row {
     grid-template-columns: 1.2fr 1fr;
