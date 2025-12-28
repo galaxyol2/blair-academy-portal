@@ -909,16 +909,33 @@ function renderStudentSubmissions(container, items) {
     title.className = "feed__title";
     title.textContent = `Type: ${String(s.type || "").toUpperCase()}`;
 
-    const body = document.createElement("p");
+    const body = document.createElement("div");
     body.className = "feed__text";
-    body.textContent =
-      s.type === "text"
-        ? String(s.payload?.text || "")
-        : s.type === "url"
-          ? String(s.payload?.url || "")
-          : s.type === "upload"
-            ? String(s.payload?.fileName || "File")
-            : "";
+
+    if (s.type === "text") {
+      body.textContent = String(s.payload?.text || "");
+    } else if (s.type === "url") {
+      const url = String(s.payload?.url || "").trim();
+      if (!url) {
+        body.textContent = "(no url)";
+      } else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noreferrer";
+        a.textContent = url;
+        body.appendChild(a);
+      }
+    } else if (s.type === "upload") {
+      body.appendChild(
+        renderUploadContent({
+          fileName: s.payload?.fileName,
+          dataUrl: s.payload?.dataUrl,
+        })
+      );
+    } else {
+      body.textContent = "";
+    }
 
     row.appendChild(meta);
     row.appendChild(title);
@@ -1251,7 +1268,7 @@ function renderModules(container, modules) {
         subsWrap.className = "assignment-submissions";
         subsWrap.hidden = true;
         subsWrap.setAttribute("data-assignment-submissions-wrap", String(a.id || ""));
-        subsWrap.innerHTML = `<p class="empty-state">Loading…</p>`;
+        subsWrap.innerHTML = `<p class="empty-state">Loading...</p>`;
 
         row.appendChild(meta);
         row.appendChild(t);
@@ -1338,7 +1355,7 @@ function renderTeacherSubmissions(container, items) {
     title.className = "feed__title";
     title.textContent = `Type: ${String(s.type || "").toUpperCase()}`;
 
-    const body = document.createElement("p");
+    const body = document.createElement("div");
     body.className = "feed__text";
 
     if (s.type === "text") {
@@ -1353,18 +1370,12 @@ function renderTeacherSubmissions(container, items) {
       body.textContent = "";
       body.appendChild(a);
     } else if (s.type === "upload") {
-      const fileName = String(s.payload?.fileName || "file");
-      const dataUrl = String(s.payload?.dataUrl || "");
-      if (!dataUrl) {
-        body.textContent = "No file attached.";
-      } else {
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = fileName;
-        a.textContent = `Download: ${fileName}`;
-        body.textContent = "";
-        body.appendChild(a);
-      }
+      body.appendChild(
+        renderUploadContent({
+          fileName: s.payload?.fileName,
+          dataUrl: s.payload?.dataUrl,
+        })
+      );
     } else {
       body.textContent = "";
     }
@@ -1490,7 +1501,7 @@ function initModulesInteractions() {
 
       wrap.hidden = !wrap.hidden;
       if (!wrap.hidden) {
-        wrap.innerHTML = `<p class="empty-state">Loading…</p>`;
+        wrap.innerHTML = `<p class="empty-state">Loading...</p>`;
         loadTeacherAssignmentSubmissions({
           classroomId,
           assignmentId: assignmentSubs,
@@ -1806,6 +1817,70 @@ function setTextWithLinks(el, text) {
   el.appendChild(linkifyTextToFragment(text));
 }
 
+function renderUploadContent({ fileName, dataUrl }) {
+  const wrap = document.createElement("div");
+  wrap.className = "submission-upload";
+
+  const name = String(fileName || "file");
+  const url = String(dataUrl || "");
+
+  const link = document.createElement("a");
+  link.className = "submission-upload__link";
+  link.textContent = name;
+
+  if (url) {
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.download = name;
+  } else {
+    link.href = "#";
+    link.addEventListener("click", (e) => e.preventDefault());
+  }
+
+  const meta = document.createElement("p");
+  meta.className = "submission-upload__meta";
+  meta.textContent = url ? "Open/download file" : "No file attached.";
+
+  wrap.appendChild(link);
+  wrap.appendChild(meta);
+
+  if (!url) return wrap;
+
+  const isImage = url.startsWith("data:image/");
+  const isPdf = url.startsWith("data:application/pdf");
+  const isVideo = url.startsWith("data:video/");
+  const isAudio = url.startsWith("data:audio/");
+
+  if (isImage) {
+    const img = document.createElement("img");
+    img.className = "submission-upload__preview";
+    img.alt = name;
+    img.src = url;
+    wrap.appendChild(img);
+  } else if (isPdf) {
+    const iframe = document.createElement("iframe");
+    iframe.className = "submission-upload__preview submission-upload__preview--doc";
+    iframe.title = name;
+    iframe.src = url;
+    wrap.appendChild(iframe);
+  } else if (isVideo) {
+    const video = document.createElement("video");
+    video.className = "submission-upload__preview submission-upload__preview--media";
+    video.controls = true;
+    video.src = url;
+    wrap.appendChild(video);
+  } else if (isAudio) {
+    const audio = document.createElement("audio");
+    audio.className = "submission-upload__preview submission-upload__preview--media";
+    audio.controls = true;
+    audio.src = url;
+    wrap.appendChild(audio);
+  }
+
+  return wrap;
+}
+
 function formatShortDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -1860,7 +1935,7 @@ async function loadAnnouncements(target, { limit, variant }) {
   if (!container) return;
 
   const empty = container.querySelector("[data-announcements-empty]");
-  if (empty) empty.textContent = "Loading…";
+  if (empty) empty.textContent = "Loading...";
 
   try {
     const data = await apiFetch(

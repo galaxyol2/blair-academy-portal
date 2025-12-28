@@ -954,6 +954,39 @@ a:hover {
   font-size: 0.72rem;
 }
 
+.submission-upload {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.submission-upload__link {
+  color: rgba(0, 75, 141, 0.98);
+  font-weight: 900;
+}
+
+.submission-upload__meta {
+  margin: 0;
+  color: rgba(26, 28, 31, 0.62);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.submission-upload__preview {
+  width: 100%;
+  max-width: 680px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.submission-upload__preview--doc {
+  height: 520px;
+}
+
+.submission-upload__preview--media {
+  max-height: 520px;
+}
+
 .empty-state {
   margin: 0;
   padding: 0.5rem 0;
