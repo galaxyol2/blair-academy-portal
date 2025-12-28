@@ -579,6 +579,7 @@ function renderStudentGrades(container, payload) {
 
   const percentToLetter = (pct) => {
     if (!Number.isFinite(pct)) return "";
+    if (pct >= 97) return "A+";
     if (pct >= 93) return "A";
     if (pct >= 90) return "A-";
     if (pct >= 87) return "B+";
@@ -645,8 +646,9 @@ function renderStudentGrades(container, payload) {
 
   const totalsByCategory = new Map();
   for (const item of computed) {
-    const cat = String(item.assignment.category || "Homework").trim() || "Homework";
-    const t = totalsByCategory.get(cat) || { earned: 0, possible: 0 };
+    const catName = String(item.assignment.category || "Homework").trim() || "Homework";
+    const catKey = catName.toLowerCase();
+    const t = totalsByCategory.get(catKey) || { earned: 0, possible: 0 };
 
     if (item.pointsMax !== null && item.status !== "excused") {
       if (item.status === "missing") {
@@ -657,22 +659,32 @@ function renderStudentGrades(container, payload) {
       }
     }
 
-    totalsByCategory.set(cat, t);
+    totalsByCategory.set(catKey, t);
   }
 
-  const catWeights = new Map(categories.map((c) => [String(c.name || "").trim(), Number(c.weightPct) || 0]));
-  let activeWeightSum = 0;
-  let weightedSum = 0;
+  const catWeights = new Map(
+    categories.map((c) => [String(c.name || "").trim().toLowerCase(), Number(c.weightPct) || 0])
+  );
 
-  for (const [cat, totals] of totalsByCategory.entries()) {
+  const activeCats = [];
+  for (const [catKey, totals] of totalsByCategory.entries()) {
     if (!(totals.possible > 0)) continue;
-    const w = catWeights.get(cat) ?? 0;
-    activeWeightSum += w;
     const pct = (totals.earned / totals.possible) * 100;
-    weightedSum += pct * w;
+    const w = catWeights.get(catKey) ?? 0;
+    activeCats.push({ pct, w });
   }
 
-  const overallPct = activeWeightSum > 0 ? Math.round((weightedSum / activeWeightSum) * 10) / 10 : null;
+  let overallPct = null;
+  if (activeCats.length) {
+    const activeWeightSum = activeCats.reduce((sum, c) => sum + (Number(c.w) || 0), 0);
+    if (activeWeightSum > 0) {
+      const weightedSum = activeCats.reduce((sum, c) => sum + c.pct * (c.w / activeWeightSum), 0);
+      overallPct = Math.round(weightedSum * 10) / 10;
+    } else {
+      const avg = activeCats.reduce((sum, c) => sum + c.pct, 0) / activeCats.length;
+      overallPct = Math.round(avg * 10) / 10;
+    }
+  }
   const overallLetter = overallPct !== null ? percentToLetter(overallPct) : "";
 
   const summary = document.createElement("div");
@@ -701,6 +713,7 @@ function renderStudentGrades(container, payload) {
   big.className = "grade-summary__big";
   big.textContent = overallPct === null ? "—" : `${overallPct}% - ${overallLetter}`;
   body.appendChild(big);
+  big.textContent = overallPct === null ? "N/A" : `${overallPct}% - ${overallLetter}`;
 
   summary.appendChild(body);
   container.appendChild(summary);
@@ -719,13 +732,14 @@ function renderStudentGrades(container, payload) {
   for (const c of categories) {
     const name = String(c.name || "").trim();
     const w = Number(c.weightPct) || 0;
-    const totals = totalsByCategory.get(name) || { earned: 0, possible: 0 };
+    const totals = totalsByCategory.get(name.toLowerCase()) || { earned: 0, possible: 0 };
     const pct = totals.possible > 0 ? Math.round((totals.earned / totals.possible) * 1000) / 10 : null;
 
     const row = document.createElement("div");
     row.className = "grade-breakdown__row";
     row.textContent = pct === null ? `${name} (${w}%): —` : `${name} (${w}%): ${pct}%`;
     bdList.appendChild(row);
+    row.textContent = pct === null ? `${name} (${w}%): N/A` : `${name} (${w}%): ${pct}%`;
   }
 
   breakdown.appendChild(bdList);
@@ -2503,7 +2517,7 @@ function initTeacherGradebookInteractions() {
   });
 }
 
-function renderStudentGrades(container, payload) {
+function renderStudentGradesLegacy(container, payload) {
   container.innerHTML = "";
 
   const assignments = Array.isArray(payload?.assignments) ? payload.assignments : [];
