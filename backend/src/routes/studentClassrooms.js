@@ -120,6 +120,19 @@ function buildStudentClassroomsRouter() {
       const assignmentId = String(req.params?.assignmentId || "").trim();
       if (!assignmentId) return res.status(400).json({ error: "Missing assignment id" });
 
+      const classroom = await classroomsStore.getById(req.classroomId);
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+      const modules = await classroomModulesStore.listWithAssignments({
+        classroomId: classroom.id,
+        teacherId: classroom.teacherId,
+        limit: 100,
+      });
+      const assignmentExists = modules.some(
+        (m) => Array.isArray(m.assignments) && m.assignments.some((a) => a.id === assignmentId)
+      );
+      if (!assignmentExists) return res.status(404).json({ error: "Assignment not found" });
+
       const type = String(req.body?.type || "").trim().toLowerCase();
       const payload = req.body?.payload;
 
@@ -164,4 +177,3 @@ function buildStudentClassroomsRouter() {
 }
 
 module.exports = { buildStudentClassroomsRouter };
-

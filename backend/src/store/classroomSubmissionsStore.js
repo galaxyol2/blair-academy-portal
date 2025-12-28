@@ -28,6 +28,15 @@ function createJsonClassroomSubmissionsStore() {
   }
 
   return {
+    async listByAssignment({ classroomId, assignmentId, limit = 100 }) {
+      const db = await readDb();
+      const l = normalizeLimit(limit, 100);
+      return [...db.submissions]
+        .filter((s) => s.classroomId === classroomId && s.assignmentId === assignmentId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, l);
+    },
+
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {
       const db = await readDb();
       const l = normalizeLimit(limit, 10);
@@ -91,6 +100,26 @@ function createPgClassroomSubmissionsStore() {
   }
 
   return {
+    async listByAssignment({ classroomId, assignmentId, limit = 100 }) {
+      await ensureSchema();
+      const l = normalizeLimit(limit, 100);
+      const res = await pool.query(
+        `SELECT id,
+                classroom_id AS "classroomId",
+                assignment_id AS "assignmentId",
+                student_id AS "studentId",
+                type,
+                payload,
+                created_at AS "createdAt"
+           FROM classroom_submissions
+          WHERE classroom_id = $1 AND assignment_id = $2
+          ORDER BY created_at DESC
+          LIMIT $3`,
+        [classroomId, assignmentId, l]
+      );
+      return res.rows;
+    },
+
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {
       await ensureSchema();
       const l = normalizeLimit(limit, 10);
@@ -136,4 +165,3 @@ const classroomSubmissionsStore = process.env.DATABASE_URL
   : createJsonClassroomSubmissionsStore();
 
 module.exports = { classroomSubmissionsStore };
-

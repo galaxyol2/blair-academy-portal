@@ -1190,6 +1190,15 @@ function renderModules(container, modules) {
 
         const actions = document.createElement("div");
         actions.className = "feed__actions";
+
+        const viewSubs = document.createElement("button");
+        viewSubs.type = "button";
+        viewSubs.className = "btn btn--secondary btn--sm";
+        viewSubs.textContent = "Submissions";
+        viewSubs.setAttribute("data-assignment-submissions", String(a.id || ""));
+        viewSubs.setAttribute("data-assignment-module", String(m.id || ""));
+        actions.appendChild(viewSubs);
+
         const del = document.createElement("button");
         del.type = "button";
         del.className = "btn btn--danger btn--sm";
@@ -1198,10 +1207,17 @@ function renderModules(container, modules) {
         del.setAttribute("data-assignment-module", String(m.id || ""));
         actions.appendChild(del);
 
+        const subsWrap = document.createElement("div");
+        subsWrap.className = "assignment-submissions";
+        subsWrap.hidden = true;
+        subsWrap.setAttribute("data-assignment-submissions-wrap", String(a.id || ""));
+        subsWrap.innerHTML = `<p class="empty-state">Loading…</p>`;
+
         row.appendChild(meta);
         row.appendChild(t);
         row.appendChild(body);
         row.appendChild(actions);
+        row.appendChild(subsWrap);
         list.appendChild(row);
       }
       listWrap.appendChild(list);
@@ -1228,6 +1244,89 @@ async function loadClassroomModules() {
     const msg = document.createElement("p");
     msg.className = "empty-state";
     msg.textContent = "Unable to load modules.";
+    container.appendChild(msg);
+  }
+}
+
+function renderTeacherSubmissions(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No submissions yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "feed";
+
+  for (const s of items) {
+    const row = document.createElement("div");
+    row.className = "feed__item";
+
+    const meta = document.createElement("p");
+    meta.className = "feed__meta";
+    const when = formatShortDate(s.createdAt);
+    const student = s.student || {};
+    meta.textContent = `${student.name || "Student"}${student.email ? ` (${student.email})` : ""}${when ? ` - ${when}` : ""}`;
+
+    const title = document.createElement("h4");
+    title.className = "feed__title";
+    title.textContent = `Type: ${String(s.type || "").toUpperCase()}`;
+
+    const body = document.createElement("p");
+    body.className = "feed__text";
+
+    if (s.type === "text") {
+      body.textContent = String(s.payload?.text || "");
+    } else if (s.type === "url") {
+      const url = String(s.payload?.url || "").trim();
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noreferrer";
+      a.textContent = url || "(no url)";
+      body.textContent = "";
+      body.appendChild(a);
+    } else if (s.type === "upload") {
+      const fileName = String(s.payload?.fileName || "file");
+      const dataUrl = String(s.payload?.dataUrl || "");
+      if (!dataUrl) {
+        body.textContent = "No file attached.";
+      } else {
+        const a = document.createElement("a");
+        a.href = dataUrl;
+        a.download = fileName;
+        a.textContent = `Download: ${fileName}`;
+        body.textContent = "";
+        body.appendChild(a);
+      }
+    } else {
+      body.textContent = "";
+    }
+
+    row.appendChild(meta);
+    row.appendChild(title);
+    row.appendChild(body);
+    list.appendChild(row);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadTeacherAssignmentSubmissions({ classroomId, assignmentId, container }) {
+  try {
+    const data = await apiFetch(
+      `/api/classrooms/${encodeURIComponent(classroomId)}/assignments/${encodeURIComponent(assignmentId)}/submissions?limit=100`
+    );
+    renderTeacherSubmissions(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load submissions.";
     container.appendChild(msg);
   }
 }
@@ -1317,6 +1416,24 @@ function initModulesInteractions() {
       } catch (err) {
         // eslint-disable-next-line no-alert
         alert(err?.message || "Failed to delete assignment.");
+      }
+    }
+
+    const assignmentSubs = target.getAttribute("data-assignment-submissions");
+    if (assignmentSubs) {
+      const wrap = container.querySelector(
+        `[data-assignment-submissions-wrap="${CSS.escape(assignmentSubs)}"]`
+      );
+      if (!wrap) return;
+
+      wrap.hidden = !wrap.hidden;
+      if (!wrap.hidden) {
+        wrap.innerHTML = `<p class="empty-state">Loading…</p>`;
+        loadTeacherAssignmentSubmissions({
+          classroomId,
+          assignmentId: assignmentSubs,
+          container: wrap,
+        });
       }
     }
   });
@@ -1611,7 +1728,7 @@ function renderAnnouncements(container, items, { variant }) {
     const meta = document.createElement("p");
     meta.className = "announcement__meta";
     const when = formatShortDate(item.createdAt);
-    meta.textContent = when ? `${when} • Announcement` : "Announcement";
+    meta.textContent = when ? `${when} - Announcement` : "Announcement";
 
     const title = document.createElement("h3");
     title.className = "announcement__title";

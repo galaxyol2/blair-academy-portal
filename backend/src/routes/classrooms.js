@@ -4,6 +4,8 @@ const { requireAuth, requireTeacher } = require("../middleware/auth");
 const { classroomsStore } = require("../store/classroomsStore");
 const { classroomAnnouncementsStore } = require("../store/classroomAnnouncementsStore");
 const { classroomModulesStore } = require("../store/classroomModulesStore");
+const { classroomSubmissionsStore } = require("../store/classroomSubmissionsStore");
+const { usersStore } = require("../store/usersStore");
 
 function buildClassroomsRouter() {
   const router = express.Router();
@@ -197,6 +199,57 @@ function buildClassroomsRouter() {
       if (!deleted) return res.status(404).json({ error: "Announcement not found" });
 
       res.json({ ok: true, deleted });
+    }
+  );
+
+  router.get(
+    "/:id/assignments/:assignmentId/submissions",
+    requireAuth,
+    requireTeacher,
+    async (req, res) => {
+      const id = String(req.params?.id || "").trim();
+      const assignmentId = String(req.params?.assignmentId || "").trim();
+      if (!id) return res.status(400).json({ error: "Missing classroom id" });
+      if (!assignmentId) return res.status(400).json({ error: "Missing assignment id" });
+
+      const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+      if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+      const modules = await classroomModulesStore.listWithAssignments({
+        classroomId: classroom.id,
+        teacherId: req.userId,
+        limit: 100,
+      });
+      const assignmentExists = modules.some(
+        (m) => Array.isArray(m.assignments) && m.assignments.some((a) => a.id === assignmentId)
+      );
+      if (!assignmentExists) return res.status(404).json({ error: "Assignment not found" });
+
+      const items = await classroomSubmissionsStore.listByAssignment({
+        classroomId: classroom.id,
+        assignmentId,
+        limit: req.query?.limit,
+      });
+
+      const uniqueStudentIds = [...new Set(items.map((s) => s.studentId).filter(Boolean))];
+      const students = new Map();
+      for (const sid of uniqueStudentIds) {
+        // eslint-disable-next-line no-await-in-loop
+        const u = await usersStore.findById(sid);
+        if (u) students.set(sid, { id: u.id, name: u.name, email: u.email });
+      }
+
+      res.json({
+        items: items.map((s) => ({
+          id: s.id,
+          assignmentId: s.assignmentId,
+          classroomId: s.classroomId,
+          student: students.get(s.studentId) || { id: s.studentId, name: "Student", email: "" },
+          type: s.type,
+          payload: s.payload,
+          createdAt: s.createdAt,
+        })),
+      });
     }
   );
 
