@@ -1573,10 +1573,79 @@ function renderStudentGrades(container, payload) {
   const grades = Array.isArray(payload?.grades) ? payload.grades : [];
   const gradeByAssignment = new Map(grades.map((g) => [String(g.assignmentId || ""), g]));
 
+  const percentToLetter = (pct) => {
+    if (!Number.isFinite(pct)) return "";
+    if (pct >= 90) return "A";
+    if (pct >= 80) return "B";
+    if (pct >= 70) return "C";
+    if (pct >= 60) return "D";
+    return "F";
+  };
+
   if (assignments.length === 0) {
     container.innerHTML = `<p class="empty-state">No assignments yet.</p>`;
     return;
   }
+
+  let earnedTotal = 0;
+  let possibleTotal = 0;
+  let gradedCount = 0;
+  for (const a of assignments) {
+    const g = gradeByAssignment.get(String(a.id || "")) || null;
+    const earned = g && g.pointsEarned !== null && g.pointsEarned !== undefined ? Number(g.pointsEarned) : null;
+    const max = String(a.points || "").trim() ? Number(a.points) : null;
+    if (!Number.isFinite(earned)) continue;
+    gradedCount += 1;
+    if (Number.isFinite(max) && max > 0) {
+      earnedTotal += earned;
+      possibleTotal += max;
+    }
+  }
+
+  const summary = document.createElement("div");
+  summary.className = "grade-summary";
+
+  const header = document.createElement("div");
+  header.className = "grade-summary__header";
+
+  const h = document.createElement("h3");
+  h.className = "grade-summary__title";
+  h.textContent = "Class grade";
+
+  const sub = document.createElement("p");
+  sub.className = "grade-summary__meta";
+  sub.textContent = gradedCount ? `${gradedCount} graded` : "No grades yet.";
+
+  header.appendChild(h);
+  header.appendChild(sub);
+  summary.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "grade-summary__body";
+
+  if (possibleTotal > 0) {
+    const pct = Math.round((earnedTotal / possibleTotal) * 1000) / 10;
+    const letter = percentToLetter(pct);
+
+    const big = document.createElement("p");
+    big.className = "grade-summary__big";
+    big.textContent = `${pct}% (${letter})`;
+
+    const pts = document.createElement("p");
+    pts.className = "grade-summary__points";
+    pts.textContent = `Points: ${Math.round(earnedTotal * 100) / 100} / ${Math.round(possibleTotal * 100) / 100}`;
+
+    body.appendChild(big);
+    body.appendChild(pts);
+  } else {
+    const big = document.createElement("p");
+    big.className = "grade-summary__big";
+    big.textContent = "—";
+    body.appendChild(big);
+  }
+
+  summary.appendChild(body);
+  container.appendChild(summary);
 
   const list = document.createElement("div");
   list.className = "feed";
@@ -1595,16 +1664,21 @@ function renderStudentGrades(container, payload) {
     title.textContent = String(a.title || "Assignment");
 
     const g = gradeByAssignment.get(String(a.id || "")) || null;
-    const points = String(a.points || "").trim();
-    const score = g && g.pointsEarned !== null && g.pointsEarned !== undefined ? String(g.pointsEarned) : "";
+    const pointsRaw = String(a.points || "").trim();
+    const maxPoints = pointsRaw ? Number(pointsRaw) : null;
+    const scoreNum = g && g.pointsEarned !== null && g.pointsEarned !== undefined ? Number(g.pointsEarned) : null;
+    const score = Number.isFinite(scoreNum) ? String(scoreNum) : "";
 
     const text = document.createElement("p");
     text.className = "feed__text";
-    text.textContent = score
-      ? points
-        ? `Score: ${score} / ${points}`
-        : `Score: ${score}`
-      : "Not graded yet.";
+    if (!score) {
+      text.textContent = "Not graded yet.";
+    } else if (Number.isFinite(maxPoints) && maxPoints > 0) {
+      const pct = Math.round((Number(score) / maxPoints) * 1000) / 10;
+      text.textContent = `Score: ${score} / ${pointsRaw} (${pct}%)`;
+    } else {
+      text.textContent = `Score: ${score}`;
+    }
 
     if (g && g.feedback) {
       const fb = document.createElement("p");
