@@ -285,11 +285,11 @@ function renderTeacherClassrooms(container, items) {
   }
 
   const grid = document.createElement("div");
-  grid.className = "tile-grid";
+  grid.className = "tile-grid tile-grid--compact";
 
   for (const c of items) {
     const tile = document.createElement("div");
-    tile.className = "tile";
+    tile.className = "tile tile--compact";
 
     const kicker = document.createElement("p");
     kicker.className = "tile__kicker";

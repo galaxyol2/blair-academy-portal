@@ -601,6 +601,29 @@ a:hover {
   color: var(--muted);
 }
 
+.tile--compact {
+  padding: 0.85rem 0.9rem;
+}
+
+.tile--compact .tile__kicker {
+  font-size: 0.72rem;
+  margin-bottom: 0.2rem;
+}
+
+.tile--compact .tile__kicker::before {
+  width: 7px;
+  height: 7px;
+}
+
+.tile--compact .tile__title {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.tile--compact .tile__text {
+  font-size: 0.95rem;
+}
+
 /* Widgets */
 .widget {
   border: 1px solid var(--border);
