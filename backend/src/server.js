@@ -18,7 +18,8 @@ const app = express();
 // Trust Railway/hosted proxies so req.ip reflects the real client IP (used for rate limiting).
 app.set("trust proxy", 1);
 
-app.use(express.json({ limit: "1mb" }));
+// Upload submissions are sent as base64 in JSON; keep this above the expected max upload size.
+app.use(express.json({ limit: "6mb" }));
 
 function normalizeOrigin(value) {
   const v = String(value || "").trim();
@@ -38,6 +39,9 @@ function allowedOrigins() {
 
 const allowed = allowedOrigins();
 const allowedWildcards = (allowed || []).filter((o) => o.includes("*."));
+const strictCors =
+  ["1", "true", "yes"].includes(String(process.env.CORS_STRICT || "").trim().toLowerCase()) &&
+  Boolean(allowed && allowed.length);
 
 function originMatchesWildcard(origin, pattern) {
   // pattern like: https://*.vercel.app
@@ -55,7 +59,7 @@ function originMatchesWildcard(origin, pattern) {
 app.use(
   cors({
     origin(origin, callback) {
-      if (!allowed) return callback(null, true);
+      if (!strictCors) return callback(null, true);
       if (!origin) return callback(null, true); // non-browser requests
       const o = normalizeOrigin(origin);
       if (allowed.includes(o)) return callback(null, true);
