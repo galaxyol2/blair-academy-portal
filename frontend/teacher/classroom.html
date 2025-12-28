@@ -136,7 +136,33 @@
                 <div class="widget__header">
                   <h2 class="widget__title">Announcements</h2>
                 </div>
-                <p class="empty-state">Class announcements coming next.</p>
+                <form class="auth-form" data-classroom-announce novalidate>
+                  <label class="field">
+                    <span class="field__label">Title (optional)</span>
+                    <input name="title" type="text" placeholder="Announcement title" />
+                  </label>
+                  <label class="field">
+                    <span class="field__label">Message</span>
+                    <textarea
+                      name="body"
+                      rows="5"
+                      placeholder="Write an announcement to your class…"
+                      required
+                    ></textarea>
+                  </label>
+
+                  <p class="form-success" data-form-success hidden></p>
+                  <p class="form-error" data-form-error hidden></p>
+
+                  <button class="btn btn--primary" type="submit">Post announcement</button>
+                </form>
+
+                <div class="widget__header" style="margin-top: 1.1rem">
+                  <h3 class="widget__title">Recent</h3>
+                </div>
+                <div data-classroom-announcements>
+                  <p class="empty-state">Loading…</p>
+                </div>
               </div>
             </div>
 

@@ -38,6 +38,14 @@ function createJsonClassroomsStore() {
   }
 
   return {
+    async getByIdForTeacher({ teacherId, id }) {
+      const db = await readDb();
+      return (
+        db.classrooms.find((c) => c.id === id && c.teacherId === teacherId) ||
+        null
+      );
+    },
+
     async listByTeacher({ teacherId }) {
       const db = await readDb();
       return [...db.classrooms]
@@ -99,6 +107,23 @@ function createPgClassroomsStore() {
   }
 
   return {
+    async getByIdForTeacher({ teacherId, id }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT id,
+                teacher_id AS "teacherId",
+                name,
+                section,
+                join_code AS "joinCode",
+                created_at AS "createdAt"
+           FROM classrooms
+          WHERE id = $1 AND teacher_id = $2
+          LIMIT 1`,
+        [id, teacherId]
+      );
+      return res.rows[0] || null;
+    },
+
     async listByTeacher({ teacherId }) {
       await ensureSchema();
       const res = await pool.query(
@@ -153,4 +178,3 @@ const classroomsStore = process.env.DATABASE_URL
   : createJsonClassroomsStore();
 
 module.exports = { classroomsStore };
-

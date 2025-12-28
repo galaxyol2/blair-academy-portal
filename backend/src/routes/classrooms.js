@@ -2,6 +2,7 @@ const express = require("express");
 
 const { requireAuth, requireTeacher } = require("../middleware/auth");
 const { classroomsStore } = require("../store/classroomsStore");
+const { classroomAnnouncementsStore } = require("../store/classroomAnnouncementsStore");
 
 function buildClassroomsRouter() {
   const router = express.Router();
@@ -15,10 +16,46 @@ function buildClassroomsRouter() {
     const id = String(req.params?.id || "").trim();
     if (!id) return res.status(400).json({ error: "Missing classroom id" });
 
-    const items = await classroomsStore.listByTeacher({ teacherId: req.userId });
-    const item = items.find((c) => c.id === id) || null;
+    const item = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
     if (!item) return res.status(404).json({ error: "Classroom not found" });
     res.json({ item });
+  });
+
+  router.get("/:id/announcements", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const limit = req.query?.limit;
+    const items = await classroomAnnouncementsStore.listByClassroom({
+      classroomId: classroom.id,
+      limit,
+    });
+    res.json({ items });
+  });
+
+  router.post("/:id/announcements", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const title = String(req.body?.title || "").trim();
+    const body = String(req.body?.body || "").trim();
+    if (!body) return res.status(400).json({ error: "Message is required" });
+    if (title.length > 120) return res.status(400).json({ error: "Title is too long" });
+    if (body.length > 5000) return res.status(400).json({ error: "Message is too long" });
+
+    const item = await classroomAnnouncementsStore.create({
+      classroomId: classroom.id,
+      teacherId: req.userId,
+      title,
+      body,
+    });
+    res.status(201).json({ item });
   });
 
   router.post("/", requireAuth, requireTeacher, async (req, res) => {

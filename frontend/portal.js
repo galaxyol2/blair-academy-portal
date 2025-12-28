@@ -413,6 +413,7 @@ function initTeacherClassroomTabs() {
     for (const [t, el] of panels.entries()) {
       el.hidden = t !== tab;
     }
+    window.dispatchEvent(new CustomEvent("blair:classroomTab", { detail: { tab } }));
   };
 
   const initial = String((window.location.hash || "").replace(/^#/, "") || "home");
@@ -430,6 +431,122 @@ function initTeacherClassroomTabs() {
   window.addEventListener("hashchange", () => {
     const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
     if (panels.has(tab)) setActive(tab);
+  });
+}
+
+function renderClassroomAnnouncements(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No announcements yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "feed";
+
+  for (const a of items) {
+    const item = document.createElement("div");
+    item.className = "feed__item";
+
+    const meta = document.createElement("p");
+    meta.className = "feed__meta";
+    const when = formatShortDate(a.createdAt);
+    meta.textContent = when ? when : "Announcement";
+
+    const title = document.createElement("h3");
+    title.className = "feed__title";
+    title.textContent = String(a.title || "Announcement");
+
+    const body = document.createElement("p");
+    body.className = "feed__text";
+    body.textContent = String(a.body || "");
+
+    item.appendChild(meta);
+    item.appendChild(title);
+    item.appendChild(body);
+    list.appendChild(item);
+  }
+
+  container.appendChild(list);
+}
+
+function currentClassroomIdFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  return String(params.get("id") || "").trim();
+}
+
+async function loadClassroomAnnouncements() {
+  const container = document.querySelector("[data-classroom-announcements]");
+  if (!container) return;
+
+  const id = currentClassroomIdFromQuery();
+  if (!id) {
+    container.innerHTML = "";
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Missing classroom id.";
+    container.appendChild(empty);
+    return;
+  }
+
+  try {
+    const data = await apiFetch(
+      `/api/classrooms/${encodeURIComponent(id)}/announcements?limit=50`
+    );
+    renderClassroomAnnouncements(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load announcements.";
+    container.appendChild(msg);
+  }
+}
+
+function initClassroomAnnouncementComposer() {
+  const form = document.querySelector("form[data-classroom-announce]");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setFormError(form, "");
+    setFormSuccess(form, "");
+
+    const id = currentClassroomIdFromQuery();
+    if (!id) {
+      setFormError(form, "Missing classroom id.");
+      return;
+    }
+
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const title = String(payload.title || "").trim();
+    const body = String(payload.body || "").trim();
+
+    if (!body) {
+      setFormError(form, "Message is required.");
+      return;
+    }
+
+    try {
+      await apiFetch(`/api/classrooms/${encodeURIComponent(id)}/announcements`, {
+        method: "POST",
+        body: JSON.stringify({ title, body }),
+      });
+      form.reset();
+      setFormSuccess(form, "Posted.");
+      await loadClassroomAnnouncements();
+    } catch (err) {
+      if (err?.status === 403) {
+        setFormError(form, "Only teachers can post announcements.");
+        return;
+      }
+      setFormError(form, err?.message || "Failed to post.");
+    }
   });
 }
 
@@ -769,5 +886,24 @@ if (routeGuards()) {
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomTabs();
     loadTeacherClassroomDetails();
+  }
+
+  if (pageKind() === "dashboard" && pageRole() === "teacher") {
+    initClassroomAnnouncementComposer();
+
+    const maybeLoad = () => {
+      if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
+        const tab = String((window.location.hash || "").replace(/^#/, "") || "home");
+        if (tab === "announcements") loadClassroomAnnouncements();
+      }
+    };
+
+    window.addEventListener("blair:classroomTab", (e) => {
+      const tab = e?.detail?.tab;
+      if (tab === "announcements") loadClassroomAnnouncements();
+    });
+
+    // Load on first visit if the hash is already #announcements
+    maybeLoad();
   }
 }
