@@ -10,7 +10,11 @@ const { classroomGradesStore } = require("../store/classroomGradesStore");
 const { classroomGradeSettingsStore } = require("../store/classroomGradeSettingsStore");
 const { classroomRubricsStore } = require("../store/classroomRubricsStore");
 const { usersStore } = require("../store/usersStore");
-const { computeStudentCurrentGradePercent, letterFromPercent } = require("../services/gradeSummary");
+const {
+  computeStudentCurrentGradePercent,
+  computeMissingAssignmentCount,
+  letterFromPercent,
+} = require("../services/gradeSummary");
 
 function buildClassroomsRouter() {
   const router = express.Router();
@@ -361,9 +365,15 @@ function buildClassroomsRouter() {
                   grades: gradesByStudentId.get(String(m.studentId)) || [],
                   submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
                 });
+                const missingCount = computeMissingAssignmentCount({
+                  assignments,
+                  grades: gradesByStudentId.get(String(m.studentId)) || [],
+                  submittedAssignmentIds: submittedByStudentId[String(m.studentId)] || [],
+                });
                 return {
                   percent: percent == null ? null : Math.round(percent),
                   letter: percent == null ? "N/A" : letterFromPercent(percent),
+                  missingCount,
                 };
               })()
             : { percent: null, letter: "N/A" },

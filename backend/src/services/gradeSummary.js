@@ -140,5 +140,45 @@ function computeStudentCurrentGradePercent({
   return clamp(overall, 0, 100);
 }
 
-module.exports = { computeStudentCurrentGradePercent, letterFromPercent };
+function computeMissingAssignmentCount({ assignments, grades, submittedAssignmentIds, now = new Date() }) {
+  const gradeByAssignmentId = new Map();
+  for (const g of Array.isArray(grades) ? grades : []) {
+    if (!g?.assignmentId) continue;
+    gradeByAssignmentId.set(String(g.assignmentId), g);
+  }
 
+  const submitted = new Set(
+    Array.isArray(submittedAssignmentIds) ? submittedAssignmentIds.map((id) => String(id)) : []
+  );
+
+  let count = 0;
+  for (const a of Array.isArray(assignments) ? assignments : []) {
+    const assignmentId = String(a?.id || "").trim();
+    if (!assignmentId) continue;
+
+    const dueAt = String(a?.dueAt || "").trim();
+    const dueDate = dueAt ? new Date(dueAt) : null;
+    const pastDue = dueDate && !Number.isNaN(dueDate.valueOf()) ? dueDate < now : false;
+    if (!pastDue) continue;
+
+    const g = gradeByAssignmentId.get(assignmentId);
+    const status = normalizeStatus(g?.status);
+    if (status === "excused") continue;
+    if (status === "missing") {
+      count += 1;
+      continue;
+    }
+
+    // If they submitted, it's not missing.
+    if (submitted.has(assignmentId)) continue;
+
+    // If the teacher graded it (even 0), it's not missing in the "no submission" sense.
+    if (g && Number.isFinite(Number(g.pointsEarned))) continue;
+
+    count += 1;
+  }
+
+  return count;
+}
+
+module.exports = { computeStudentCurrentGradePercent, computeMissingAssignmentCount, letterFromPercent };

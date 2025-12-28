@@ -1682,6 +1682,16 @@ function renderTeacherPeople(container, items) {
       title.appendChild(badge);
     }
 
+    const missingCountRaw = entry?.grade?.missingCount;
+    const missingCount = Number.isFinite(Number(missingCountRaw)) ? Number(missingCountRaw) : 0;
+    if (missingCount > 0) {
+      const missing = document.createElement("span");
+      missing.className = "people-missing";
+      missing.textContent = `Missing: ${missingCount}`;
+      title.appendChild(document.createTextNode(" "));
+      title.appendChild(missing);
+    }
+
     const actions = document.createElement("div");
     actions.className = "feed__actions";
 
