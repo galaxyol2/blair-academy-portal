@@ -1311,6 +1311,69 @@ async function loadClassroomModules() {
   }
 }
 
+function renderTeacherPeople(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = `<p class="empty-state">No students have joined yet.</p>`;
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "feed";
+
+  for (const entry of items) {
+    const row = document.createElement("div");
+    row.className = "feed__item";
+
+    const student = entry.student || {};
+    const name = String(student.name || "Student");
+    const email = String(student.email || "");
+    const joinedAt = formatShortDate(entry.joinedAt);
+
+    const meta = document.createElement("p");
+    meta.className = "feed__meta";
+    meta.textContent = joinedAt ? `Joined ${joinedAt}` : "Joined";
+
+    const title = document.createElement("h4");
+    title.className = "feed__title";
+    title.textContent = email ? `${name} (${email})` : name;
+
+    const actions = document.createElement("div");
+    actions.className = "feed__actions";
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "btn btn--danger btn--sm";
+    remove.textContent = "Remove";
+    remove.setAttribute("data-classroom-remove-student", String(student.id || ""));
+    actions.appendChild(remove);
+
+    row.appendChild(meta);
+    row.appendChild(title);
+    row.appendChild(actions);
+    list.appendChild(row);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadTeacherPeople() {
+  const container = document.querySelector("[data-classroom-people]");
+  if (!container) return;
+
+  const classroomId = currentClassroomIdFromQuery();
+  if (!classroomId) return;
+
+  container.innerHTML = `<p class="empty-state">Loading...</p>`;
+  try {
+    const data = await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/people`);
+    renderTeacherPeople(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = `<p class="empty-state">Unable to load students.</p>`;
+  }
+}
+
 async function prefetchTeacherModules(classroomId) {
   const cid = String(classroomId || "").trim();
   if (!cid) return;
@@ -1554,6 +1617,36 @@ function initModulesInteractions() {
       await loadClassroomModules();
     } catch (err) {
       setFormError(form, err?.message || "Failed to create assignment.");
+    }
+  });
+}
+
+function initTeacherPeopleInteractions() {
+  const container = document.querySelector("[data-classroom-people]");
+  if (!container) return;
+
+  container.addEventListener("click", async (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const studentId = target.getAttribute("data-classroom-remove-student");
+    if (!studentId) return;
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const ok = window.confirm("Remove this student from your class?");
+    if (!ok) return;
+
+    try {
+      await apiFetch(
+        `/api/classrooms/${encodeURIComponent(classroomId)}/people/${encodeURIComponent(studentId)}`,
+        { method: "DELETE" }
+      );
+      await loadTeacherPeople();
+    } catch (err) {
+      // eslint-disable-next-line no-alert
+      alert(err?.message || "Failed to remove student.");
     }
   });
 }
@@ -2019,6 +2112,7 @@ function initPasswordToggles() {
     initClassroomAnnouncementDelete();
     initModuleCreate();
     initModulesInteractions();
+    initTeacherPeopleInteractions();
 
     if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
       prefetchTeacherModules(currentClassroomIdFromQuery());
@@ -2030,6 +2124,7 @@ function initPasswordToggles() {
         if (tab === "announcements") loadClassroomAnnouncements();
         if (tab === "home") loadClassroomRecentActivity();
         if (tab === "modules") loadClassroomModules();
+        if (tab === "people") loadTeacherPeople();
       }
     };
 
@@ -2038,6 +2133,7 @@ function initPasswordToggles() {
       if (tab === "announcements") loadClassroomAnnouncements();
       if (tab === "home") loadClassroomRecentActivity();
       if (tab === "modules") loadClassroomModules();
+      if (tab === "people") loadTeacherPeople();
     });
 
     // Load on first visit based on current tab

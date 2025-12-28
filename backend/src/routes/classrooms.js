@@ -5,6 +5,7 @@ const { classroomsStore } = require("../store/classroomsStore");
 const { classroomAnnouncementsStore } = require("../store/classroomAnnouncementsStore");
 const { classroomModulesStore } = require("../store/classroomModulesStore");
 const { classroomSubmissionsStore } = require("../store/classroomSubmissionsStore");
+const { classroomMembershipsStore } = require("../store/classroomMembershipsStore");
 const { usersStore } = require("../store/usersStore");
 
 function buildClassroomsRouter() {
@@ -252,6 +253,49 @@ function buildClassroomsRouter() {
       });
     }
   );
+
+  router.get("/:id/people", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const memberships = await classroomMembershipsStore.listByClassroom({ classroomId: classroom.id });
+    const uniqueStudentIds = [...new Set(memberships.map((m) => m.studentId).filter(Boolean))];
+
+    const students = new Map();
+    for (const sid of uniqueStudentIds) {
+      // eslint-disable-next-line no-await-in-loop
+      const u = await usersStore.findById(sid);
+      if (u) students.set(sid, { id: u.id, name: u.name, email: u.email, role: u.role });
+    }
+
+    res.json({
+      items: memberships.map((m) => ({
+        classroomId: m.classroomId,
+        student: students.get(m.studentId) || { id: m.studentId, name: "Student", email: "", role: "" },
+        joinedAt: m.createdAt,
+      })),
+    });
+  });
+
+  router.delete("/:id/people/:studentId", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    const studentId = String(req.params?.studentId || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+    if (!studentId) return res.status(400).json({ error: "Missing student id" });
+
+    const classroom = await classroomsStore.getByIdForTeacher({ teacherId: req.userId, id });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const deleted = await classroomMembershipsStore.remove({
+      classroomId: classroom.id,
+      studentId,
+    });
+    if (!deleted) return res.status(404).json({ error: "Student not found in this classroom" });
+    res.json({ ok: true });
+  });
 
   router.post("/", requireAuth, requireTeacher, async (req, res) => {
     const name = String(req.body?.name || "").trim();

@@ -27,11 +27,27 @@ function createJsonClassroomMembershipsStore() {
       return db.memberships.some((m) => m.classroomId === classroomId && m.studentId === studentId);
     },
 
+    async listByClassroom({ classroomId }) {
+      const db = await readDb();
+      return db.memberships
+        .filter((m) => m.classroomId === classroomId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    },
+
     async listByStudent({ studentId }) {
       const db = await readDb();
       return db.memberships
         .filter((m) => m.studentId === studentId)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    },
+
+    async remove({ classroomId, studentId }) {
+      const db = await readDb();
+      const idx = db.memberships.findIndex((m) => m.classroomId === classroomId && m.studentId === studentId);
+      if (idx === -1) return null;
+      const [deleted] = db.memberships.splice(idx, 1);
+      await writeDb(db);
+      return deleted;
     },
 
     async join({ classroomId, studentId }) {
@@ -88,6 +104,18 @@ function createPgClassroomMembershipsStore() {
       return Boolean(res.rows[0]);
     },
 
+    async listByClassroom({ classroomId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT classroom_id AS "classroomId", student_id AS "studentId", created_at AS "createdAt"
+           FROM classroom_memberships
+          WHERE classroom_id = $1
+          ORDER BY created_at DESC`,
+        [classroomId]
+      );
+      return res.rows;
+    },
+
     async listByStudent({ studentId }) {
       await ensureSchema();
       const res = await pool.query(
@@ -98,6 +126,17 @@ function createPgClassroomMembershipsStore() {
         [studentId]
       );
       return res.rows;
+    },
+
+    async remove({ classroomId, studentId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `DELETE FROM classroom_memberships
+          WHERE classroom_id = $1 AND student_id = $2
+          RETURNING classroom_id AS "classroomId", student_id AS "studentId", created_at AS "createdAt"`,
+        [classroomId, studentId]
+      );
+      return res.rows[0] || null;
     },
 
     async join({ classroomId, studentId }) {
@@ -121,4 +160,3 @@ const classroomMembershipsStore = process.env.DATABASE_URL
   : createJsonClassroomMembershipsStore();
 
 module.exports = { classroomMembershipsStore };
-
