@@ -151,6 +151,11 @@ function buildAuthRouter() {
     const user = await usersStore.create({ name, email, passwordHash, role: "teacher" });
     if (!user) return res.status(409).json({ error: "Email already in use" });
 
+    postSignupLog({ user }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(`[signup-log] Failed: ${err.message || err}`);
+    });
+
     const token = signAccessToken({ userId: user.id });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: "teacher" } });
   });

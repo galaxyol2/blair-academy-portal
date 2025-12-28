@@ -7,6 +7,7 @@ function buildPayload({ user }) {
     userId: user?.id || "",
     name: user?.name || "",
     email: user?.email || "",
+    role: user?.role || "student",
     createdAt: user?.createdAt || "",
   };
 }

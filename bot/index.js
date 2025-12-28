@@ -198,7 +198,14 @@ client.once(Events.ClientReady, () => {
   }
 });
 
-async function sendSignupLog({ name, email, userId, createdAt }) {
+function normalizeRoleLabel(role) {
+  const r = String(role || "").trim().toLowerCase();
+  if (r === "teacher") return "teacher";
+  if (r === "student") return "student";
+  return "signup";
+}
+
+async function sendSignupLog({ name, email, userId, role, createdAt }) {
   if (!SIGNUP_LOG_CHANNEL_ID) throw new Error("Missing env: SIGNUP_LOG_CHANNEL_ID");
 
   const channel = await client.channels.fetch(SIGNUP_LOG_CHANNEL_ID);
@@ -206,8 +213,10 @@ async function sendSignupLog({ name, email, userId, createdAt }) {
     throw new Error("SIGNUP_LOG_CHANNEL_ID is not a text channel");
   }
 
+  const roleLabel = normalizeRoleLabel(role);
+  const prefix = roleLabel === "signup" ? "New signup" : `New ${roleLabel} signup`;
   const parts = [
-    `New signup: ${name || "(no name)"} <${email || "no-email"}>`,
+    `${prefix}: ${name || "(no name)"} <${email || "no-email"}>`,
     userId ? `id: ${userId}` : null,
     createdAt ? `createdAt: ${createdAt}` : null,
   ].filter(Boolean);
@@ -287,6 +296,7 @@ function startLogServer() {
         name: String(body?.name || "").trim(),
         email: String(body?.email || "").trim(),
         userId: String(body?.userId || "").trim(),
+        role: String(body?.role || "").trim(),
         createdAt: String(body?.createdAt || "").trim(),
       });
 
