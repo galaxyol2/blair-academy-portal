@@ -273,6 +273,104 @@ function setFormSuccess(form, message) {
   successEl.textContent = message || "";
 }
 
+function renderTeacherClassrooms(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No classrooms yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "tile-grid";
+
+  for (const c of items) {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+
+    const kicker = document.createElement("p");
+    kicker.className = "tile__kicker";
+    kicker.textContent = "Classroom";
+
+    const title = document.createElement("h3");
+    title.className = "tile__title";
+    title.textContent = String(c.name || "Untitled");
+
+    const text = document.createElement("p");
+    text.className = "tile__text";
+    const section = String(c.section || "").trim();
+    const joinCode = String(c.joinCode || "").trim();
+    text.textContent = `${section ? `${section} • ` : ""}Join code: ${joinCode || "—"}`;
+
+    tile.appendChild(kicker);
+    tile.appendChild(title);
+    tile.appendChild(text);
+    grid.appendChild(tile);
+  }
+
+  container.appendChild(grid);
+}
+
+async function loadTeacherClassrooms() {
+  const container = document.querySelector("[data-classrooms-list]");
+  if (!container) return;
+
+  try {
+    const data = await apiFetch("/api/classrooms");
+    renderTeacherClassrooms(container, data?.items || []);
+  } catch (_err) {
+    container.innerHTML = "";
+    const msg = document.createElement("p");
+    msg.className = "empty-state";
+    msg.textContent = "Unable to load classrooms.";
+    container.appendChild(msg);
+  }
+}
+
+function initTeacherClassroomCreate() {
+  const form = document.querySelector("form[data-classroom-create]");
+  if (!form) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setFormError(form, "");
+    setFormSuccess(form, "");
+
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const name = String(payload.name || "").trim();
+    const section = String(payload.section || "").trim();
+
+    if (!name) {
+      setFormError(form, "Class name is required.");
+      return;
+    }
+
+    try {
+      const data = await apiFetch("/api/classrooms", {
+        method: "POST",
+        body: JSON.stringify({ name, section }),
+      });
+      const item = data?.item;
+      form.reset();
+      setFormSuccess(
+        form,
+        item?.joinCode ? `Created. Join code: ${item.joinCode}` : "Created."
+      );
+      await loadTeacherClassrooms();
+    } catch (err) {
+      if (err?.status === 403) {
+        setFormError(form, "Only teachers can create classrooms.");
+        return;
+      }
+      setFormError(form, err?.message || "Failed to create classroom.");
+    }
+  });
+}
+
 async function handleAuthSubmit(form) {
   const mode = form.getAttribute("data-auth");
   const formData = new FormData(form);
@@ -559,4 +657,9 @@ if (routeGuards()) {
   initResetToken();
   initPasswordToggles();
   initAnnouncements();
+
+  if (pageKind() === "dashboard" && pageRole() === "teacher") {
+    initTeacherClassroomCreate();
+    loadTeacherClassrooms();
+  }
 }

@@ -99,12 +99,43 @@
             <div>
               <p class="portal-eyebrow">Teacher dashboard</p>
               <h1 class="portal-title">Welcome back</h1>
-              <p class="portal-subtitle">Teacher tools coming soon.</p>
+              <p class="portal-subtitle">Manage your classrooms.</p>
             </div>
           </div>
+
+          <section class="portal-section portal-section--two" aria-label="Classrooms">
+            <div class="widget">
+              <div class="widget__header">
+                <h2 class="widget__title">Create classroom</h2>
+              </div>
+              <form class="auth-form" data-classroom-create novalidate>
+                <label class="field">
+                  <span class="field__label">Class name</span>
+                  <input name="name" type="text" placeholder="e.g., Algebra I" required />
+                </label>
+                <label class="field">
+                  <span class="field__label">Section (optional)</span>
+                  <input name="section" type="text" placeholder="e.g., Period 2" />
+                </label>
+
+                <p class="form-success" data-form-success hidden></p>
+                <p class="form-error" data-form-error hidden></p>
+
+                <button class="btn btn--primary" type="submit">Create</button>
+              </form>
+            </div>
+
+            <div class="widget">
+              <div class="widget__header">
+                <h2 class="widget__title">Your classrooms</h2>
+              </div>
+              <div data-classrooms-list>
+                <p class="empty-state">Loading…</p>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     </div>
   </body>
 </html>
-
