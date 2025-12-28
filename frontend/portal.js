@@ -821,12 +821,20 @@ function initSubmissionTypePicker() {
   });
   if (buttons.length === 0 || panels.size === 0) return;
 
+  const textEl = document.querySelector('textarea[name="text"]');
+  const urlEl = document.querySelector('input[name="url"]');
+  const fileEl = document.querySelector('input[name="file"]');
+
   const setActive = (type) => {
     for (const b of buttons) {
       b.classList.toggle("is-active", b.getAttribute("data-submit-type") === type);
     }
     for (const [t, el] of panels.entries()) el.hidden = t !== type;
     document.documentElement.setAttribute("data-submit-type", type);
+
+    if (textEl) textEl.required = type === "text";
+    if (urlEl) urlEl.required = type === "url";
+    if (fileEl) fileEl.required = type === "upload";
   };
 
   setActive("text");
@@ -1675,7 +1683,7 @@ function initPasswordToggles() {
   });
 }
 
-if (routeGuards()) {
+  if (routeGuards()) {
   initBackgroundVideo();
 
   validateSessionAndAutoLogout();
@@ -1753,10 +1761,10 @@ if (routeGuards()) {
 
       maybeLoad();
     }
+  }
 
-    // Student assignment submission page
-    if (window.location.pathname.endsWith("/assignment") || window.location.pathname.endsWith("/assignment.html")) {
-      initStudentAssignmentSubmission();
-    }
+  // Student assignment submission page (doesn't use `.portal-shell`).
+  if (document.querySelector("form[data-assignment-submit]")) {
+    initStudentAssignmentSubmission();
   }
 }
