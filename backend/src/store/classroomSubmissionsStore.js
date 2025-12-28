@@ -46,6 +46,17 @@ function createJsonClassroomSubmissionsStore() {
         .slice(0, l);
     },
 
+    async listSubmittedAssignmentIdsInClassroom({ classroomId, studentId }) {
+      const db = await readDb();
+      const ids = new Set();
+      for (const s of db.submissions) {
+        if (s.classroomId !== classroomId) continue;
+        if (s.studentId !== studentId) continue;
+        if (s.assignmentId) ids.add(String(s.assignmentId));
+      }
+      return [...ids];
+    },
+
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {
       const db = await readDb();
       const l = normalizeLimit(limit, 10);
@@ -147,6 +158,17 @@ function createPgClassroomSubmissionsStore() {
         [classroomId, studentId, l]
       );
       return res.rows;
+    },
+
+    async listSubmittedAssignmentIdsInClassroom({ classroomId, studentId }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT DISTINCT assignment_id AS "assignmentId"
+           FROM classroom_submissions
+          WHERE classroom_id = $1 AND student_id = $2`,
+        [classroomId, studentId]
+      );
+      return res.rows.map((r) => String(r.assignmentId));
     },
 
     async listByStudent({ classroomId, assignmentId, studentId, limit = 10 }) {

@@ -8,6 +8,7 @@ const { classroomModulesStore } = require("../store/classroomModulesStore");
 const { classroomSubmissionsStore } = require("../store/classroomSubmissionsStore");
 const { classroomGradesStore } = require("../store/classroomGradesStore");
 const { classroomGradeSettingsStore } = require("../store/classroomGradeSettingsStore");
+const { computeStudentCurrentGradePercent, letterFromPercent } = require("../services/gradeSummary");
 
 function buildStudentClassroomsRouter() {
   const router = express.Router();
@@ -55,6 +56,67 @@ function buildStudentClassroomsRouter() {
       classrooms.push({ id: c.id, name: c.name, section: c.section });
     }
     res.json({ items: classrooms });
+  });
+
+  router.get("/grades-summary", requireAuth, requireStudent, async (req, res) => {
+    const memberships = await classroomMembershipsStore.listByStudent({ studentId: req.userId });
+    const items = [];
+
+    for (const m of memberships) {
+      const classroom = await classroomsStore.getById(m.classroomId);
+      if (!classroom) continue;
+
+      const settings = await classroomGradeSettingsStore.getOrCreate({
+        classroomId: classroom.id,
+        teacherId: classroom.teacherId,
+      });
+
+      const modules = await classroomModulesStore.listWithAssignments({
+        classroomId: classroom.id,
+        teacherId: classroom.teacherId,
+        limit: 200,
+      });
+
+      const assignments = [];
+      for (const mod of modules) {
+        for (const a of Array.isArray(mod.assignments) ? mod.assignments : []) {
+          assignments.push({
+            id: a.id,
+            points: a.points || "",
+            dueAt: a.dueAt || "",
+            category: a.category || "Homework",
+          });
+        }
+      }
+
+      const grades = await classroomGradesStore.listByStudent({
+        classroomId: classroom.id,
+        studentId: req.userId,
+      });
+
+      const submittedAssignmentIds = await classroomSubmissionsStore.listSubmittedAssignmentIdsInClassroom({
+        classroomId: classroom.id,
+        studentId: req.userId,
+      });
+
+      const percent = computeStudentCurrentGradePercent({
+        settings,
+        assignments,
+        grades,
+        submittedAssignmentIds,
+      });
+
+      items.push({
+        id: classroom.id,
+        name: classroom.name,
+        section: classroom.section,
+        percent: percent == null ? null : Math.round(percent),
+        letter: percent == null ? "N/A" : letterFromPercent(percent),
+      });
+    }
+
+    items.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), undefined, { sensitivity: "base" }));
+    res.json({ items });
   });
 
   router.get("/:id", requireAuth, requireStudent, requireMembership, async (req, res) => {

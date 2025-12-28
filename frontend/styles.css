@@ -535,6 +535,71 @@ a:hover {
   box-shadow: inset 4px 0 0 rgba(212, 160, 23, 0.85);
 }
 
+.sidebar-section {
+  padding: 0 1rem 1rem;
+}
+
+.sidebar-section__title {
+  margin: 0.35rem 0 0.6rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 900;
+  color: rgba(26, 28, 31, 0.62);
+}
+
+.sidebar-grades__list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.sidebar-grade {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 75, 141, 0.12);
+  background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+}
+
+.sidebar-grade:hover {
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(0, 75, 141, 0.2);
+}
+
+.sidebar-grade__name {
+  font-weight: 900;
+  color: rgba(26, 28, 31, 0.9);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 165px;
+}
+
+.sidebar-grade__grade {
+  text-align: right;
+  min-width: 4.25rem;
+}
+
+.sidebar-grade__letter {
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: rgba(0, 75, 141, 0.95);
+  line-height: 1.1;
+}
+
+.sidebar-grade__percent {
+  margin-top: 0.15rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: rgba(26, 28, 31, 0.62);
+}
+
 .portal-sidebar__footer {
   padding: 0.9rem 1rem 1.2rem;
 }

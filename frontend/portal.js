@@ -1039,6 +1039,77 @@ function renderStudentClassrooms(container, items) {
   container.appendChild(grid);
 }
 
+function renderStudentSidebarGrades(container, items) {
+  container.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No grades yet.";
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "sidebar-grades__list";
+
+  for (const item of items) {
+    const link = document.createElement("a");
+    link.className = "sidebar-grade";
+    link.href = `${studentClassroomUrl(item.id)}#grades`;
+
+    const name = document.createElement("div");
+    name.className = "sidebar-grade__name";
+    name.textContent = String(item.name || "Untitled");
+
+    const grade = document.createElement("div");
+    grade.className = "sidebar-grade__grade";
+
+    const letter = document.createElement("div");
+    letter.className = "sidebar-grade__letter";
+    letter.textContent = String(item.letter || "N/A");
+
+    const percent = document.createElement("div");
+    percent.className = "sidebar-grade__percent";
+    percent.textContent =
+      item.percent == null || item.percent === ""
+        ? "No grade"
+        : `${Number(item.percent)}%`;
+
+    grade.appendChild(letter);
+    grade.appendChild(percent);
+
+    link.appendChild(name);
+    link.appendChild(grade);
+    list.appendChild(link);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadStudentSidebarGrades() {
+  const container = document.querySelector("[data-sidebar-grades]");
+  if (!container) return;
+
+  const cacheKey = "blair.portal.student.sidebarGrades";
+  const cached = readSessionCache(cacheKey);
+  if (cached && Array.isArray(cached.items)) {
+    renderStudentSidebarGrades(container, cached.items);
+  } else {
+    container.innerHTML = `<p class="empty-state">Loading...</p>`;
+  }
+
+  try {
+    const data = await apiFetch("/api/student/classrooms/grades-summary");
+    const items = Array.isArray(data?.items) ? data.items : [];
+    renderStudentSidebarGrades(container, items);
+    writeSessionCache(cacheKey, { items, cachedAt: new Date().toISOString() });
+  } catch (_err) {
+    if (cached && Array.isArray(cached.items)) return;
+    container.innerHTML = `<p class="empty-state">Unable to load grades.</p>`;
+  }
+}
+
 async function loadStudentClassrooms() {
   const container = document.querySelector("[data-student-classrooms]");
   if (!container) return;
@@ -1046,6 +1117,7 @@ async function loadStudentClassrooms() {
   try {
     const data = await apiFetch("/api/student/classrooms");
     renderStudentClassrooms(container, data?.items || []);
+    loadStudentSidebarGrades();
   } catch (_err) {
     container.innerHTML = "";
     const msg = document.createElement("p");
@@ -1079,6 +1151,7 @@ function initStudentJoinClassroom() {
       form.reset();
       setFormSuccess(form, "Joined classroom.");
       await loadStudentClassrooms();
+      await loadStudentSidebarGrades();
     } catch (err) {
       setFormError(form, err?.message || "Failed to join.");
     }
@@ -3285,6 +3358,7 @@ function initPasswordToggles() {
 
   initStudentJoinClassroom();
   loadStudentClassrooms();
+  loadStudentSidebarGrades();
 
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomCreate();
