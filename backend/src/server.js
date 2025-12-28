@@ -56,12 +56,24 @@ function originMatchesWildcard(origin, pattern) {
   }
 }
 
+function isAlwaysAllowedOrigin(origin) {
+  try {
+    const o = new URL(origin);
+    if (o.hostname === "localhost" || o.hostname === "127.0.0.1") return true;
+    if (o.hostname.endsWith(".vercel.app")) return true;
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!strictCors) return callback(null, true);
       if (!origin) return callback(null, true); // non-browser requests
       const o = normalizeOrigin(origin);
+      if (isAlwaysAllowedOrigin(origin) || isAlwaysAllowedOrigin(o)) return callback(null, true);
+      if (!strictCors) return callback(null, true);
       if (allowed.includes(o)) return callback(null, true);
       if (allowedWildcards.some((p) => originMatchesWildcard(o, p))) return callback(null, true);
       return callback(null, false);
