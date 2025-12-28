@@ -11,6 +11,16 @@ function buildClassroomsRouter() {
     res.json({ items });
   });
 
+  router.get("/:id", requireAuth, requireTeacher, async (req, res) => {
+    const id = String(req.params?.id || "").trim();
+    if (!id) return res.status(400).json({ error: "Missing classroom id" });
+
+    const items = await classroomsStore.listByTeacher({ teacherId: req.userId });
+    const item = items.find((c) => c.id === id) || null;
+    if (!item) return res.status(404).json({ error: "Classroom not found" });
+    res.json({ item });
+  });
+
   router.post("/", requireAuth, requireTeacher, async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const section = String(req.body?.section || "").trim();
@@ -30,4 +40,3 @@ function buildClassroomsRouter() {
 }
 
 module.exports = { buildClassroomsRouter };
-

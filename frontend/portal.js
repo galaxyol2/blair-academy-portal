@@ -79,6 +79,12 @@ function teacherDashboardUrl() {
   return "/teacher/dashboard";
 }
 
+function teacherClassroomUrl(classroomId) {
+  const id = encodeURIComponent(String(classroomId || "").trim());
+  if (window.location.protocol === "file:") return `./teacher/classroom.html?id=${id}`;
+  return `/teacher/classroom?id=${id}`;
+}
+
 function studentLoginUrl() {
   if (window.location.protocol === "file:") return "./index.html";
   return "/";
@@ -288,8 +294,10 @@ function renderTeacherClassrooms(container, items) {
   grid.className = "tile-grid tile-grid--compact tile-grid--rows";
 
   for (const c of items) {
-    const tile = document.createElement("div");
+    const tile = document.createElement("a");
     tile.className = "tile tile--compact tile--row";
+    tile.href = teacherClassroomUrl(c.id);
+    tile.setAttribute("aria-label", `Open classroom: ${String(c.name || "Untitled")}`);
 
     const left = document.createElement("div");
     left.className = "tile__left";
@@ -351,6 +359,33 @@ async function loadTeacherClassrooms() {
     msg.className = "empty-state";
     msg.textContent = "Unable to load classrooms.";
     container.appendChild(msg);
+  }
+}
+
+async function loadTeacherClassroomDetails() {
+  const nameEl = document.querySelector("[data-classroom-name]");
+  const metaEl = document.querySelector("[data-classroom-meta]");
+  if (!nameEl || !metaEl) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const id = String(params.get("id") || "").trim();
+  if (!id) {
+    nameEl.textContent = "Missing classroom id";
+    metaEl.textContent = "";
+    return;
+  }
+
+  try {
+    const data = await apiFetch(`/api/classrooms/${encodeURIComponent(id)}`);
+    const c = data?.item;
+    if (!c) throw new Error("Not found");
+    nameEl.textContent = String(c.name || "Untitled");
+    const section = String(c.section || "").trim();
+    const joinCode = String(c.joinCode || "").trim();
+    metaEl.textContent = `${section ? `${section} • ` : ""}Join code: ${joinCode || "—"}`;
+  } catch (err) {
+    nameEl.textContent = "Classroom not found";
+    metaEl.textContent = err?.status === 403 ? "Forbidden" : "";
   }
 }
 
@@ -685,5 +720,9 @@ if (routeGuards()) {
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomCreate();
     loadTeacherClassrooms();
+  }
+
+  if (pageKind() === "dashboard" && pageRole() === "teacher") {
+    loadTeacherClassroomDetails();
   }
 }

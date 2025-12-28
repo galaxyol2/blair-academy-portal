@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Classroom - Blair Academy Teacher Portal</title>
+    <meta name="description" content="Teacher classroom." />
+    <link rel="icon" type="image/png" href="../assets/logo.png" />
+    <link rel="apple-touch-icon" href="../assets/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <script>
+      (function () {
+        if (window.location.protocol === "file:") return;
+        try {
+          var raw = localStorage.getItem("blair.portal.session");
+          var session = raw ? JSON.parse(raw) : null;
+          if (!session || !session.token) window.location.replace("/teacher/login");
+        } catch (_e) {
+          window.location.replace("/teacher/login");
+        }
+      })();
+    </script>
+    <script defer src="../config.js"></script>
+    <script defer src="../portal.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="video-bg" aria-hidden="true">
+      <video
+        class="video-bg__media"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      >
+        <source src="../assets/Campus.mp4" type="video/mp4" />
+      </video>
+    </div>
+
+    <header class="portal-header">
+      <div class="container portal-header__inner">
+        <a class="portal-brand" href="/teacher/dashboard" aria-label="Teacher home">
+          <span class="portal-brand__text">
+            <span class="portal-brand__name">Blair Academy</span>
+            <span class="portal-brand__sub">Teacher Portal</span>
+          </span>
+        </a>
+
+        <div></div>
+
+        <div class="portal-header__actions">
+          <div class="portal-user">
+            <button
+              class="user-menu__button"
+              type="button"
+              data-user-menu-button
+              aria-haspopup="menu"
+              aria-expanded="false"
+              aria-controls="user-menu"
+            >
+              <span class="portal-user__name" data-user-name>Teacher</span>
+            </button>
+            <div id="user-menu" class="user-menu" role="menu" data-user-menu hidden>
+              <a class="user-menu__item" role="menuitem" href="/teacher/dashboard">Dashboard</a>
+              <button
+                class="user-menu__item user-menu__item--danger"
+                role="menuitem"
+                type="button"
+                data-logout
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="portal-shell" data-role="teacher">
+      <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
+        <nav class="portal-nav" aria-label="Teacher">
+          <a class="portal-nav__link" href="/teacher/dashboard">Home</a>
+          <a class="portal-nav__link is-active" href="/teacher/classroom">Classroom</a>
+        </nav>
+        <div class="portal-sidebar__footer">
+          <p class="portal-sidebar__fineprint"></p>
+        </div>
+      </aside>
+
+      <main id="main" class="portal-main">
+        <div class="container portal-main__inner">
+          <div class="portal-titlebar">
+            <div>
+              <p class="portal-eyebrow">Classroom</p>
+              <h1 class="portal-title" data-classroom-name>Loading…</h1>
+              <p class="portal-subtitle" data-classroom-meta></p>
+            </div>
+            <div class="portal-titlebar__actions">
+              <a class="btn btn--secondary" href="/teacher/dashboard">Back</a>
+            </div>
+          </div>
+
+          <section class="portal-section" aria-label="Classroom content">
+            <div class="widget">
+              <div class="widget__header">
+                <h2 class="widget__title">Stream</h2>
+              </div>
+              <p class="empty-state">Assignments, posts, and students coming next.</p>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
+

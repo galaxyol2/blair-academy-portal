@@ -6,6 +6,7 @@
     { "source": "/settings", "destination": "/frontend/settings.html" },
     { "source": "/signup", "destination": "/frontend/signup.html" },
     { "source": "/teacher/signup", "destination": "/frontend/teacher/signup.html" },
+    { "source": "/teacher/classroom", "destination": "/frontend/teacher/classroom.html" },
     { "source": "/forgot-password", "destination": "/frontend/forgot-password.html" },
     { "source": "/reset-password", "destination": "/frontend/reset-password.html" },
     { "source": "/announcements", "destination": "/frontend/announcements.html" },
