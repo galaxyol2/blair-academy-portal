@@ -2,11 +2,14 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/teacher/dashboard", "destination": "/teacher-dashboard.html" },
     { "source": "/settings", "destination": "/settings.html" },
     { "source": "/signup", "destination": "/signup.html" },
+    { "source": "/teacher/signup", "destination": "/teacher-signup.html" },
     { "source": "/forgot-password", "destination": "/forgot-password.html" },
     { "source": "/reset-password", "destination": "/reset-password.html" },
     { "source": "/announcements", "destination": "/announcements.html" },
-    { "source": "/login", "destination": "/index.html" }
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/teacher/login", "destination": "/teacher-login.html" }
   ]
 }

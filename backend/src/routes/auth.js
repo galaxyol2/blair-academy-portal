@@ -44,6 +44,10 @@ function buildAuthRouter() {
     return String(process.env.SIGNUP_CODE || "BLAIR-F25-9KQ7").trim();
   }
 
+  function expectedTeacherSignupCode() {
+    return String(process.env.TEACHER_SIGNUP_CODE || expectedSignupCode()).trim();
+  }
+
   async function requireAuth(req, res, next) {
     const header = String(req.get("authorization") || "");
     const match = header.match(/^Bearer\s+(.+)$/i);
@@ -92,7 +96,7 @@ function buildAuthRouter() {
     if (existing) return res.status(409).json({ error: "Email already in use" });
 
     const passwordHash = await hashPassword(password);
-    const user = await usersStore.create({ name, email, passwordHash });
+    const user = await usersStore.create({ name, email, passwordHash, role: "student" });
     if (!user) return res.status(409).json({ error: "Email already in use" });
 
     postSignupLog({ user }).catch((err) => {
@@ -101,7 +105,38 @@ function buildAuthRouter() {
     });
 
     const token = signAccessToken({ userId: user.id });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || "student" },
+    });
+  });
+
+  router.post("/teacher/signup", rateLimitSignup, async (req, res) => {
+    const name = String(req.body?.name || "").trim();
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+    const signupCode = String(req.body?.signupCode || "").trim();
+
+    if (signupCode !== expectedTeacherSignupCode()) {
+      return res.status(401).json({ error: "Invalid sign up code" });
+    }
+    if (!validateFullName(name)) {
+      return res.status(400).json({ error: "First and last name are required" });
+    }
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+
+    const existing = await usersStore.findByEmail(email);
+    if (existing) return res.status(409).json({ error: "Email already in use" });
+
+    const passwordHash = await hashPassword(password);
+    const user = await usersStore.create({ name, email, passwordHash, role: "teacher" });
+    if (!user) return res.status(409).json({ error: "Email already in use" });
+
+    const token = signAccessToken({ userId: user.id });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: "teacher" } });
   });
 
   router.post("/login", rateLimitLogin, async (req, res) => {
@@ -118,12 +153,36 @@ function buildAuthRouter() {
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
     const token = signAccessToken({ userId: user.id });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || "student" },
+    });
+  });
+
+  router.post("/teacher/login", rateLimitLogin, async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    const password = String(req.body?.password || "");
+
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!password) return res.status(400).json({ error: "Password is required" });
+
+    const user = await usersStore.findByEmail(email);
+    if (!user || user.role !== "teacher") {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
+    const ok = await verifyPassword(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: "Invalid email or password" });
+
+    const token = signAccessToken({ userId: user.id });
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: "teacher" } });
   });
 
   router.get("/me", requireAuth, async (req, res) => {
     const user = req.user;
-    res.json({ user: { id: user.id, name: user.name, email: user.email } });
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || "student" },
+    });
   });
 
   router.post("/change-password", requireAuth, async (req, res) => {

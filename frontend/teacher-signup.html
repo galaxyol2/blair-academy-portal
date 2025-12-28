@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Log in • Blair Academy Student Portal</title>
-    <meta name="description" content="Log in to the student portal." />
+    <title>Teacher sign up - Blair Academy Student Portal</title>
+    <meta name="description" content="Create a teacher/employee portal account." />
     <link rel="icon" type="image/png" href="./assets/logo.png" />
     <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -35,7 +35,7 @@
 
     <header class="portal-header portal-header--auth">
       <div class="container portal-header__inner">
-        <a class="portal-brand" href="/" aria-label="Log in">
+        <a class="portal-brand" href="/" aria-label="Student log in">
           <span class="portal-brand__text">
             <span class="portal-brand__name">Blair Academy</span>
             <span class="portal-brand__sub">Student Portal</span>
@@ -47,12 +47,32 @@
     <main id="main" class="auth-main">
       <div class="container">
         <div class="auth-card">
-          <h1 class="auth-title">Log in</h1>
-          <p class="auth-subtitle">
-            Sign in to access your student portal.
-          </p>
+          <h1 class="auth-title">Teacher/Employee sign up</h1>
+          <p class="auth-subtitle">Create your teacher dashboard account.</p>
 
-          <form class="auth-form" data-auth="login" novalidate>
+          <form class="auth-form" data-auth="teacher-signup" novalidate>
+            <label class="field">
+              <span class="field__label">First name</span>
+              <input name="firstName" type="text" autocomplete="given-name" required />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Last name</span>
+              <input name="lastName" type="text" autocomplete="family-name" required />
+            </label>
+
+            <label class="field">
+              <span class="field__label">Staff sign up code</span>
+              <input
+                name="signupCode"
+                type="text"
+                inputmode="latin"
+                autocomplete="off"
+                placeholder="Enter your staff code"
+                required
+              />
+            </label>
+
             <label class="field">
               <span class="field__label">Email</span>
               <input name="email" type="email" autocomplete="email" required />
@@ -64,7 +84,8 @@
                 <input
                   name="password"
                   type="password"
-                  autocomplete="current-password"
+                  autocomplete="new-password"
+                  minlength="8"
                   required
                 />
                 <button
@@ -82,16 +103,13 @@
             <p class="form-error" data-form-error hidden></p>
 
             <button class="btn btn--primary btn--lg" type="submit">
-              Log in
+              Create account
             </button>
             <p class="auth-foot">
-              <a href="/forgot-password">Forgot password?</a>
+              Already have an account? <a href="/teacher/login">Teacher log in</a>.
             </p>
             <p class="auth-foot">
-              No account? <a href="/signup">Create one</a>.
-            </p>
-            <p class="auth-foot">
-              Teacher/Employee? <a href="/teacher/signup">Sign up</a> or <a href="/teacher/login">Log in</a>.
+              Student? <a href="/">Go to student log in</a>.
             </p>
           </form>
         </div>
@@ -99,3 +117,4 @@
     </main>
   </body>
 </html>
+

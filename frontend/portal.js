@@ -57,6 +57,38 @@ function pageKind() {
   return "other";
 }
 
+function pageRole() {
+  const shell = document.querySelector(".portal-shell");
+  const role = shell ? String(shell.getAttribute("data-role") || "").trim().toLowerCase() : "";
+  if (role === "teacher") return "teacher";
+  if (role === "student") return "student";
+  return "";
+}
+
+function isTeacherPath() {
+  return window.location.pathname.startsWith("/teacher");
+}
+
+function teacherLoginUrl() {
+  if (window.location.protocol === "file:") return "./teacher-login.html";
+  return "/teacher/login";
+}
+
+function teacherDashboardUrl() {
+  if (window.location.protocol === "file:") return "./teacher-dashboard.html";
+  return "/teacher/dashboard";
+}
+
+function studentLoginUrl() {
+  if (window.location.protocol === "file:") return "./index.html";
+  return "/";
+}
+
+function studentDashboardUrl() {
+  if (window.location.protocol === "file:") return "./dashboard.html";
+  return "/dashboard";
+}
+
 function initBackgroundVideo() {
   const video = document.querySelector(".video-bg__media");
   if (!video || typeof video.play !== "function") return;
@@ -89,15 +121,28 @@ function routeGuards() {
 
   const session = getSession();
   const kind = pageKind();
+  const sessionRole = String(session?.user?.role || "").trim().toLowerCase();
 
   if (kind === "dashboard" && !session?.token) {
-    window.location.replace("/");
+    window.location.replace(isTeacherPath() ? teacherLoginUrl() : studentLoginUrl());
     return false;
   }
 
   if (kind === "auth" && session?.token) {
-    window.location.replace("/dashboard");
+    window.location.replace(sessionRole === "teacher" ? teacherDashboardUrl() : studentDashboardUrl());
     return false;
+  }
+
+  if (kind === "dashboard" && session?.token) {
+    const expected = pageRole();
+    if (expected === "teacher" && sessionRole !== "teacher") {
+      window.location.replace(studentDashboardUrl());
+      return false;
+    }
+    if (expected === "student" && sessionRole === "teacher") {
+      window.location.replace(teacherDashboardUrl());
+      return false;
+    }
   }
 
   return true;
@@ -113,7 +158,7 @@ async function validateSessionAndAutoLogout() {
   } catch (err) {
     if (err?.status === 401) {
       clearSession();
-      window.location.replace("/");
+      window.location.replace(isTeacherPath() ? teacherLoginUrl() : studentLoginUrl());
     }
   }
 }
@@ -209,7 +254,7 @@ function initUserMenu() {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
       clearSession();
-      window.location.href = "/";
+      window.location.href = isTeacherPath() ? teacherLoginUrl() : studentLoginUrl();
     });
   }
 }
@@ -237,7 +282,7 @@ async function handleAuthSubmit(form) {
   setFormSuccess(form, "");
 
   try {
-    if (mode === "signup") {
+    if (mode === "signup" || mode === "teacher-signup") {
       const firstName = String(payload.firstName || "").trim();
       const lastName = String(payload.lastName || "").trim();
       const signupCode = String(payload.signupCode || "").trim();
@@ -306,7 +351,14 @@ async function handleAuthSubmit(form) {
       return;
     }
 
-    const path = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+    const path =
+      mode === "signup"
+        ? "/api/auth/signup"
+        : mode === "teacher-signup"
+          ? "/api/auth/teacher/signup"
+          : mode === "teacher-login"
+            ? "/api/auth/teacher/login"
+            : "/api/auth/login";
     const body = await apiFetch(path, { method: "POST", body: JSON.stringify(payload) });
 
     if (!body || typeof body !== "object") {
@@ -314,7 +366,7 @@ async function handleAuthSubmit(form) {
     }
 
     const token = body.token;
-    const user = body.user || { name: payload.name || payload.email };
+    const user = body.user || { name: payload.name || payload.email, role: "student" };
 
     if (!token) {
       throw new Error("Missing token in response");
@@ -322,9 +374,9 @@ async function handleAuthSubmit(form) {
 
     setSession({ token, user });
     if (window.location.protocol === "file:") {
-      window.location.href = "./dashboard.html";
+      window.location.href = user?.role === "teacher" ? "./teacher-dashboard.html" : "./dashboard.html";
     } else {
-      window.location.href = "/dashboard";
+      window.location.href = user?.role === "teacher" ? "/teacher/dashboard" : "/dashboard";
     }
   } catch (err) {
     if (err?.status === 429) {
