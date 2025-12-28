@@ -1374,6 +1374,274 @@ async function loadTeacherPeople() {
   }
 }
 
+function normalizePointsDisplay(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "";
+  return String(n);
+}
+
+function renderTeacherGradebook(container, payload, { selectedAssignmentId }) {
+  container.innerHTML = "";
+
+  const assignments = Array.isArray(payload?.assignments) ? payload.assignments : [];
+  const people = Array.isArray(payload?.people) ? payload.people : [];
+  const grades = Array.isArray(payload?.grades) ? payload.grades : [];
+
+  const gradeByStudent = new Map();
+  for (const g of grades) {
+    if (g.assignmentId !== selectedAssignmentId) continue;
+    gradeByStudent.set(String(g.studentId || ""), g);
+  }
+
+  const assignment = assignments.find((a) => a.id === selectedAssignmentId) || null;
+  const maxPointsRaw = assignment ? String(assignment.points || "").trim() : "";
+  const maxPoints = maxPointsRaw ? Number(maxPointsRaw) : null;
+
+  if (!assignment) {
+    container.innerHTML = `<p class="empty-state">Select an assignment.</p>`;
+    return;
+  }
+
+  if (people.length === 0) {
+    container.innerHTML = `<p class="empty-state">No students have joined yet.</p>`;
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "gradebook";
+
+  for (const p of people) {
+    const row = document.createElement("div");
+    row.className = "gradebook__row";
+
+    const left = document.createElement("div");
+    left.className = "gradebook__left";
+
+    const name = document.createElement("h4");
+    name.className = "gradebook__name";
+    const email = String(p.email || "").trim();
+    name.textContent = email ? `${p.name || "Student"} (${email})` : String(p.name || "Student");
+
+    const meta = document.createElement("p");
+    meta.className = "gradebook__meta";
+    meta.textContent = maxPoints !== null && Number.isFinite(maxPoints) ? `Out of ${maxPoints}` : "Points";
+
+    left.appendChild(name);
+    left.appendChild(meta);
+
+    const right = document.createElement("div");
+    right.className = "gradebook__right";
+
+    const current = gradeByStudent.get(String(p.id || "")) || null;
+
+    const pointsField = document.createElement("label");
+    pointsField.className = "field field--inline";
+    pointsField.innerHTML = `
+      <span class="field__label">Score</span>
+      <input name="pointsEarned" type="number" step="0.01" min="0" placeholder="-" />
+    `;
+    const pointsInput = pointsField.querySelector("input");
+    if (pointsInput) pointsInput.value = normalizePointsDisplay(current?.pointsEarned);
+
+    const feedbackField = document.createElement("label");
+    feedbackField.className = "field field--inline";
+    feedbackField.innerHTML = `
+      <span class="field__label">Feedback (optional)</span>
+      <input name="feedback" type="text" placeholder="Nice work" />
+    `;
+    const feedbackInput = feedbackField.querySelector("input");
+    if (feedbackInput) feedbackInput.value = String(current?.feedback || "");
+
+    const actions = document.createElement("div");
+    actions.className = "gradebook__actions";
+
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn btn--primary btn--sm";
+    save.textContent = "Save";
+    save.setAttribute("data-gradebook-save", String(p.id || ""));
+    actions.appendChild(save);
+
+    const msg = document.createElement("p");
+    msg.className = "gradebook__status";
+    msg.setAttribute("data-gradebook-status", String(p.id || ""));
+
+    right.appendChild(pointsField);
+    right.appendChild(feedbackField);
+    right.appendChild(actions);
+    right.appendChild(msg);
+
+    row.appendChild(left);
+    row.appendChild(right);
+    list.appendChild(row);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadTeacherGradebook({ selectedAssignmentId } = {}) {
+  const container = document.querySelector("[data-gradebook]");
+  const filterForm = document.querySelector("form[data-gradebook-filter]");
+  if (!container || !filterForm) return;
+
+  const classroomId = currentClassroomIdFromQuery();
+  if (!classroomId) return;
+
+  container.innerHTML = `<p class="empty-state">Loading...</p>`;
+  try {
+    const data = await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/gradebook`);
+
+    const select = filterForm.querySelector("select[name=\"assignmentId\"]");
+    if (select) {
+      const assignments = Array.isArray(data?.assignments) ? data.assignments : [];
+      select.innerHTML = "";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Select an assignment";
+      select.appendChild(placeholder);
+
+      for (const a of assignments) {
+        const opt = document.createElement("option");
+        opt.value = String(a.id || "");
+        const moduleLabel = String(a.moduleTitle || "").trim();
+        opt.textContent = moduleLabel ? `${moduleLabel} - ${a.title || "Assignment"}` : String(a.title || "Assignment");
+        select.appendChild(opt);
+      }
+
+      const desired = String(selectedAssignmentId || select.value || "");
+      if (desired) select.value = desired;
+    }
+
+    const selected =
+      String(selectedAssignmentId || (filterForm.querySelector("select[name=\"assignmentId\"]")?.value || "")).trim();
+
+    renderTeacherGradebook(container, data, { selectedAssignmentId: selected });
+  } catch (_err) {
+    container.innerHTML = `<p class="empty-state">Unable to load gradebook.</p>`;
+  }
+}
+
+function initTeacherGradebookInteractions() {
+  const filterForm = document.querySelector("form[data-gradebook-filter]");
+  if (filterForm) {
+    filterForm.addEventListener("change", () => {
+      const selected = String(filterForm.querySelector("select[name=\"assignmentId\"]")?.value || "");
+      loadTeacherGradebook({ selectedAssignmentId: selected });
+    });
+  }
+
+  const container = document.querySelector("[data-gradebook]");
+  if (!container) return;
+
+  container.addEventListener("click", async (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const studentId = target.getAttribute("data-gradebook-save");
+    if (!studentId) return;
+
+    const classroomId = currentClassroomIdFromQuery();
+    if (!classroomId) return;
+
+    const assignmentId = String(filterForm?.querySelector("select[name=\"assignmentId\"]")?.value || "").trim();
+    if (!assignmentId) return;
+
+    const row = target.closest(".gradebook__row");
+    const pointsEarned = row?.querySelector('input[name="pointsEarned"]')?.value ?? "";
+    const feedback = row?.querySelector('input[name="feedback"]')?.value ?? "";
+
+    const status = container.querySelector(`[data-gradebook-status="${CSS.escape(studentId)}"]`);
+    if (status) status.textContent = "Saving...";
+
+    try {
+      await apiFetch(`/api/classrooms/${encodeURIComponent(classroomId)}/grades`, {
+        method: "PUT",
+        body: JSON.stringify({ assignmentId, studentId, pointsEarned, feedback }),
+      });
+      if (status) status.textContent = "Saved.";
+    } catch (err) {
+      if (status) status.textContent = err?.message || "Failed to save.";
+    }
+  });
+}
+
+function renderStudentGrades(container, payload) {
+  container.innerHTML = "";
+
+  const assignments = Array.isArray(payload?.assignments) ? payload.assignments : [];
+  const grades = Array.isArray(payload?.grades) ? payload.grades : [];
+  const gradeByAssignment = new Map(grades.map((g) => [String(g.assignmentId || ""), g]));
+
+  if (assignments.length === 0) {
+    container.innerHTML = `<p class="empty-state">No assignments yet.</p>`;
+    return;
+  }
+
+  const list = document.createElement("div");
+  list.className = "feed";
+
+  for (const a of assignments) {
+    const row = document.createElement("div");
+    row.className = "feed__item";
+
+    const meta = document.createElement("p");
+    meta.className = "feed__meta";
+    const moduleTitle = String(a.moduleTitle || "").trim();
+    meta.textContent = moduleTitle ? moduleTitle : "Assignment";
+
+    const title = document.createElement("h3");
+    title.className = "feed__title";
+    title.textContent = String(a.title || "Assignment");
+
+    const g = gradeByAssignment.get(String(a.id || "")) || null;
+    const points = String(a.points || "").trim();
+    const score = g && g.pointsEarned !== null && g.pointsEarned !== undefined ? String(g.pointsEarned) : "";
+
+    const text = document.createElement("p");
+    text.className = "feed__text";
+    text.textContent = score
+      ? points
+        ? `Score: ${score} / ${points}`
+        : `Score: ${score}`
+      : "Not graded yet.";
+
+    if (g && g.feedback) {
+      const fb = document.createElement("p");
+      fb.className = "feed__text";
+      fb.textContent = `Feedback: ${String(g.feedback)}`;
+      row.appendChild(meta);
+      row.appendChild(title);
+      row.appendChild(text);
+      row.appendChild(fb);
+    } else {
+      row.appendChild(meta);
+      row.appendChild(title);
+      row.appendChild(text);
+    }
+
+    list.appendChild(row);
+  }
+
+  container.appendChild(list);
+}
+
+async function loadStudentGrades() {
+  const container = document.querySelector("[data-student-grades]");
+  if (!container) return;
+
+  const classroomId = currentClassroomIdFromQuery();
+  if (!classroomId) return;
+
+  container.innerHTML = `<p class="empty-state">Loading...</p>`;
+  try {
+    const data = await apiFetch(`/api/student/classrooms/${encodeURIComponent(classroomId)}/grades`);
+    renderStudentGrades(container, data);
+  } catch (_err) {
+    container.innerHTML = `<p class="empty-state">Unable to load grades.</p>`;
+  }
+}
+
 async function prefetchTeacherModules(classroomId) {
   const cid = String(classroomId || "").trim();
   if (!cid) return;
@@ -2113,6 +2381,7 @@ function initPasswordToggles() {
     initModuleCreate();
     initModulesInteractions();
     initTeacherPeopleInteractions();
+    initTeacherGradebookInteractions();
 
     if (window.location.pathname.endsWith("/classroom") || window.location.pathname.endsWith("/classroom.html")) {
       prefetchTeacherModules(currentClassroomIdFromQuery());
@@ -2125,6 +2394,7 @@ function initPasswordToggles() {
         if (tab === "home") loadClassroomRecentActivity();
         if (tab === "modules") loadClassroomModules();
         if (tab === "people") loadTeacherPeople();
+        if (tab === "grades") loadTeacherGradebook();
       }
     };
 
@@ -2134,6 +2404,7 @@ function initPasswordToggles() {
       if (tab === "home") loadClassroomRecentActivity();
       if (tab === "modules") loadClassroomModules();
       if (tab === "people") loadTeacherPeople();
+      if (tab === "grades") loadTeacherGradebook();
     });
 
     // Load on first visit based on current tab
@@ -2152,6 +2423,7 @@ function initPasswordToggles() {
         if (tab === "home") loadStudentClassroomRecentActivity();
         if (tab === "announcements") loadStudentClassroomAnnouncements();
         if (tab === "modules") loadStudentClassroomModules();
+        if (tab === "grades") loadStudentGrades();
       };
 
       window.addEventListener("blair:classroomTab", (e) => {
@@ -2159,6 +2431,7 @@ function initPasswordToggles() {
         if (tab === "home") loadStudentClassroomRecentActivity();
         if (tab === "announcements") loadStudentClassroomAnnouncements();
         if (tab === "modules") loadStudentClassroomModules();
+        if (tab === "grades") loadStudentGrades();
       });
 
       maybeLoad();

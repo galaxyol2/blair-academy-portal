@@ -987,6 +987,59 @@ a:hover {
   max-height: 520px;
 }
 
+.gradebook {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.9rem;
+}
+
+.gradebook__row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  border: 1px solid rgba(0, 75, 141, 0.16);
+  border-radius: 16px;
+  padding: 0.9rem 0.95rem;
+  background: linear-gradient(180deg, rgba(0, 75, 141, 0.04), rgba(255, 255, 255, 0.9));
+}
+
+.gradebook__name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+}
+
+.gradebook__meta {
+  margin: 0.15rem 0 0;
+  color: rgba(26, 28, 31, 0.62);
+  font-weight: 700;
+}
+
+.gradebook__right {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.gradebook__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gradebook__status {
+  margin: 0;
+  color: rgba(26, 28, 31, 0.62);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+@media (min-width: 860px) {
+  .gradebook__row {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: start;
+  }
+}
+
 .empty-state {
   margin: 0;
   padding: 0.5rem 0;

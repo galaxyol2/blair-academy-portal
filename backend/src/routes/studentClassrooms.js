@@ -6,6 +6,7 @@ const { classroomMembershipsStore } = require("../store/classroomMembershipsStor
 const { classroomAnnouncementsStore } = require("../store/classroomAnnouncementsStore");
 const { classroomModulesStore } = require("../store/classroomModulesStore");
 const { classroomSubmissionsStore } = require("../store/classroomSubmissionsStore");
+const { classroomGradesStore } = require("../store/classroomGradesStore");
 
 function buildStudentClassroomsRouter() {
   const router = express.Router();
@@ -90,6 +91,36 @@ function buildStudentClassroomsRouter() {
       limit: req.query?.limit,
     });
     res.json({ items });
+  });
+
+  router.get("/:id/grades", requireAuth, requireStudent, requireMembership, async (req, res) => {
+    const classroom = await classroomsStore.getById(req.classroomId);
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    const modules = await classroomModulesStore.listWithAssignments({
+      classroomId: classroom.id,
+      teacherId: classroom.teacherId,
+      limit: 200,
+    });
+    const assignments = [];
+    for (const m of modules) {
+      for (const a of Array.isArray(m.assignments) ? m.assignments : []) {
+        assignments.push({
+          id: a.id,
+          title: a.title || "Assignment",
+          dueAt: a.dueAt || "",
+          points: a.points || "",
+          moduleTitle: m.title || "",
+        });
+      }
+    }
+
+    const grades = await classroomGradesStore.listByStudent({
+      classroomId: classroom.id,
+      studentId: req.userId,
+    });
+
+    res.json({ assignments, grades });
   });
 
   router.get(

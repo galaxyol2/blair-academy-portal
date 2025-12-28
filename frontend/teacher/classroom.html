@@ -207,7 +207,17 @@
                 <div class="widget__header">
                   <h2 class="widget__title">Grades</h2>
                 </div>
-                <p class="empty-state">Gradebook coming next.</p>
+                <form class="auth-form" data-gradebook-filter novalidate>
+                  <label class="field">
+                    <span class="field__label">Assignment</span>
+                    <select name="assignmentId" required></select>
+                  </label>
+                  <p class="form-error" data-form-error hidden></p>
+                </form>
+
+                <div data-gradebook>
+                  <p class="empty-state">Loading...</p>
+                </div>
               </div>
             </div>
 
