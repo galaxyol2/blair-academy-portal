@@ -289,7 +289,10 @@ function renderTeacherClassrooms(container, items) {
 
   for (const c of items) {
     const tile = document.createElement("div");
-    tile.className = "tile tile--compact";
+    tile.className = "tile tile--compact tile--row";
+
+    const left = document.createElement("div");
+    left.className = "tile__left";
 
     const kicker = document.createElement("p");
     kicker.className = "tile__kicker";
@@ -299,15 +302,36 @@ function renderTeacherClassrooms(container, items) {
     title.className = "tile__title";
     title.textContent = String(c.name || "Untitled");
 
-    const text = document.createElement("p");
-    text.className = "tile__text";
     const section = String(c.section || "").trim();
-    const joinCode = String(c.joinCode || "").trim();
-    text.textContent = `${section ? `${section} • ` : ""}Join code: ${joinCode || "—"}`;
+    if (section) {
+      const sectionEl = document.createElement("p");
+      sectionEl.className = "tile__text";
+      sectionEl.textContent = section;
+      left.appendChild(kicker);
+      left.appendChild(title);
+      left.appendChild(sectionEl);
+    } else {
+      left.appendChild(kicker);
+      left.appendChild(title);
+    }
 
-    tile.appendChild(kicker);
-    tile.appendChild(title);
-    tile.appendChild(text);
+    const right = document.createElement("div");
+    right.className = "tile__right";
+
+    const joinLabel = document.createElement("p");
+    joinLabel.className = "tile__meta";
+    joinLabel.textContent = "Join code";
+
+    const joinCode = String(c.joinCode || "").trim();
+    const joinValue = document.createElement("p");
+    joinValue.className = "tile__code";
+    joinValue.textContent = joinCode || "—";
+
+    right.appendChild(joinLabel);
+    right.appendChild(joinValue);
+
+    tile.appendChild(left);
+    tile.appendChild(right);
     grid.appendChild(tile);
   }
 

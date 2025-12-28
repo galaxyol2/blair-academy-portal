@@ -624,6 +624,50 @@ a:hover {
   font-size: 0.95rem;
 }
 
+.tile--row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tile__left {
+  min-width: 0;
+}
+
+.tile__right {
+  text-align: right;
+  flex: 0 0 auto;
+}
+
+.tile__meta {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 900;
+  color: rgba(26, 28, 31, 0.6);
+}
+
+.tile__code {
+  margin: 0.15rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 520px) {
+  .tile--row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tile__right {
+    text-align: left;
+  }
+}
+
 /* Widgets */
 .widget {
   border: 1px solid var(--border);
