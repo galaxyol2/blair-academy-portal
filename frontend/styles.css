@@ -1379,6 +1379,14 @@ a:hover {
   backdrop-filter: blur(10px);
 }
 
+.auth-main--login::before {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 48%),
+    radial-gradient(circle at 82% 24%, rgba(255, 213, 106, 0.14), transparent 52%),
+    radial-gradient(circle at 55% 72%, rgba(0, 75, 141, 0.14), transparent 55%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.33));
+}
+
 .auth-aside::before {
   content: "";
   position: absolute;
@@ -1400,6 +1408,32 @@ a:hover {
   background: linear-gradient(180deg, rgba(212, 160, 23, 0.92), rgba(255, 213, 106, 0.65));
 }
 
+.auth-main--login .auth-aside {
+  border: 1px solid rgba(212, 160, 23, 0.22);
+  background:
+    radial-gradient(circle at 30% 18%, rgba(212, 160, 23, 0.18), transparent 55%),
+    radial-gradient(circle at 80% 25%, rgba(0, 75, 141, 0.22), transparent 60%),
+    linear-gradient(180deg, rgba(8, 18, 32, 0.72), rgba(8, 18, 32, 0.52));
+  box-shadow:
+    0 42px 120px rgba(0, 0, 0, 0.38),
+    0 18px 46px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.auth-main--login .auth-aside::before {
+  background:
+    radial-gradient(circle at 22% 16%, rgba(255, 213, 106, 0.2), transparent 58%),
+    radial-gradient(circle at 78% 26%, rgba(42, 121, 195, 0.22), transparent 58%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0.04) 4px
+    );
+  opacity: 0.55;
+}
+
 .auth-aside__kicker {
   position: relative;
   margin: 0;
@@ -1419,6 +1453,13 @@ a:hover {
   color: rgba(255, 255, 255, 0.96);
 }
 
+.auth-main--login .auth-aside__title {
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.35),
+    0 10px 34px rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.01em;
+}
+
 .auth-aside__subtitle {
   display: block;
   margin-top: 0.3rem;
@@ -1428,6 +1469,10 @@ a:hover {
   text-transform: uppercase;
   font-size: 0.92rem;
   color: rgba(255, 213, 106, 0.92);
+}
+
+.auth-main--login .auth-aside__subtitle {
+  letter-spacing: 0.22em;
 }
 
 .auth-aside__lead {
@@ -1486,6 +1531,25 @@ a:hover {
     0 18px 46px rgba(0, 0, 0, 0.22);
 }
 
+.auth-main--login .auth-card {
+  border: 1px solid rgba(212, 160, 23, 0.26);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 213, 106, 0.22), transparent 55%),
+    radial-gradient(circle at 88% 22%, rgba(0, 75, 141, 0.12), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.82)),
+    repeating-linear-gradient(
+      0deg,
+      rgba(26, 28, 31, 0.02),
+      rgba(26, 28, 31, 0.02) 1px,
+      rgba(255, 255, 255, 0.02) 1px,
+      rgba(255, 255, 255, 0.02) 3px
+    );
+  box-shadow:
+    0 44px 120px rgba(0, 0, 0, 0.38),
+    0 18px 46px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
 .auth-card::before {
   content: "";
   position: absolute;
@@ -1494,11 +1558,21 @@ a:hover {
   background: linear-gradient(90deg, var(--accent), var(--accent-soft), #ffd56a);
 }
 
+.auth-main--login .auth-card::before {
+  height: 7px;
+  background: linear-gradient(90deg, rgba(212, 160, 23, 0.92), rgba(255, 213, 106, 0.72), rgba(0, 75, 141, 0.6));
+}
+
 .auth-title {
   margin: 0;
   font-family: var(--serif);
   font-size: 2rem;
   line-height: 1.1;
+}
+
+.auth-main--login .auth-title {
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .auth-subtitle {
@@ -1533,6 +1607,23 @@ a:hover {
   border: 1px solid var(--border);
   padding: 0.75rem 0.85rem;
   outline: none;
+}
+
+.auth-main--login .field input,
+.auth-main--login .field textarea {
+  border-radius: 12px;
+  border: 1px solid rgba(26, 28, 31, 0.14);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    inset 0 8px 18px rgba(0, 0, 0, 0.05);
+}
+
+.auth-main--login .field__label {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.78rem;
+  color: rgba(26, 28, 31, 0.72);
 }
 
 .field textarea {
@@ -1570,6 +1661,28 @@ a:hover {
 .field input:focus {
   border-color: rgba(0, 75, 141, 0.45);
   box-shadow: 0 0 0 4px rgba(0, 75, 141, 0.12);
+}
+
+.auth-main--login .btn--primary {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(0, 75, 141, 0.98), rgba(0, 63, 120, 0.98));
+  border: 1px solid rgba(212, 160, 23, 0.4);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.auth-main--login .btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+.auth-main--login .auth-foot a {
+  text-decoration: none;
+  box-shadow: inset 0 -2px 0 rgba(212, 160, 23, 0.55);
+}
+
+.auth-main--login .auth-foot a:hover {
+  box-shadow: inset 0 -3px 0 rgba(212, 160, 23, 0.85);
 }
 
 @media (max-width: 900px) {
