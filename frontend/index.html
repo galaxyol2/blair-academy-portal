@@ -44,56 +44,73 @@
       </div>
     </header>
 
-    <main id="main" class="auth-main">
+    <main id="main" class="auth-main auth-main--login">
       <div class="container">
-        <div class="auth-card">
-          <h1 class="auth-title">Log in</h1>
-          <p class="auth-subtitle">
-            Sign in to access your student portal.
-          </p>
-
-          <form class="auth-form" data-auth="login" novalidate>
-            <label class="field">
-              <span class="field__label">Email</span>
-              <input name="email" type="email" autocomplete="email" required />
-            </label>
-
-            <label class="field field--with-toggle">
-              <span class="field__label">Password</span>
-              <span class="field__control">
-                <input
-                  name="password"
-                  type="password"
-                  autocomplete="current-password"
-                  required
-                />
-                <button
-                  class="field__toggle"
-                  type="button"
-                  data-password-toggle
-                  aria-label="Show password"
-                  aria-pressed="false"
-                >
-                  Show
-                </button>
-              </span>
-            </label>
-
-            <p class="form-error" data-form-error hidden></p>
-
-            <button class="btn btn--primary btn--lg" type="submit">
-              Log in
-            </button>
-            <p class="auth-foot">
-              <a href="/forgot-password">Forgot password?</a>
+        <div class="auth-layout">
+          <section class="auth-aside" aria-label="Portal overview">
+            <p class="auth-aside__kicker">Secure sign-in</p>
+            <h2 class="auth-aside__title">
+              Blair Academy
+              <span class="auth-aside__subtitle">Student Portal</span>
+            </h2>
+            <p class="auth-aside__lead">
+              Access classes, assignments, announcements, and grades in one place.
             </p>
-            <p class="auth-foot">
-              No account? <a href="/signup">Create one</a>.
+            <ul class="auth-aside__list" aria-label="Features">
+              <li>Classrooms and join codes</li>
+              <li>Assignment submissions</li>
+              <li>Grades and feedback</li>
+            </ul>
+            <p class="auth-aside__note">
+              Having trouble signing in? Use “Forgot password” to reset access.
             </p>
-            <p class="auth-foot">
-              Teacher/Employee? <a href="/teacher/signup">Sign up</a> or <a href="/teacher/login">Log in</a>.
-            </p>
-          </form>
+          </section>
+
+          <div class="auth-card">
+            <h1 class="auth-title">Log in</h1>
+            <p class="auth-subtitle">Sign in to access your student portal.</p>
+
+            <form class="auth-form" data-auth="login" novalidate>
+              <label class="field">
+                <span class="field__label">Email</span>
+                <input name="email" type="email" autocomplete="email" required />
+              </label>
+
+              <label class="field field--with-toggle">
+                <span class="field__label">Password</span>
+                <span class="field__control">
+                  <input
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                  />
+                  <button
+                    class="field__toggle"
+                    type="button"
+                    data-password-toggle
+                    aria-label="Show password"
+                    aria-pressed="false"
+                  >
+                    Show
+                  </button>
+                </span>
+              </label>
+
+              <p class="form-error" data-form-error hidden></p>
+
+              <button class="btn btn--primary btn--lg" type="submit">Log in</button>
+              <p class="auth-foot">
+                <a href="/forgot-password">Forgot password?</a>
+              </p>
+              <p class="auth-foot">
+                No account? <a href="/signup">Create one</a>.
+              </p>
+              <p class="auth-foot">
+                Teacher/Employee? <a href="/teacher/signup">Sign up</a> or <a href="/teacher/login">Log in</a>.
+              </p>
+            </form>
+          </div>
         </div>
       </div>
     </main>
