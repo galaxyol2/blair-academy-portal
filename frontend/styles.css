@@ -1387,6 +1387,31 @@ a:hover {
     linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.33));
 }
 
+.auth-main--login .video-bg__media {
+  filter: sepia(0.55) saturate(0.7) contrast(1.05) brightness(0.88);
+  transform: scale(1.01);
+}
+
+.auth-main--login .video-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.58)),
+    radial-gradient(circle at 18% 22%, rgba(212, 160, 23, 0.14), transparent 55%),
+    radial-gradient(circle at 78% 18%, rgba(0, 75, 141, 0.14), transparent 55%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03),
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+  mix-blend-mode: multiply;
+  opacity: 0.78;
+}
+
 .auth-aside::before {
   content: "";
   position: absolute;
@@ -1534,20 +1559,40 @@ a:hover {
 .auth-main--login .auth-card {
   border: 1px solid rgba(212, 160, 23, 0.26);
   background:
-    radial-gradient(circle at 18% 18%, rgba(255, 213, 106, 0.22), transparent 55%),
-    radial-gradient(circle at 88% 22%, rgba(0, 75, 141, 0.12), transparent 56%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.82)),
+    radial-gradient(circle at 16% 18%, rgba(212, 160, 23, 0.22), transparent 58%),
+    radial-gradient(circle at 92% 22%, rgba(0, 75, 141, 0.12), transparent 58%),
+    radial-gradient(circle at 40% 110%, rgba(92, 60, 20, 0.12), transparent 58%),
+    linear-gradient(180deg, rgba(252, 246, 232, 0.96), rgba(248, 240, 222, 0.9)),
     repeating-linear-gradient(
       0deg,
-      rgba(26, 28, 31, 0.02),
-      rgba(26, 28, 31, 0.02) 1px,
+      rgba(40, 26, 12, 0.02),
+      rgba(40, 26, 12, 0.02) 1px,
       rgba(255, 255, 255, 0.02) 1px,
       rgba(255, 255, 255, 0.02) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(40, 26, 12, 0.018),
+      rgba(40, 26, 12, 0.018) 1px,
+      rgba(255, 255, 255, 0.015) 1px,
+      rgba(255, 255, 255, 0.015) 4px
     );
   box-shadow:
     0 44px 120px rgba(0, 0, 0, 0.38),
     0 18px 46px rgba(0, 0, 0, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.auth-main--login .auth-card::after {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(92, 60, 20, 0.12);
+  box-shadow:
+    inset 0 0 0 2px rgba(212, 160, 23, 0.12),
+    inset 0 0 0 6px rgba(212, 160, 23, 0.06);
+  pointer-events: none;
 }
 
 .auth-card::before {
@@ -1573,6 +1618,16 @@ a:hover {
 .auth-main--login .auth-title {
   letter-spacing: 0.01em;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.auth-main--login .auth-subtitle {
+  color: rgba(40, 26, 12, 0.64);
+}
+
+.auth-main--login .auth-aside__kicker,
+.auth-main--login .auth-aside__subtitle,
+.auth-main--login .field__label {
+  font-variant: small-caps;
 }
 
 .auth-subtitle {
@@ -1613,7 +1668,7 @@ a:hover {
 .auth-main--login .field textarea {
   border-radius: 12px;
   border: 1px solid rgba(26, 28, 31, 0.14);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.62);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     inset 0 8px 18px rgba(0, 0, 0, 0.05);
