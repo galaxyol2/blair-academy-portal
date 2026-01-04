@@ -1379,7 +1379,7 @@ a:hover {
   backdrop-filter: blur(10px);
 }
 
-.auth-main--login::before {
+.theme-ancient .auth-main::before {
   background:
     radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.12), transparent 48%),
     radial-gradient(circle at 82% 24%, rgba(255, 213, 106, 0.14), transparent 52%),
@@ -1387,12 +1387,12 @@ a:hover {
     linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.33));
 }
 
-.auth-main--login .video-bg__media {
+.theme-ancient .video-bg__media {
   filter: sepia(0.55) saturate(0.7) contrast(1.05) brightness(0.88);
   transform: scale(1.01);
 }
 
-.auth-main--login .video-bg::after {
+.theme-ancient .video-bg::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1433,7 +1433,7 @@ a:hover {
   background: linear-gradient(180deg, rgba(212, 160, 23, 0.92), rgba(255, 213, 106, 0.65));
 }
 
-.auth-main--login .auth-aside {
+.theme-ancient .auth-aside {
   border: 1px solid rgba(212, 160, 23, 0.22);
   background:
     radial-gradient(circle at 30% 18%, rgba(212, 160, 23, 0.18), transparent 55%),
@@ -1445,7 +1445,7 @@ a:hover {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.auth-main--login .auth-aside::before {
+.theme-ancient .auth-aside::before {
   background:
     radial-gradient(circle at 22% 16%, rgba(255, 213, 106, 0.2), transparent 58%),
     radial-gradient(circle at 78% 26%, rgba(42, 121, 195, 0.22), transparent 58%),
@@ -1478,7 +1478,7 @@ a:hover {
   color: rgba(255, 255, 255, 0.96);
 }
 
-.auth-main--login .auth-aside__title {
+.theme-ancient .auth-aside__title {
   text-shadow:
     0 2px 0 rgba(0, 0, 0, 0.35),
     0 10px 34px rgba(0, 0, 0, 0.35);
@@ -1496,7 +1496,7 @@ a:hover {
   color: rgba(255, 213, 106, 0.92);
 }
 
-.auth-main--login .auth-aside__subtitle {
+.theme-ancient .auth-aside__subtitle {
   letter-spacing: 0.22em;
 }
 
@@ -1556,7 +1556,7 @@ a:hover {
     0 18px 46px rgba(0, 0, 0, 0.22);
 }
 
-.auth-main--login .auth-card {
+.theme-ancient .auth-card {
   border: 1px solid rgba(212, 160, 23, 0.26);
   background:
     radial-gradient(circle at 16% 18%, rgba(212, 160, 23, 0.22), transparent 58%),
@@ -1583,7 +1583,7 @@ a:hover {
     inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
-.auth-main--login .auth-card::after {
+.theme-ancient .auth-card::after {
   content: "";
   position: absolute;
   inset: 16px;
@@ -1603,7 +1603,7 @@ a:hover {
   background: linear-gradient(90deg, var(--accent), var(--accent-soft), #ffd56a);
 }
 
-.auth-main--login .auth-card::before {
+.theme-ancient .auth-card::before {
   height: 7px;
   background: linear-gradient(90deg, rgba(212, 160, 23, 0.92), rgba(255, 213, 106, 0.72), rgba(0, 75, 141, 0.6));
 }
@@ -1615,18 +1615,18 @@ a:hover {
   line-height: 1.1;
 }
 
-.auth-main--login .auth-title {
+.theme-ancient .auth-title {
   letter-spacing: 0.01em;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
-.auth-main--login .auth-subtitle {
+.theme-ancient .auth-subtitle {
   color: rgba(40, 26, 12, 0.64);
 }
 
-.auth-main--login .auth-aside__kicker,
-.auth-main--login .auth-aside__subtitle,
-.auth-main--login .field__label {
+.theme-ancient .auth-aside__kicker,
+.theme-ancient .auth-aside__subtitle,
+.theme-ancient .field__label {
   font-variant: small-caps;
 }
 
@@ -1664,8 +1664,8 @@ a:hover {
   outline: none;
 }
 
-.auth-main--login .field input,
-.auth-main--login .field textarea {
+.theme-ancient .field input,
+.theme-ancient .field textarea {
   border-radius: 12px;
   border: 1px solid rgba(26, 28, 31, 0.14);
   background: rgba(255, 255, 255, 0.62);
@@ -1674,7 +1674,7 @@ a:hover {
     inset 0 8px 18px rgba(0, 0, 0, 0.05);
 }
 
-.auth-main--login .field__label {
+.theme-ancient .field__label {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 0.78rem;
@@ -1718,7 +1718,7 @@ a:hover {
   box-shadow: 0 0 0 4px rgba(0, 75, 141, 0.12);
 }
 
-.auth-main--login .btn--primary {
+.theme-ancient .btn--primary {
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(0, 75, 141, 0.98), rgba(0, 63, 120, 0.98));
   border: 1px solid rgba(212, 160, 23, 0.4);
@@ -1727,16 +1727,16 @@ a:hover {
     inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-.auth-main--login .btn--primary:hover {
+.theme-ancient .btn--primary:hover {
   filter: brightness(1.05);
 }
 
-.auth-main--login .auth-foot a {
+.theme-ancient .auth-foot a {
   text-decoration: none;
   box-shadow: inset 0 -2px 0 rgba(212, 160, 23, 0.55);
 }
 
-.auth-main--login .auth-foot a:hover {
+.theme-ancient .auth-foot a:hover {
   box-shadow: inset 0 -3px 0 rgba(212, 160, 23, 0.85);
 }
 
