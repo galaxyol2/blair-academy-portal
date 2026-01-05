@@ -1388,8 +1388,13 @@ a:hover {
 }
 
 .theme-ancient .video-bg__media {
-  filter: sepia(0.55) saturate(0.7) contrast(1.05) brightness(0.88);
-  transform: scale(1.01);
+  filter: sepia(0.72) saturate(0.62) contrast(1.08) brightness(0.86);
+  object-position: 50% 50%;
+  transform: scale(1.16);
+}
+
+.theme-ancient .video-bg {
+  background: #1a140b;
 }
 
 .theme-ancient .video-bg::after {
