@@ -1397,7 +1397,16 @@ a:hover {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 170px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 170px);
   background:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 84px,
+      rgba(0, 0, 0, 0.18) 180px,
+      rgba(0, 0, 0, 0.35) 100%
+    ),
     radial-gradient(ellipse at center, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.58)),
     radial-gradient(circle at 18% 22%, rgba(212, 160, 23, 0.14), transparent 55%),
     radial-gradient(circle at 78% 18%, rgba(0, 75, 141, 0.14), transparent 55%),
@@ -1409,7 +1418,13 @@ a:hover {
       rgba(0, 0, 0, 0.03) 4px
     );
   mix-blend-mode: multiply;
-  opacity: 0.78;
+  opacity: 0.72;
+}
+
+@supports not ((mask-image: linear-gradient(#000, #000)) or (-webkit-mask-image: linear-gradient(#000, #000))) {
+  .theme-ancient .video-bg::after {
+    inset: 84px 0 0 0;
+  }
 }
 
 .auth-aside::before {
@@ -1558,6 +1573,7 @@ a:hover {
 
 .theme-ancient .auth-card {
   border: 1px solid rgba(212, 160, 23, 0.26);
+  color: rgba(40, 26, 12, 0.92);
   background:
     radial-gradient(circle at 16% 18%, rgba(212, 160, 23, 0.22), transparent 58%),
     radial-gradient(circle at 92% 22%, rgba(0, 75, 141, 0.12), transparent 58%),
@@ -1580,7 +1596,8 @@ a:hover {
   box-shadow:
     0 44px 120px rgba(0, 0, 0, 0.38),
     0 18px 46px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    inset 0 24px 80px rgba(92, 60, 20, 0.08);
 }
 
 .theme-ancient .auth-card::after {
@@ -1589,6 +1606,11 @@ a:hover {
   inset: 16px;
   border-radius: 16px;
   border: 1px solid rgba(92, 60, 20, 0.12);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(212, 160, 23, 0.18), transparent 62%) top left/62px 62px no-repeat,
+    radial-gradient(circle at 100% 0%, rgba(212, 160, 23, 0.16), transparent 62%) top right/62px 62px no-repeat,
+    radial-gradient(circle at 0% 100%, rgba(0, 75, 141, 0.12), transparent 62%) bottom left/62px 62px no-repeat,
+    radial-gradient(circle at 100% 100%, rgba(0, 75, 141, 0.1), transparent 62%) bottom right/62px 62px no-repeat;
   box-shadow:
     inset 0 0 0 2px rgba(212, 160, 23, 0.12),
     inset 0 0 0 6px rgba(212, 160, 23, 0.06);
@@ -1618,6 +1640,7 @@ a:hover {
 .theme-ancient .auth-title {
   letter-spacing: 0.01em;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+  color: rgba(60, 33, 0, 0.88);
 }
 
 .theme-ancient .auth-subtitle {
@@ -1668,10 +1691,11 @@ a:hover {
 .theme-ancient .field textarea {
   border-radius: 12px;
   border: 1px solid rgba(26, 28, 31, 0.14);
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 252, 246, 0.7);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 8px 18px rgba(0, 0, 0, 0.05);
+    inset 0 10px 22px rgba(0, 0, 0, 0.06);
+  font-family: var(--serif);
 }
 
 .theme-ancient .field__label {
@@ -1720,11 +1744,12 @@ a:hover {
 
 .theme-ancient .btn--primary {
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(0, 75, 141, 0.98), rgba(0, 63, 120, 0.98));
-  border: 1px solid rgba(212, 160, 23, 0.4);
+  background: linear-gradient(180deg, rgba(0, 75, 141, 0.98), rgba(11, 43, 87, 0.98));
+  border: 1px solid rgba(60, 33, 0, 0.28);
   box-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    0 18px 40px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.16);
 }
 
 .theme-ancient .btn--primary:hover {
