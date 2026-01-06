@@ -3415,7 +3415,14 @@ function initDiscordConnector() {
   const statusEl = document.querySelector("[data-discord-status]");
   const connectBtn = document.querySelector("[data-discord-connect]");
   const disconnectBtn = document.querySelector("[data-discord-disconnect]");
+
   if (!statusEl || !connectBtn) return;
+
+  // CONNECT DISCORD -> START OAUTH ON RAILWAY
+connectBtn.addEventListener("click", () => {
+  window.location.href =
+    "https://blair-academy-portal-production.up.railway.app/api/auth/discord/link";
+});
 
   const flashes = {
     linked: "Discord is now connected!",
