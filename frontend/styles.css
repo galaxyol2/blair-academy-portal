@@ -956,6 +956,60 @@ a:hover {
   margin: 0;
 }
 
+.widget--amusing {
+  border-color: rgba(255, 187, 0, 0.6);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 238, 208, 0.6));
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.widget--amusing::after {
+  content: "✨";
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  font-size: 1.1rem;
+  opacity: 0.4;
+}
+
+.widget--amusing .widget__title {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #2d1a5f;
+  font-size: 1.45rem;
+  background: linear-gradient(120deg, #d462ff, #ffad32);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.widget--amusing .muted-note {
+  color: rgba(26, 28, 31, 0.55);
+  font-style: italic;
+}
+
+.widget--amusing .widget__actions {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  border: 1px dotted rgba(0, 0, 0, 0.08);
+}
+
+.btn--secondary[disabled] {
+  opacity: 0.7;
+  background: #eef2ff;
+  color: #5662b0;
+  border-color: rgba(0, 75, 141, 0.25);
+}
+
+.btn--secondary[disabled]::after {
+  content: "soon";
+  font-size: 0.75rem;
+  margin-left: 0.35rem;
+  color: #a255f7;
+  font-weight: 700;
+}
+
 .feed__item {
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--border);
