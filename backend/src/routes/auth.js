@@ -7,6 +7,8 @@ const {
   verifyAccessToken,
   signPasswordResetToken,
   verifyPasswordResetToken,
+  signDiscordState,
+  verifyDiscordState,
 } = require("../services/tokens");
 const { sendPasswordResetEmail } = require("../services/mailer");
 const { postSignupLog } = require("../services/signupLog");
@@ -14,6 +16,18 @@ const { createFixedWindowRateLimiter, requestIp } = require("../middleware/rateL
 
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
+}
+
+function mapUserPayload(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role || "student",
+    discordId: user.discordId || null,
+    discordUsername: user.discordUsername || null,
+  };
 }
 
 function buildAuthRouter() {
@@ -75,6 +89,43 @@ function buildAuthRouter() {
     return parts.every((p) => p.length >= 2);
   }
 
+  function requireDiscordConfig() {
+    const clientId = String(process.env.DISCORD_OAUTH_CLIENT_ID || "").trim();
+    const clientSecret = String(process.env.DISCORD_OAUTH_CLIENT_SECRET || "").trim();
+    const redirectUri = String(process.env.DISCORD_OAUTH_REDIRECT_URI || "").trim();
+    if (!clientId || !clientSecret || !redirectUri) {
+      const err = new Error("Discord OAuth is not configured");
+      err.status = 501;
+      throw err;
+    }
+    return { clientId, clientSecret, redirectUri };
+  }
+
+  function buildFrontendSettingsUrl(query = {}) {
+    const baseRaw = String(process.env.FRONTEND_BASE_URL || "").trim();
+    const base = baseRaw.replace(/\/+$/, "");
+    const path = base ? `${base}/settings` : "/settings";
+    const params = new URLSearchParams(query || {});
+    return params.toString() ? `${path}?${params}` : path;
+  }
+
+  function buildDiscordAuthorizeUrl(userId) {
+    const cfg = requireDiscordConfig();
+    const state = signDiscordState({ userId });
+    const url = new URL("https://discord.com/api/oauth2/authorize");
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("client_id", cfg.clientId);
+    url.searchParams.set("redirect_uri", cfg.redirectUri);
+    url.searchParams.set("scope", "identify");
+    url.searchParams.set("state", state);
+    return url.toString();
+  }
+
+  function redirectToSettings(res, status) {
+    const url = buildFrontendSettingsUrl({ discord: status });
+    return res.redirect(url);
+  }
+
   router.post("/signup", rateLimitSignup, async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const email = normalizeEmail(req.body?.email);
@@ -115,7 +166,7 @@ function buildAuthRouter() {
     const token = signAccessToken({ userId: user.id });
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role || "student" },
+      user: mapUserPayload(user),
     });
   });
 
@@ -157,7 +208,7 @@ function buildAuthRouter() {
     });
 
     const token = signAccessToken({ userId: user.id });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: "teacher" } });
+    res.json({ token, user: mapUserPayload(user) });
   });
 
   router.post("/login", rateLimitLogin, async (req, res) => {
@@ -179,7 +230,7 @@ function buildAuthRouter() {
     const token = signAccessToken({ userId: user.id });
     res.json({
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role || "student" },
+      user: mapUserPayload(user),
     });
   });
 
@@ -199,14 +250,99 @@ function buildAuthRouter() {
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
     const token = signAccessToken({ userId: user.id });
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: "teacher" } });
+    res.json({ token, user: mapUserPayload(user) });
   });
 
   router.get("/me", requireAuth, async (req, res) => {
     const user = req.user;
     res.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role || "student" },
+      user: mapUserPayload(user),
     });
+  });
+
+  router.get("/discord/link", requireAuth, async (req, res) => {
+    try {
+      const url = buildDiscordAuthorizeUrl(req.user.id);
+      res.json({ url });
+    } catch (err) {
+      const status = err?.status || 500;
+      res.status(status).json({ error: err?.message || "Unable to build Discord link." });
+    }
+  });
+
+  router.delete("/discord", requireAuth, async (req, res) => {
+    await usersStore.unlinkDiscord(req.user.id);
+    res.json({ ok: true });
+  });
+
+  router.get("/discord/callback", async (req, res) => {
+    const code = String(req.query?.code || "").trim();
+    const state = String(req.query?.state || "").trim();
+    if (!code || !state) {
+      return redirectToSettings(res, "error");
+    }
+
+    let payload;
+    try {
+      payload = verifyDiscordState(state);
+    } catch (err) {
+      return redirectToSettings(res, "error");
+    }
+
+    const user = await usersStore.findById(payload.userId);
+    if (!user) return redirectToSettings(res, "error");
+
+    const { clientId, clientSecret, redirectUri } = requireDiscordConfig();
+
+    try {
+      const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+          scope: "identify",
+        }),
+      });
+
+      if (!tokenRes.ok) {
+        return redirectToSettings(res, "error");
+      }
+
+      const tokenData = await tokenRes.json().catch(() => null);
+      if (!tokenData?.access_token) {
+        return redirectToSettings(res, "error");
+      }
+
+      const discordRes = await fetch("https://discord.com/api/users/@me", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!discordRes.ok) {
+        return redirectToSettings(res, "error");
+      }
+
+      const discordUser = await discordRes.json().catch(() => null);
+      if (!discordUser?.id) {
+        return redirectToSettings(res, "error");
+      }
+
+      const tag = `${discordUser.username || "someone"}#${discordUser.discriminator || "0000"}`;
+      await usersStore.linkDiscord({
+        userId: user.id,
+        discordId: discordUser.id,
+        discordUsername: tag,
+      });
+      return redirectToSettings(res, "linked");
+    } catch (err) {
+      if (err?.code === "discord_conflict") {
+        return redirectToSettings(res, "conflict");
+      }
+      return redirectToSettings(res, "error");
+    }
   });
 
   router.post("/change-password", requireAuth, async (req, res) => {

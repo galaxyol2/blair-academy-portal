@@ -3411,6 +3411,83 @@ function initAnnouncements() {
   }
 }
 
+function initDiscordConnector() {
+  const statusEl = document.querySelector("[data-discord-status]");
+  const connectBtn = document.querySelector("[data-discord-connect]");
+  const disconnectBtn = document.querySelector("[data-discord-disconnect]");
+  if (!statusEl || !connectBtn) return;
+
+  const flashes = {
+    linked: "Discord is now connected!",
+    conflict: "That Discord account is already linked to someone else.",
+    error: "Something went wrong while connecting Discord.",
+  };
+
+  let flashMessage = null;
+
+  const params = new URLSearchParams(window.location.search);
+  const discordParam = params.get("discord");
+  if (discordParam) {
+    flashMessage = flashes[discordParam];
+    params.delete("discord");
+    const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", cleanUrl);
+  }
+
+  const renderStatus = (user, override) => {
+    const connected = Boolean(user?.discordId);
+    const label = override || (connected ? `Connected as ${user.discordUsername || user.discordId}` : "Not connected to Discord yet.");
+    statusEl.textContent = label;
+    if (disconnectBtn) {
+      disconnectBtn.hidden = !connected;
+      disconnectBtn.disabled = false;
+    }
+    connectBtn.disabled = false;
+    connectBtn.textContent = connected ? "Reconnect Discord" : "Connect Discord";
+  };
+
+  const refreshStatus = async () => {
+    try {
+      const data = await apiFetch("/api/auth/me");
+      renderStatus(data?.user, flashMessage);
+      flashMessage = null;
+    } catch (err) {
+      statusEl.textContent = err?.message || "Unable to load Discord status.";
+      connectBtn.disabled = false;
+    }
+  };
+
+  connectBtn.addEventListener("click", async () => {
+    connectBtn.disabled = true;
+    statusEl.textContent = "Opening Discord...";
+    try {
+      const data = await apiFetch("/api/auth/discord/link");
+      if (!data?.url) throw new Error("Unable to build Discord link");
+      window.location.assign(data.url);
+    } catch (err) {
+      statusEl.textContent = err?.message || "Unable to connect Discord.";
+      connectBtn.disabled = false;
+    }
+  });
+
+  if (disconnectBtn) {
+    disconnectBtn.addEventListener("click", async () => {
+      disconnectBtn.disabled = true;
+      statusEl.textContent = "Disconnecting Discord…";
+      try {
+        await apiFetch("/api/auth/discord", { method: "DELETE" });
+        flashMessage = "Discord is disconnected.";
+        await refreshStatus();
+      } catch (err) {
+        statusEl.textContent = err?.message || "Unable to remove Discord link.";
+        disconnectBtn.disabled = false;
+      }
+    });
+  }
+
+  refreshStatus();
+}
+
 function initPasswordToggles() {
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     const field = button.closest(".field");
@@ -3450,6 +3527,7 @@ function initPasswordToggles() {
   initResetToken();
   initPasswordToggles();
   initAnnouncements();
+  initDiscordConnector();
 
   initStudentJoinClassroom();
   loadStudentClassrooms();

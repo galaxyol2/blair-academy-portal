@@ -213,16 +213,18 @@
                 <h2 class="widget__title">Discord connection</h2>
               </div>
               <div class="widget__body">
-                <p>
-                  Link a Blair Academy account to your Discord to receive announcements
-                  and updates directly in the community server. The connection is optional
-                  and can be removed anytime.
+                <p class="discord-description">
+                  Link your Blair Academy account to Discord to get announcements, logs,
+                  and classroom updates in the community server. Disconnect anytime.
                 </p>
+                <p class="discord-status" data-discord-status>Checking link status…</p>
                 <div class="widget__actions">
-                  <button class="btn btn--secondary" type="button" disabled>
+                  <button class="btn btn--secondary" type="button" data-discord-connect>
                     Connect Discord
                   </button>
-                  <p class="muted-note">Coming soon</p>
+                  <button class="btn btn--ghost btn--sm" type="button" data-discord-disconnect hidden>
+                    Disconnect
+                  </button>
                 </div>
               </div>
             </div>

@@ -20,6 +20,13 @@ function signPasswordResetToken({ userId }) {
   });
 }
 
+function signDiscordState({ userId }) {
+  const secret = requireJwtSecret();
+  return jwt.sign({ sub: userId, purpose: "discord_state" }, secret, {
+    expiresIn: "15m",
+  });
+}
+
 function verifyAccessToken(token) {
   const secret = requireJwtSecret();
   const payload = jwt.verify(token, secret);
@@ -42,9 +49,22 @@ function verifyPasswordResetToken(token) {
   return { userId: payload.sub };
 }
 
+function verifyDiscordState(token) {
+  const secret = requireJwtSecret();
+  const payload = jwt.verify(token, secret);
+  if (!payload || payload.purpose !== "discord_state" || !payload.sub) {
+    const err = new Error("Invalid Discord state token");
+    err.status = 401;
+    throw err;
+  }
+  return { userId: payload.sub };
+}
+
 module.exports = {
   signAccessToken,
   verifyAccessToken,
   signPasswordResetToken,
   verifyPasswordResetToken,
+  signDiscordState,
+  verifyDiscordState,
 };

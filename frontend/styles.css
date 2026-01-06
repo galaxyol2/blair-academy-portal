@@ -956,7 +956,22 @@ a:hover {
   margin: 0;
 }
 
+.discord-description {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(26, 28, 31, 0.72);
+}
+
+.discord-status {
+  margin: 0.65rem 0 0;
+  font-weight: 700;
+  color: rgba(16, 15, 10, 0.9);
+  font-family: var(--serif);
+}
+
 .widget--ancient {
+  position: relative;
+  overflow: hidden;
   background:
     linear-gradient(145deg, rgba(250, 245, 238, 0.9), rgba(234, 224, 205, 0.85)),
     radial-gradient(circle at 15% 20%, rgba(212, 160, 23, 0.2), transparent 52%),
