@@ -3418,11 +3418,12 @@ function initDiscordConnector() {
 
   if (!statusEl || !connectBtn) return;
 
-  // CONNECT DISCORD -> START OAUTH ON RAILWAY
-connectBtn.addEventListener("click", () => {
+  // CONNECT DISCORD → START OAUTH ON RAILWAY
+  connectBtn.addEventListener("click", () => {
   window.location.href =
     "https://blair-academy-portal-production.up.railway.app/api/auth/discord/link";
 });
+
 
   const flashes = {
     linked: "Discord is now connected!",
