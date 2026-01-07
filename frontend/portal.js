@@ -64,6 +64,33 @@ function apiBaseUrl() {
   return "http://localhost:3001";
 }
 
+function publicBaseUrl() {
+  const cfg = window.__BLAIR_CONFIG__ && typeof window.__BLAIR_CONFIG__ === "object"
+    ? window.__BLAIR_CONFIG__
+    : null;
+  if (cfg && typeof cfg.publicBaseUrl === "string" && cfg.publicBaseUrl.trim()) {
+    return cfg.publicBaseUrl.trim().replace(/\/+$/, "");
+  }
+  return "";
+}
+
+function ensurePublicBaseUrl() {
+  const base = publicBaseUrl();
+  if (!base) return false;
+  try {
+    const target = new URL(base);
+    const host = window.location.host;
+    if (host.endsWith(".vercel.app") && host !== target.host) {
+      const next = `${target.origin}${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(next);
+      return true;
+    }
+  } catch (_err) {
+    return false;
+  }
+  return false;
+}
+
 function currentPage() {
   const raw = window.location.pathname.split("/").pop();
   return raw || "index.html";
@@ -3481,7 +3508,7 @@ function initDiscordConnector() {
   if (disconnectBtn) {
     disconnectBtn.addEventListener("click", async () => {
       disconnectBtn.disabled = true;
-      statusEl.textContent = "Disconnecting Discord…";
+      statusEl.textContent = "Disconnecting Discord...";
       try {
         await apiFetch("/api/auth/discord", { method: "DELETE" });
         flashMessage = "Discord is disconnected.";
@@ -3518,7 +3545,7 @@ function initPasswordToggles() {
   });
 }
 
-  if (routeGuards()) {
+if (!ensurePublicBaseUrl() && routeGuards()) {
   initBackgroundVideo();
 
   validateSessionAndAutoLogout();
