@@ -3444,13 +3444,13 @@ function initDiscordConnector() {
   const disconnectBtn = document.querySelector("[data-discord-disconnect]");
 
   if (!statusEl || !connectBtn) return;
-
-  // CONNECT DISCORD → START OAUTH ON RAILWAY
-  connectBtn.addEventListener("click", () => {
-  window.location.href =
-    "https://blair-academy-portal-production.up.railway.app/api/auth/discord/link";
-});
-
+  const session = getSession();
+  if (!session?.token) {
+    statusEl.textContent = "Please log in to connect Discord.";
+    connectBtn.disabled = true;
+    if (disconnectBtn) disconnectBtn.hidden = true;
+    return;
+  }
 
   const flashes = {
     linked: "Discord is now connected!",
@@ -3647,3 +3647,4 @@ if (!ensurePublicBaseUrl() && routeGuards()) {
     initStudentAssignmentSubmission();
   }
 }
+
