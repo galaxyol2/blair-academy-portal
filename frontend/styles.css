@@ -808,6 +808,18 @@ a:hover {
   color: var(--muted);
 }
 
+.tile--schedule {
+  position: relative;
+}
+
+.tile--schedule .btn {
+  margin-top: 0.6rem;
+}
+
+.tile--schedule.is-open .schedule-list {
+  display: grid;
+}
+
 .schedule-list {
   margin: 0.75rem 0 0;
   padding: 0;
