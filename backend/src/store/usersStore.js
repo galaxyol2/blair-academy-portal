@@ -47,6 +47,7 @@ function createJsonUsersStore() {
         createdAt: new Date().toISOString(),
         discordId: null,
         discordUsername: null,
+        schedule: [],
       };
       db.users.push(user);
       await writeDb(db);
@@ -128,6 +129,21 @@ function createJsonUsersStore() {
       await writeDb(db);
       return db.users[idx];
     },
+
+    async updateSchedule({ userId, schedule }) {
+      const id = String(userId || "").trim();
+      if (!id) return null;
+      const db = await readDb();
+      const idx = db.users.findIndex((u) => u.id === id);
+      if (idx === -1) return null;
+      db.users[idx] = {
+        ...db.users[idx],
+        schedule: Array.isArray(schedule) ? schedule : [],
+        updatedAt: new Date().toISOString(),
+      };
+      await writeDb(db);
+      return db.users[idx];
+    },
   };
 }
 
@@ -160,6 +176,7 @@ function createPgUsersStore() {
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'student';`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id TEXT UNIQUE;`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_username TEXT;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS schedule_json JSONB;`);
     schemaReady = true;
   }
 
@@ -167,7 +184,7 @@ function createPgUsersStore() {
     async findByEmail(email) {
       await ensureSchema();
       const res = await pool.query(
-      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername" FROM users WHERE email = $1 LIMIT 1`,
+      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule" FROM users WHERE email = $1 LIMIT 1`,
       [email]
     );
     return res.rows[0] || null;
@@ -176,7 +193,7 @@ function createPgUsersStore() {
     async findById(id) {
       await ensureSchema();
       const res = await pool.query(
-      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername" FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule" FROM users WHERE id = $1 LIMIT 1`,
       [id]
     );
     return res.rows[0] || null;
@@ -188,11 +205,11 @@ function createPgUsersStore() {
       const r = String(role || "student").trim() || "student";
       try {
         const res = await pool.query(
-        `INSERT INTO users (id, name, email, password_hash, role) VALUES ($1, $2, $3, $4, $5)
-           RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername"`,
-        [id, name, email, passwordHash, r]
+        `INSERT INTO users (id, name, email, password_hash, role, schedule_json) VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
+        [id, name, email, passwordHash, r, []]
       );
-        return res.rows[0] || null;
+      return res.rows[0] || null;
       } catch (err) {
         if (err && err.code === "23505") return null; // unique violation
         throw err;
@@ -235,7 +252,7 @@ function createPgUsersStore() {
       if (!discordId) return null;
       await ensureSchema();
       const res = await pool.query(
-        `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername"
+        `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"
          FROM users
          WHERE discord_id = $1
          LIMIT 1`,
@@ -262,7 +279,7 @@ function createPgUsersStore() {
         `UPDATE users
            SET discord_id = $2, discord_username = $3, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername"`,
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
         [user, discord, discordUsername ? String(discordUsername).trim() : null]
       );
       return res.rows[0] || null;
@@ -274,8 +291,20 @@ function createPgUsersStore() {
         `UPDATE users
            SET discord_id = NULL, discord_username = NULL, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername"`,
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
         [userId]
+      );
+      return res.rows[0] || null;
+    },
+
+    async updateSchedule({ userId, schedule }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `UPDATE users
+           SET schedule_json = $2, updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
+        [userId, Array.isArray(schedule) ? schedule : []]
       );
       return res.rows[0] || null;
     },

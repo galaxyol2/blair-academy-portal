@@ -27,6 +27,7 @@ function mapUserPayload(user) {
     role: user.role || "student",
     discordId: user.discordId || null,
     discordUsername: user.discordUsername || null,
+    schedule: Array.isArray(user.schedule) ? user.schedule : [],
   };
 }
 
@@ -52,6 +53,13 @@ function buildAuthRouter() {
     windowMs: 60_000,
     max: 10,
     keyFn: requestIp,
+  });
+  const rateLimitScheduleUpdate = createFixedWindowRateLimiter({
+    windowMs: 60_000,
+    max: 30,
+    keyFn: (req) =>
+      String(req.get("x-admin-key") || req.get("x-api-key") || "").trim() ||
+      requestIp(req),
   });
 
   function expectedSignupCode() {
@@ -124,6 +132,66 @@ function buildAuthRouter() {
   function redirectToSettings(res, status) {
     const url = buildFrontendSettingsUrl({ discord: status });
     return res.redirect(url);
+  }
+
+  const scheduleCatalog = [
+    { name: "Nutrition & Healthy Living", time: "Anyday after 5pm", instructor: "Melly" },
+    { name: "Photography & Digital Imaging", time: "Tues 6-8pm, Thurs 10pm, Fri 7-11pm", instructor: "Glo" },
+    { name: "Introduction to Journalism", time: "Anyday 6:30pm or 9pm CST", instructor: "Twan" },
+    { name: "Introduction to Psychology", time: "Anyday after 8:30pm", instructor: "Prices" },
+    { name: "Sexual & Reproductive Health", time: "Wed-Sat anytime after 6:30pm", instructor: "Prof.Kim" },
+    { name: "Literature & Film", time: "Mon & Thurs 8pm CST", instructor: "Chosen" },
+    { name: "Influencer & Creator Marketing", time: "Anyday after 7pm EST", instructor: "Prof.Tejada" },
+    { name: "Fitness & Strength Training", time: "Anyday after 6pm", instructor: "Deuce Jackson" },
+    { name: "Introduction Of Arts I", time: "Mon-Fri anytime between 3pm-11pm", instructor: "Kyro" },
+    { name: "Investigative Journalism", time: "Mon-Fri 2-10pm, weekends off", instructor: "Ski Mask" },
+    { name: "Music Ensembles", time: "Any day and time", instructor: "Yabitchoav aka Jordyn" },
+    { name: "News Writing & Reporting", time: "Tues & Wed at 7:30pm EST", instructor: "gigi" },
+    { name: "Family Law", time: "Fri, Sat, Sun 7pm-12pm", instructor: "Cobain" },
+  ];
+
+  const catalogByName = new Map(
+    scheduleCatalog.map((item) => [item.name.toLowerCase(), item])
+  );
+
+  function normalizeSchedule(input) {
+    if (!Array.isArray(input)) return [];
+    const items = [];
+    const seen = new Set();
+    for (const entry of input) {
+      if (!entry) continue;
+      if (typeof entry === "string") {
+        const key = entry.trim().toLowerCase();
+        if (!key || seen.has(key)) continue;
+        const match = catalogByName.get(key);
+        if (match) {
+          items.push({ ...match });
+          seen.add(key);
+        }
+        continue;
+      }
+      if (typeof entry === "object") {
+        const name = String(entry.name || "").trim();
+        const key = name.toLowerCase();
+        if (!name || seen.has(key)) continue;
+        const match = catalogByName.get(key);
+        const time = String(entry.time || match?.time || "").trim();
+        const instructor = String(entry.instructor || match?.instructor || "").trim();
+        items.push({ name, time, instructor });
+        seen.add(key);
+      }
+    }
+    return items;
+  }
+
+  function requireAdminKey(req, res, next) {
+    const expected = String(process.env.ADMIN_API_KEY || "").trim();
+    if (!expected) return res.status(501).json({ error: "Admin API not configured" });
+
+    const got = String(req.get("x-admin-key") || req.get("x-api-key") || "").trim();
+    if (!got || got !== expected) return res.status(401).json({ error: "Unauthorized" });
+
+    return next();
   }
 
   router.post("/signup", rateLimitSignup, async (req, res) => {
@@ -258,6 +326,30 @@ function buildAuthRouter() {
     res.json({
       user: mapUserPayload(user),
     });
+  });
+
+  router.get("/schedule", requireAuth, async (req, res) => {
+    const user = req.user;
+    res.json({
+      schedule: Array.isArray(user?.schedule) ? user.schedule : [],
+    });
+  });
+
+  router.post("/schedule", requireAdminKey, rateLimitScheduleUpdate, async (req, res) => {
+    const discordId = String(req.body?.discordId || "").trim();
+    const rawSchedule = Array.isArray(req.body?.schedule)
+      ? req.body.schedule
+      : Array.isArray(req.body?.classes)
+        ? req.body.classes
+        : [];
+    if (!discordId) return res.status(400).json({ error: "discordId is required" });
+
+    const user = await usersStore.findByDiscordId(discordId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const schedule = normalizeSchedule(rawSchedule);
+    const updated = await usersStore.updateSchedule({ userId: user.id, schedule });
+    res.json({ ok: true, schedule: Array.isArray(updated?.schedule) ? updated.schedule : [] });
   });
 
   router.get("/discord/link", requireAuth, async (req, res) => {

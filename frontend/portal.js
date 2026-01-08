@@ -1165,6 +1165,48 @@ async function loadStudentGradesSummaryPage() {
   }
 }
 
+async function loadStudentSchedule() {
+  const statusEl = document.querySelector("[data-schedule-status]");
+  const listEl = document.querySelector("[data-schedule-list]");
+  if (!statusEl || !listEl) return;
+
+  statusEl.textContent = "Loading schedule...";
+  listEl.hidden = true;
+  listEl.innerHTML = "";
+
+  try {
+    const data = await apiFetch("/api/auth/schedule");
+    const items = Array.isArray(data?.schedule) ? data.schedule : [];
+    if (items.length === 0) {
+      statusEl.textContent = "No classes selected yet.";
+      return;
+    }
+    statusEl.textContent = "Your classes";
+    for (const item of items) {
+      const row = document.createElement("li");
+      row.className = "schedule-item";
+
+      const title = document.createElement("div");
+      title.className = "schedule-item__title";
+      title.textContent = String(item.name || "Class");
+
+      const meta = document.createElement("div");
+      meta.className = "schedule-item__meta";
+      const parts = [];
+      if (item.instructor) parts.push(item.instructor);
+      if (item.time) parts.push(item.time);
+      meta.textContent = parts.length ? parts.join(" - ") : "Schedule time pending.";
+
+      row.appendChild(title);
+      row.appendChild(meta);
+      listEl.appendChild(row);
+    }
+    listEl.hidden = false;
+  } catch (err) {
+    statusEl.textContent = err?.message || "Unable to load schedule.";
+  }
+}
+
 async function loadStudentClassrooms() {
   const container = document.querySelector("[data-student-classrooms]");
   if (!container) return;
@@ -3567,6 +3609,7 @@ if (!ensurePublicBaseUrl() && routeGuards()) {
   initStudentJoinClassroom();
   loadStudentClassrooms();
   loadStudentGradesSummaryPage();
+  loadStudentSchedule();
 
   if (pageKind() === "dashboard" && pageRole() === "teacher") {
     initTeacherClassroomCreate();

@@ -808,6 +808,33 @@ a:hover {
   color: var(--muted);
 }
 
+.schedule-list {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.schedule-item {
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(92, 60, 20, 0.16);
+  background: rgba(255, 255, 255, 0.7);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.schedule-item__title {
+  font-weight: 800;
+  color: rgba(60, 33, 0, 0.92);
+}
+
+.schedule-item__meta {
+  font-size: 0.9rem;
+  color: rgba(60, 33, 0, 0.7);
+}
+
 .tile--compact {
   padding: 0.85rem 0.9rem;
 }
