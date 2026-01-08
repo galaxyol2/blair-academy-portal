@@ -1168,8 +1168,6 @@ async function loadStudentGradesSummaryPage() {
 async function loadStudentSchedule() {
   const statusEl = document.querySelector("[data-schedule-status]");
   const listEl = document.querySelector("[data-schedule-list]");
-  const tileEl = document.querySelector("[data-schedule-tile]");
-  const toggleBtn = document.querySelector("[data-schedule-toggle]");
   if (!statusEl || !listEl) return;
 
   statusEl.textContent = "Loading schedule...";
@@ -1181,8 +1179,6 @@ async function loadStudentSchedule() {
     const items = Array.isArray(data?.schedule) ? data.schedule : [];
     if (items.length === 0) {
       statusEl.textContent = "No classes selected yet.";
-      if (tileEl) tileEl.classList.remove("is-open");
-      if (toggleBtn) toggleBtn.textContent = "View schedule";
       return;
     }
     statusEl.textContent = "Your classes";
@@ -1205,25 +1201,10 @@ async function loadStudentSchedule() {
       row.appendChild(meta);
       listEl.appendChild(row);
     }
-    const isOpen = Boolean(tileEl?.classList.contains("is-open"));
-    listEl.hidden = !isOpen;
-    if (toggleBtn) toggleBtn.textContent = isOpen ? "Hide schedule" : "View schedule";
+    listEl.hidden = false;
   } catch (err) {
     statusEl.textContent = err?.message || "Unable to load schedule.";
   }
-}
-
-function initScheduleToggle() {
-  const tileEl = document.querySelector("[data-schedule-tile]");
-  const toggleBtn = document.querySelector("[data-schedule-toggle]");
-  const listEl = document.querySelector("[data-schedule-list]");
-  if (!tileEl || !toggleBtn || !listEl) return;
-
-  toggleBtn.addEventListener("click", () => {
-    const isOpen = tileEl.classList.toggle("is-open");
-    listEl.hidden = !isOpen;
-    toggleBtn.textContent = isOpen ? "Hide schedule" : "View schedule";
-  });
 }
 
 async function loadStudentClassrooms() {
@@ -3626,7 +3607,6 @@ if (!ensurePublicBaseUrl() && routeGuards()) {
   initDiscordConnector();
 
   initStudentJoinClassroom();
-  initScheduleToggle();
   loadStudentClassrooms();
   loadStudentGradesSummaryPage();
   loadStudentSchedule();

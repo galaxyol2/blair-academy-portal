@@ -128,14 +128,12 @@
 
           <section class="portal-section" aria-label="Quick actions">
             <div class="tile-grid">
-              <div class="tile tile--schedule" data-schedule-tile>
+              <div class="tile tile--schedule">
                 <p class="tile__kicker">Academics</p>
                 <h2 class="tile__title">Schedule</h2>
-                <p class="tile__text" data-schedule-status>Loading schedule...</p>
-                <button class="btn btn--secondary btn--sm" type="button" data-schedule-toggle>
+                <a class="btn btn--secondary btn--sm" href="#schedule">
                   View schedule
-                </button>
-                <ul class="schedule-list" data-schedule-list hidden></ul>
+                </a>
               </div>
               <a class="tile" href="#">
                 <p class="tile__kicker">Campus</p>
@@ -191,6 +189,16 @@
               </div>
               <p class="empty-state">No upcoming events yet.</p>
             </aside>
+          </section>
+
+          <section class="portal-section" id="schedule" aria-label="Schedule">
+            <div class="widget">
+              <div class="widget__header">
+                <h2 class="widget__title">Schedule</h2>
+              </div>
+              <p class="tile__text" data-schedule-status>Loading schedule...</p>
+              <ul class="schedule-list" data-schedule-list hidden></ul>
+            </div>
           </section>
         </div>
       </main>
