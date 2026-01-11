@@ -248,7 +248,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const electivesMenu = new StringSelectMenuBuilder()
         .setCustomId("registration_electives")
         .setPlaceholder("Select up to 2 electives")
-        .setMinValues(0)
+        .setMinValues(1)
         .setMaxValues(Math.min(2, electivesCatalog.length))
         .addOptions(electivesCatalog);
 
@@ -305,9 +305,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       registrationSelections.set(interaction.user.id, selections);
 
       const hasCourses = selections.courses.length > 0;
+      const hasElectives = selections.electives.length > 0;
       if (!hasCourses) {
         await interaction.user.send(
           "Electives saved. Select your courses to finish registration."
+        );
+        return;
+      }
+      if (!hasElectives) {
+        await interaction.user.send(
+          "Courses saved. Select your electives to finish registration."
         );
         return;
       }
@@ -342,6 +349,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (!selections.courses.length) {
         await interaction.update({
           content: "Select your courses before locking your schedule.",
+          components: [],
+        });
+        return;
+      }
+      if (!selections.electives.length) {
+        await interaction.update({
+          content: "Select your electives before locking your schedule.",
           components: [],
         });
         return;
