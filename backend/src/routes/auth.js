@@ -135,19 +135,19 @@ function buildAuthRouter() {
   }
 
   const scheduleCatalog = [
-    { name: "Nutrition & Healthy Living", time: "Anyday after 5pm", instructor: "Melly", category: "course" },
-    { name: "Photography & Digital Imaging", time: "Tues 6-8pm, Thurs 10pm, Fri 7-11pm", instructor: "Glo", category: "course" },
-    { name: "Introduction to Journalism", time: "Anyday 6:30pm or 9pm CST", instructor: "Twan", category: "course" },
-    { name: "Introduction To Psychology", time: "Anyday after 8:30pm", instructor: "Prices", category: "course" },
-    { name: "Sexual & Reproductive Health", time: "Wed-Sat anytime after 6:30pm", instructor: "Prof.Kim", category: "elective" },
-    { name: "Literature & Film", time: "Mon & Thurs 8pm CST", instructor: "Chosen", category: "course" },
-    { name: "Influencer & Creator Marketing", time: "Anyday after 7pm EST", instructor: "Prof.Tejada", category: "course" },
-    { name: "Fitness & Strength Training", time: "Anyday after 6pm", instructor: "Deuce Jackson", category: "elective" },
-    { name: "Introduction of Art I", time: "Mon-Fri anytime between 3pm-11pm", instructor: "Kyro", category: "elective" },
-    { name: "Investigative Journalism", time: "Mon-Fri 2-10pm, weekends off", instructor: "Ski Mask", category: "course" },
-    { name: "Music Ensembles", time: "Any day and time", instructor: "Yabitchoav aka Jordyn", category: "elective" },
-    { name: "News Writing & Reporting", time: "Tues & Wed at 7:30pm EST", instructor: "gigi", category: "course" },
-    { name: "Family Law", time: "Fri, Sat, Sun 7pm-12pm", instructor: "Cobain", category: "course" },
+    { name: "Nutrition & Healthy Living", time: "Anyday after 5pm", instructor: "Professor Melly", category: "course" },
+    { name: "Photography & Digital Imaging", time: "Tues 6-8pm, Thurs 10pm, Fri 7-11pm", instructor: "Professor Glo", category: "course" },
+    { name: "Introduction to Journalism", time: "Anyday 6:30pm or 9pm CST", instructor: "Professor Twan", category: "course" },
+    { name: "Introduction To Psychology", time: "Anyday after 8:30pm", instructor: "Professor Prices", category: "course" },
+    { name: "Sexual & Reproductive Health", time: "Wed-Sat anytime after 6:30pm", instructor: "Professor Kim", category: "elective" },
+    { name: "Literature & Film", time: "Mon & Thurs 8pm CST", instructor: "Professor Chosen", category: "course" },
+    { name: "Influencer & Creator Marketing", time: "Anyday after 7pm EST", instructor: "Professor Tejada", category: "course" },
+    { name: "Fitness & Strength Training", time: "Anyday after 6pm", instructor: "Professor Deuce Jackson", category: "elective" },
+    { name: "Introduction of Art I", time: "Mon-Fri anytime between 3pm-11pm", instructor: "Professor Kyro", category: "elective" },
+    { name: "Investigative Journalism", time: "Mon-Fri 2-10pm, weekends off", instructor: "Professor Ski Mask", category: "course" },
+    { name: "Music Ensembles", time: "Any day and time", instructor: "Professor Yabitchoav aka Jordyn", category: "elective" },
+    { name: "News Writing & Reporting", time: "Tues & Wed at 7:30pm EST", instructor: "Professor Gigi", category: "course" },
+    { name: "Family Law", time: "Fri, Sat, Sun 7pm-12pm", instructor: "Professor Cobain", category: "course" },
   ];
 
   const catalogByName = new Map(
