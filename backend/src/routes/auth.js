@@ -28,6 +28,7 @@ function mapUserPayload(user) {
     discordId: user.discordId || null,
     discordUsername: user.discordUsername || null,
     schedule: Array.isArray(user.schedule) ? user.schedule : [],
+    scheduleLocked: Boolean(user.scheduleLocked),
   };
 }
 
@@ -333,11 +334,23 @@ function buildAuthRouter() {
     const user = req.user;
     res.json({
       schedule: Array.isArray(user?.schedule) ? user.schedule : [],
+      scheduleLocked: Boolean(user?.scheduleLocked),
     });
+  });
+
+  router.get("/schedule/status", requireAdminKey, async (req, res) => {
+    const discordId = String(req.query?.discordId || "").trim();
+    if (!discordId) return res.status(400).json({ error: "discordId is required" });
+
+    const user = await usersStore.findByDiscordId(discordId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json({ scheduleLocked: Boolean(user.scheduleLocked) });
   });
 
   router.post("/schedule", requireAdminKey, rateLimitScheduleUpdate, async (req, res) => {
     const discordId = String(req.body?.discordId || "").trim();
+    const lockSchedule = Boolean(req.body?.lock);
     const rawSchedule = Array.isArray(req.body?.schedule)
       ? req.body.schedule
       : Array.isArray(req.body?.classes)
@@ -347,10 +360,22 @@ function buildAuthRouter() {
 
     const user = await usersStore.findByDiscordId(discordId);
     if (!user) return res.status(404).json({ error: "User not found" });
+    if (user.scheduleLocked) {
+      return res.status(409).json({ error: "Schedule is locked until semester 2." });
+    }
 
     const schedule = normalizeSchedule(rawSchedule);
-    const updated = await usersStore.updateSchedule({ userId: user.id, schedule });
-    res.json({ ok: true, schedule: Array.isArray(updated?.schedule) ? updated.schedule : [] });
+    const nextLocked = Boolean(user.scheduleLocked) || lockSchedule;
+    const updated = await usersStore.updateSchedule({
+      userId: user.id,
+      schedule,
+      lock: nextLocked,
+    });
+    res.json({
+      ok: true,
+      schedule: Array.isArray(updated?.schedule) ? updated.schedule : [],
+      scheduleLocked: Boolean(updated?.scheduleLocked),
+    });
   });
 
   router.get("/discord/link", requireAuth, async (req, res) => {

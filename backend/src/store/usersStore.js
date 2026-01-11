@@ -48,6 +48,7 @@ function createJsonUsersStore() {
         discordId: null,
         discordUsername: null,
         schedule: [],
+        scheduleLocked: false,
       };
       db.users.push(user);
       await writeDb(db);
@@ -130,7 +131,7 @@ function createJsonUsersStore() {
       return db.users[idx];
     },
 
-    async updateSchedule({ userId, schedule }) {
+    async updateSchedule({ userId, schedule, lock }) {
       const id = String(userId || "").trim();
       if (!id) return null;
       const db = await readDb();
@@ -139,6 +140,7 @@ function createJsonUsersStore() {
       db.users[idx] = {
         ...db.users[idx],
         schedule: Array.isArray(schedule) ? schedule : [],
+        scheduleLocked: lock ? true : Boolean(db.users[idx].scheduleLocked),
         updatedAt: new Date().toISOString(),
       };
       await writeDb(db);
@@ -177,6 +179,7 @@ function createPgUsersStore() {
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_id TEXT UNIQUE;`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS discord_username TEXT;`);
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS schedule_json JSONB;`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS schedule_locked BOOLEAN DEFAULT FALSE;`);
     schemaReady = true;
   }
 
@@ -184,7 +187,7 @@ function createPgUsersStore() {
     async findByEmail(email) {
       await ensureSchema();
       const res = await pool.query(
-      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule" FROM users WHERE email = $1 LIMIT 1`,
+      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked" FROM users WHERE email = $1 LIMIT 1`,
       [email]
     );
     return res.rows[0] || null;
@@ -193,7 +196,7 @@ function createPgUsersStore() {
     async findById(id) {
       await ensureSchema();
       const res = await pool.query(
-      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule" FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked" FROM users WHERE id = $1 LIMIT 1`,
       [id]
     );
     return res.rows[0] || null;
@@ -206,9 +209,9 @@ function createPgUsersStore() {
       const emptySchedule = JSON.stringify([]);
       try {
         const res = await pool.query(
-        `INSERT INTO users (id, name, email, password_hash, role, schedule_json) VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
-        [id, name, email, passwordHash, r, emptySchedule]
+        `INSERT INTO users (id, name, email, password_hash, role, schedule_json, schedule_locked) VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"`,
+        [id, name, email, passwordHash, r, emptySchedule, false]
       );
       return res.rows[0] || null;
       } catch (err) {
@@ -253,7 +256,7 @@ function createPgUsersStore() {
       if (!discordId) return null;
       await ensureSchema();
       const res = await pool.query(
-        `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"
+        `SELECT id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"
          FROM users
          WHERE discord_id = $1
          LIMIT 1`,
@@ -280,7 +283,7 @@ function createPgUsersStore() {
         `UPDATE users
            SET discord_id = $2, discord_username = $3, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"`,
         [user, discord, discordUsername ? String(discordUsername).trim() : null]
       );
       return res.rows[0] || null;
@@ -292,21 +295,21 @@ function createPgUsersStore() {
         `UPDATE users
            SET discord_id = NULL, discord_username = NULL, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"`,
         [userId]
       );
       return res.rows[0] || null;
     },
 
-    async updateSchedule({ userId, schedule }) {
+    async updateSchedule({ userId, schedule, lock }) {
       await ensureSchema();
       const payload = JSON.stringify(Array.isArray(schedule) ? schedule : []);
       const res = await pool.query(
         `UPDATE users
-           SET schedule_json = $2, updated_at = NOW()
+           SET schedule_json = $2, schedule_locked = $3, updated_at = NOW()
          WHERE id = $1
-         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
-        [userId, payload]
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"`,
+        [userId, payload, Boolean(lock)]
       );
       return res.rows[0] || null;
     },
