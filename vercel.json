@@ -12,6 +12,7 @@
     { "source": "/forgot-password", "destination": "/frontend/forgot-password.html" },
     { "source": "/reset-password", "destination": "/frontend/reset-password.html" },
     { "source": "/announcements", "destination": "/frontend/announcements.html" },
+    { "source": "/schedule", "destination": "/frontend/schedule.html" },
     { "source": "/teacher/login", "destination": "/frontend/teacher/login.html" },
     { "source": "/login", "destination": "/frontend/index.html" },
     { "source": "/", "destination": "/frontend/index.html" },

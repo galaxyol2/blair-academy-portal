@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Announcements</title>
-    <meta name="description" content="Announcements." />
+    <title>Schedule</title>
+    <meta name="description" content="Your semester schedule." />
     <link rel="icon" type="image/png" href="./assets/logo.png?v=1" />
     <link rel="apple-touch-icon" href="./assets/logo.png?v=1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -33,14 +33,7 @@
     <a class="skip-link" href="#main">Skip to content</a>
 
     <div class="video-bg" aria-hidden="true">
-      <video
-        class="video-bg__media"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="metadata"
-      >
+      <video class="video-bg__media" autoplay muted loop playsinline preload="metadata">
         <source src="./assets/Campus.mp4" type="video/mp4" />
       </video>
     </div>
@@ -56,22 +49,11 @@
 
         <form class="portal-search" role="search" aria-label="Search">
           <label class="sr-only" for="q">Search</label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            placeholder="Search portal…"
-            autocomplete="off"
-          />
+          <input id="q" name="q" type="search" placeholder="Search portal..." autocomplete="off" />
         </form>
 
         <div class="portal-header__actions">
-          <button
-            class="sidebar-toggle"
-            type="button"
-            aria-expanded="false"
-            aria-controls="sidebar"
-          >
+          <button class="sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebar">
             Menu
           </button>
           <div class="portal-user">
@@ -86,8 +68,7 @@
               <span class="portal-user__name" data-user-name>Student</span>
             </button>
             <div id="user-menu" class="user-menu" role="menu" data-user-menu hidden>
-              <a class="user-menu__item" role="menuitem" href="/settings" data-settings
-                >Settings</a>
+              <a class="user-menu__item" role="menuitem" href="/settings" data-settings>Settings</a>
               <button
                 class="user-menu__item user-menu__item--danger"
                 role="menuitem"
@@ -106,8 +87,8 @@
       <aside id="sidebar" class="portal-sidebar" aria-label="Sidebar">
         <nav class="portal-nav" aria-label="Portal">
           <a class="portal-nav__link" href="/dashboard">Home</a>
-          <a class="portal-nav__link is-active" href="/announcements">Announcements</a>
-          <a class="portal-nav__link" href="/schedule">Schedule</a>
+          <a class="portal-nav__link" href="/announcements">Announcements</a>
+          <a class="portal-nav__link is-active" href="/schedule">Schedule</a>
           <a class="portal-nav__link" href="/grades">Grades</a>
           <a class="portal-nav__link" href="/settings">Settings</a>
         </nav>
@@ -120,20 +101,19 @@
         <div class="container portal-main__inner">
           <div class="portal-titlebar">
             <div>
-              <p class="portal-eyebrow">Updates</p>
-              <h1 class="portal-title">Announcements</h1>
+              <p class="portal-eyebrow">Academics</p>
+              <h1 class="portal-title">Semester 1 schedule</h1>
             </div>
           </div>
 
-          <section class="portal-section" aria-label="Announcements feed">
+          <section class="portal-section" aria-label="Semester 1 classes">
             <div class="widget">
               <div class="widget__header">
-                <h2 class="widget__title">All announcements</h2>
+                <h2 class="widget__title">Classes</h2>
                 <a class="widget__link" href="/dashboard">Back</a>
               </div>
-              <div class="feed" data-announcements-list>
-                <p class="empty-state" data-announcements-empty>Loading…</p>
-              </div>
+              <p class="tile__text" data-schedule-status>Loading schedule...</p>
+              <ul class="schedule-list" data-schedule-list hidden></ul>
             </div>
           </section>
         </div>
