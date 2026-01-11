@@ -812,14 +812,28 @@ function buildClassroomsRouter() {
   router.post("/", requireAuth, requireTeacher, async (req, res) => {
     const name = String(req.body?.name || "").trim();
     const section = String(req.body?.section || "").trim();
+    const creditsRaw = String(req.body?.credits ?? "").trim();
     if (!name) return res.status(400).json({ error: "Name is required" });
     if (name.length > 120) return res.status(400).json({ error: "Name is too long" });
     if (section.length > 60) return res.status(400).json({ error: "Section is too long" });
+
+    let credits;
+    if (creditsRaw) {
+      const parsed = Number(creditsRaw);
+      if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+        return res.status(400).json({ error: "Credits must be a whole number" });
+      }
+      if (parsed < 1 || parsed > 6) {
+        return res.status(400).json({ error: "Credits must be between 1 and 6" });
+      }
+      credits = parsed;
+    }
 
     const classroom = await classroomsStore.create({
       teacherId: req.userId,
       name,
       section,
+      credits,
     });
     res.status(201).json({ item: classroom });
   });

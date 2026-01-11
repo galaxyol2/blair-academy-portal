@@ -444,7 +444,12 @@ async function loadTeacherClassroomDetails() {
     if (titleEl) titleEl.textContent = className;
     const section = String(c.section || "").trim();
     const joinCode = String(c.joinCode || "").trim();
-    metaEl.textContent = `${section ? `${section} - ` : ""}Join code: ${joinCode || "—"}`;
+    const credits = Number(c.credits);
+    const metaParts = [];
+    if (section) metaParts.push(section);
+    if (Number.isFinite(credits)) metaParts.push(`${credits} credits`);
+    const prefix = metaParts.length ? `${metaParts.join(" - ")} - ` : "";
+    metaEl.textContent = `${prefix}Join code: ${joinCode || "N/A"}`;
     if (termEl) termEl.textContent = section || " ";
   } catch (err) {
     nameEl.textContent = "Classroom not found";
@@ -477,7 +482,11 @@ async function loadStudentClassroomDetails() {
     nameEl.textContent = className;
     if (titleEl) titleEl.textContent = className;
     const section = String(c.section || "").trim();
-    metaEl.textContent = section ? section : "";
+    const credits = Number(c.credits);
+    const metaParts = [];
+    if (section) metaParts.push(section);
+    if (Number.isFinite(credits)) metaParts.push(`${credits} credits`);
+    metaEl.textContent = metaParts.join(" - ");
     if (termEl) termEl.textContent = section || " ";
   } catch (err) {
     nameEl.textContent = "Classroom not found";
@@ -1105,6 +1114,97 @@ function renderStudentGradesSummary(container, items) {
     return;
   }
 
+  const creditsFromItem = (item) => {
+    const n = Number(item?.credits);
+    if (!Number.isFinite(n)) return 3;
+    const rounded = Math.round(n);
+    if (rounded < 1 || rounded > 6) return 3;
+    return rounded;
+  };
+
+  const gradePointsFromLetter = (letter) => {
+    const l = String(letter || "").trim().toUpperCase();
+    switch (l) {
+      case "A+":
+      case "A":
+        return 4.0;
+      case "A-":
+        return 3.7;
+      case "B+":
+        return 3.3;
+      case "B":
+        return 3.0;
+      case "B-":
+        return 2.7;
+      case "C+":
+        return 2.3;
+      case "C":
+        return 2.0;
+      case "C-":
+        return 1.7;
+      case "D+":
+        return 1.3;
+      case "D":
+        return 1.0;
+      case "D-":
+        return 0.7;
+      case "F":
+        return 0.0;
+      default:
+        return null;
+    }
+  };
+
+  let totalCredits = 0;
+  let gradedCredits = 0;
+  let qualityPoints = 0;
+
+  for (const item of items) {
+    const credits = creditsFromItem(item);
+    totalCredits += credits;
+    const points = gradePointsFromLetter(item?.letter);
+    if (points !== null && item?.percent !== null && item?.percent !== "") {
+      gradedCredits += credits;
+      qualityPoints += points * credits;
+    }
+  }
+
+  const gpa = gradedCredits ? Math.round((qualityPoints / gradedCredits) * 100) / 100 : null;
+
+  const summary = document.createElement("div");
+  summary.className = "grade-summary";
+
+  const summaryHeader = document.createElement("div");
+  summaryHeader.className = "grade-summary__header";
+
+  const summaryTitle = document.createElement("h3");
+  summaryTitle.className = "grade-summary__title";
+  summaryTitle.textContent = "Term GPA";
+
+  const summaryMeta = document.createElement("p");
+  summaryMeta.className = "grade-summary__meta";
+  summaryMeta.textContent = "4.0 scale";
+
+  summaryHeader.appendChild(summaryTitle);
+  summaryHeader.appendChild(summaryMeta);
+  summary.appendChild(summaryHeader);
+
+  const summaryBody = document.createElement("div");
+  summaryBody.className = "grade-summary__body";
+
+  const summaryBig = document.createElement("p");
+  summaryBig.className = "grade-summary__big";
+  summaryBig.textContent = gpa === null ? "GPA N/A" : `GPA ${gpa.toFixed(2)}`;
+  summaryBody.appendChild(summaryBig);
+
+  const summaryPoints = document.createElement("p");
+  summaryPoints.className = "grade-summary__points";
+  summaryPoints.textContent = `Credits: ${totalCredits} total, ${gradedCredits} graded. Quality points: ${qualityPoints.toFixed(2)}`;
+  summaryBody.appendChild(summaryPoints);
+  summary.appendChild(summaryBody);
+
+  container.appendChild(summary);
+
   const grid = document.createElement("div");
   grid.className = "tile-grid tile-grid--compact tile-grid--rows";
 
@@ -1113,9 +1213,20 @@ function renderStudentGradesSummary(container, items) {
     link.className = "tile tile--compact tile--row grade-tile";
     link.href = `${studentClassroomUrl(item.id)}#grades`;
 
+    const left = document.createElement("div");
+    left.className = "tile__left";
+
     const name = document.createElement("div");
     name.className = "grade-tile__name";
     name.textContent = String(item.name || "Untitled");
+
+    const credits = creditsFromItem(item);
+    const meta = document.createElement("div");
+    meta.className = "grade-tile__meta";
+    meta.textContent = `${credits} credits`;
+
+    left.appendChild(name);
+    left.appendChild(meta);
 
     const grade = document.createElement("div");
     grade.className = "grade-tile__grade";
@@ -1134,7 +1245,7 @@ function renderStudentGradesSummary(container, items) {
     grade.appendChild(letter);
     grade.appendChild(percent);
 
-    link.appendChild(name);
+    link.appendChild(left);
     link.appendChild(grade);
     grid.appendChild(link);
   }
@@ -3110,16 +3221,33 @@ function initTeacherClassroomCreate() {
     const payload = Object.fromEntries(formData.entries());
     const name = String(payload.name || "").trim();
     const section = String(payload.section || "").trim();
+    const creditsRaw = String(payload.credits || "").trim();
 
     if (!name) {
       setFormError(form, "Class name is required.");
       return;
     }
 
+    let credits = null;
+    if (creditsRaw) {
+      const parsed = Number(creditsRaw);
+      if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+        setFormError(form, "Credits must be a whole number.");
+        return;
+      }
+      if (parsed < 1 || parsed > 6) {
+        setFormError(form, "Credits must be between 1 and 6.");
+        return;
+      }
+      credits = parsed;
+    }
+
     try {
+      const body = { name, section };
+      if (credits !== null) body.credits = credits;
       const data = await apiFetch("/api/classrooms", {
         method: "POST",
-        body: JSON.stringify({ name, section }),
+        body: JSON.stringify(body),
       });
       const item = data?.item;
       form.reset();

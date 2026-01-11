@@ -18,6 +18,19 @@ function normalizeString(value, { max = 120 } = {}) {
   return v.length > max ? v.slice(0, max) : v;
 }
 
+function normalizeCredits(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 3;
+  const rounded = Math.round(n);
+  if (rounded < 1 || rounded > 6) return 3;
+  return rounded;
+}
+
+function withCredits(classroom) {
+  if (!classroom) return classroom;
+  return { ...classroom, credits: normalizeCredits(classroom.credits) };
+}
+
 function generateJoinCode() {
   // 8 chars, URL-safe-ish, uppercase for readability.
   return crypto
@@ -40,21 +53,22 @@ function createJsonClassroomsStore() {
   return {
     async getById(id) {
       const db = await readDb();
-      return db.classrooms.find((c) => c.id === id) || null;
+      return withCredits(db.classrooms.find((c) => c.id === id) || null);
     },
 
     async findByJoinCode(joinCode) {
       const code = String(joinCode || "").trim().toUpperCase();
       if (!code) return null;
       const db = await readDb();
-      return db.classrooms.find((c) => String(c.joinCode || "").toUpperCase() === code) || null;
+      return withCredits(
+        db.classrooms.find((c) => String(c.joinCode || "").toUpperCase() === code) || null
+      );
     },
 
     async getByIdForTeacher({ teacherId, id }) {
       const db = await readDb();
-      return (
-        db.classrooms.find((c) => c.id === id && c.teacherId === teacherId) ||
-        null
+      return withCredits(
+        db.classrooms.find((c) => c.id === id && c.teacherId === teacherId) || null
       );
     },
 
@@ -62,10 +76,11 @@ function createJsonClassroomsStore() {
       const db = await readDb();
       return [...db.classrooms]
         .filter((c) => c.teacherId === teacherId)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .map(withCredits);
     },
 
-    async create({ teacherId, name, section }) {
+    async create({ teacherId, name, section, credits }) {
       const db = await readDb();
       const now = new Date().toISOString();
 
@@ -80,6 +95,7 @@ function createJsonClassroomsStore() {
         teacherId,
         name: normalizeString(name, { max: 120 }),
         section: normalizeString(section, { max: 60 }),
+        credits: normalizeCredits(credits),
         joinCode,
         createdAt: now,
       };
@@ -94,7 +110,7 @@ function createJsonClassroomsStore() {
       if (idx === -1) return null;
       const [deleted] = db.classrooms.splice(idx, 1);
       await writeDb(db);
-      return deleted || null;
+      return withCredits(deleted) || null;
     },
   };
 }
@@ -120,10 +136,12 @@ function createPgClassroomsStore() {
         teacher_id TEXT NOT NULL,
         name TEXT NOT NULL,
         section TEXT NOT NULL DEFAULT '',
+        credits INT NOT NULL DEFAULT 3,
         join_code TEXT NOT NULL UNIQUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+    await pool.query(`ALTER TABLE classrooms ADD COLUMN IF NOT EXISTS credits INT NOT NULL DEFAULT 3;`);
     schemaReady = true;
   }
 
@@ -135,6 +153,7 @@ function createPgClassroomsStore() {
                 teacher_id AS "teacherId",
                 name,
                 section,
+                credits,
                 join_code AS "joinCode",
                 created_at AS "createdAt"
            FROM classrooms
@@ -142,7 +161,7 @@ function createPgClassroomsStore() {
           LIMIT 1`,
         [id]
       );
-      return res.rows[0] || null;
+      return res.rows[0] ? withCredits(res.rows[0]) : null;
     },
 
     async findByJoinCode(joinCode) {
@@ -154,6 +173,7 @@ function createPgClassroomsStore() {
                 teacher_id AS "teacherId",
                 name,
                 section,
+                credits,
                 join_code AS "joinCode",
                 created_at AS "createdAt"
            FROM classrooms
@@ -161,7 +181,7 @@ function createPgClassroomsStore() {
           LIMIT 1`,
         [code]
       );
-      return res.rows[0] || null;
+      return res.rows[0] ? withCredits(res.rows[0]) : null;
     },
 
     async getByIdForTeacher({ teacherId, id }) {
@@ -171,6 +191,7 @@ function createPgClassroomsStore() {
                 teacher_id AS "teacherId",
                 name,
                 section,
+                credits,
                 join_code AS "joinCode",
                 created_at AS "createdAt"
            FROM classrooms
@@ -178,7 +199,7 @@ function createPgClassroomsStore() {
           LIMIT 1`,
         [id, teacherId]
       );
-      return res.rows[0] || null;
+      return res.rows[0] ? withCredits(res.rows[0]) : null;
     },
 
     async listByTeacher({ teacherId }) {
@@ -188,6 +209,7 @@ function createPgClassroomsStore() {
                 teacher_id AS "teacherId",
                 name,
                 section,
+                credits,
                 join_code AS "joinCode",
                 created_at AS "createdAt"
            FROM classrooms
@@ -195,30 +217,32 @@ function createPgClassroomsStore() {
           ORDER BY created_at DESC`,
         [teacherId]
       );
-      return res.rows;
+      return res.rows.map(withCredits);
     },
 
-    async create({ teacherId, name, section }) {
+    async create({ teacherId, name, section, credits }) {
       await ensureSchema();
       const id = crypto.randomUUID();
       const cleanedName = normalizeString(name, { max: 120 });
       const cleanedSection = normalizeString(section, { max: 60 });
+      const cleanedCredits = normalizeCredits(credits);
 
       for (let i = 0; i < 6; i += 1) {
         const joinCode = generateJoinCode();
         try {
           const res = await pool.query(
-            `INSERT INTO classrooms (id, teacher_id, name, section, join_code)
-             VALUES ($1, $2, $3, $4, $5)
+            `INSERT INTO classrooms (id, teacher_id, name, section, credits, join_code)
+             VALUES ($1, $2, $3, $4, $5, $6)
              RETURNING id,
                        teacher_id AS "teacherId",
                        name,
                        section,
+                       credits,
                        join_code AS "joinCode",
                        created_at AS "createdAt"`,
-            [id, teacherId, cleanedName, cleanedSection, joinCode]
+            [id, teacherId, cleanedName, cleanedSection, cleanedCredits, joinCode]
           );
-          return res.rows[0];
+          return withCredits(res.rows[0]);
         } catch (err) {
           if (err && err.code === "23505") continue; // unique violation (join code)
           throw err;
@@ -237,11 +261,12 @@ function createPgClassroomsStore() {
                     teacher_id AS "teacherId",
                     name,
                     section,
+                    credits,
                     join_code AS "joinCode",
                     created_at AS "createdAt"`,
         [id, teacherId]
       );
-      return res.rows[0] || null;
+      return res.rows[0] ? withCredits(res.rows[0]) : null;
     },
   };
 }

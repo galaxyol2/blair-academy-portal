@@ -53,7 +53,7 @@ function buildStudentClassroomsRouter() {
     for (const m of memberships) {
       const c = await classroomsStore.getById(m.classroomId);
       if (!c) continue;
-      classrooms.push({ id: c.id, name: c.name, section: c.section });
+      classrooms.push({ id: c.id, name: c.name, section: c.section, credits: c.credits });
     }
     res.json({ items: classrooms });
   });
@@ -110,6 +110,7 @@ function buildStudentClassroomsRouter() {
         id: classroom.id,
         name: classroom.name,
         section: classroom.section,
+        credits: classroom.credits,
         percent: percent == null ? null : Math.round(percent),
         letter: percent == null ? "N/A" : letterFromPercent(percent),
       });
@@ -123,7 +124,13 @@ function buildStudentClassroomsRouter() {
     const classroom = await classroomsStore.getById(req.classroomId);
     if (!classroom) return res.status(404).json({ error: "Classroom not found" });
     res.json({
-      item: { id: classroom.id, name: classroom.name, section: classroom.section, joinCode: classroom.joinCode },
+      item: {
+        id: classroom.id,
+        name: classroom.name,
+        section: classroom.section,
+        credits: classroom.credits,
+        joinCode: classroom.joinCode,
+      },
     });
   });
 

@@ -648,6 +648,15 @@ a:hover {
   max-width: 560px;
 }
 
+.grade-tile__meta {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 28, 31, 0.55);
+}
+
 .grade-tile__grade {
   text-align: right;
   min-width: 5.25rem;
