@@ -21,13 +21,17 @@ const registration = new SlashCommandBuilder()
   .setName("registration")
   .setDescription("Start your student registration and pick classes.");
 
+const purgeDm = new SlashCommandBuilder()
+  .setName("purge_dm")
+  .setDescription("Delete bot messages from your DMs.");
+
 async function main() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(appId, guildId), {
-    body: [registration.toJSON()],
+    body: [registration.toJSON(), purgeDm.toJSON()],
   });
   // eslint-disable-next-line no-console
-  console.log("Registered /registration");
+  console.log("Registered /registration and /purge_dm");
 }
 
 if (require.main === module) {

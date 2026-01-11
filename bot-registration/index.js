@@ -109,6 +109,37 @@ function buildSelectionSummary(selections) {
   ].join("\n");
 }
 
+async function purgeBotMessages(channel, { keepMessageId } = {}) {
+  if (!channel || typeof channel.messages?.fetch !== "function") return 0;
+  let deleted = 0;
+  let beforeId = null;
+
+  while (true) {
+    const batch = await channel.messages.fetch({
+      limit: 100,
+      ...(beforeId ? { before: beforeId } : {}),
+    });
+    if (!batch.size) break;
+
+    for (const msg of batch.values()) {
+      if (msg?.author?.id !== client.user?.id) continue;
+      if (keepMessageId && msg.id === keepMessageId) continue;
+      try {
+        await msg.delete();
+        deleted += 1;
+      } catch (err) {
+        debugLog("dm:purge:delete-failed", { message: err?.message || String(err) });
+      }
+    }
+
+    beforeId = batch.last()?.id;
+    if (batch.size < 100) break;
+  }
+
+  debugLog("dm:purge:done", { deleted });
+  return deleted;
+}
+
 async function updateSchedule({ discordId, classes }) {
   debugLog("schedule:update:start", { discordId, classesCount: classes.length });
   const res = await fetch(SCHEDULE_UPDATE_URL, {
@@ -206,7 +237,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
       channelId: interaction.channelId || null,
     });
     if (interaction.isChatInputCommand()) {
-      if (interaction.commandName !== "registration") return;
+      if (interaction.commandName !== "registration" && interaction.commandName !== "purge_dm") return;
+
+      if (interaction.commandName === "purge_dm") {
+        if (!canUse(interaction)) {
+          await interaction.reply(ephemeralReply("You don't have permission to use this command."));
+          return;
+        }
+
+        await interaction.reply(ephemeralReply("Cleaning your DMs..."));
+        try {
+          const dm = await interaction.user.createDM();
+          const deleted = await purgeBotMessages(dm);
+          await interaction.editReply(`Done. Deleted ${deleted} bot messages from your DMs.`);
+        } catch (err) {
+          await interaction.editReply(
+            err?.message ? `Unable to clean DMs: ${err.message}` : "Unable to clean DMs."
+          );
+        }
+        return;
+      }
 
       if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
         debugLog("interaction:registration:blocked", { reason: "guild-mismatch" });
@@ -380,9 +430,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await updateSchedule({ discordId: interaction.user.id, classes: combined });
         registrationSelections.delete(interaction.user.id);
         await interaction.update({
-          content: "Schedule locked for Semester 1. You cannot change it until Semester 2.",
+          content: "Finalizing your schedule...",
           components: [],
         });
+
+        const dm = await interaction.user.createDM();
+        await purgeBotMessages(dm);
+        await dm.send(
+          "Schedule locked for Semester 1. You cannot change it until Semester 2."
+        );
       } catch (err) {
         const msg = String(err?.message || "Unable to save schedule.");
         if (/user not found/i.test(msg)) {
