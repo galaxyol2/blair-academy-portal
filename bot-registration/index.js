@@ -187,7 +187,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isAnySelectMenu()) {
       if (interaction.customId !== "registration_classes") return;
       const selected = interaction.values || [];
-      debugLog("interaction:registration:selected", { count: selected.length });
+      debugLog("interaction:registration:selected", { count: selected.length, values: selected });
       if (selected.length === 0) {
         await interaction.reply(ephemeralReply("Please choose at least one class."));
         return;
