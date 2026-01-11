@@ -18,20 +18,6 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
-function mapUserPayload(user) {
-  if (!user) return null;
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role || "student",
-    discordId: user.discordId || null,
-    discordUsername: user.discordUsername || null,
-    schedule: Array.isArray(user.schedule) ? user.schedule : [],
-    scheduleLocked: Boolean(user.scheduleLocked),
-  };
-}
-
 function buildAuthRouter() {
   const router = express.Router();
 
@@ -154,6 +140,60 @@ function buildAuthRouter() {
   const catalogByName = new Map(
     scheduleCatalog.map((item) => [item.name.toLowerCase(), item])
   );
+
+  function normalizeScheduleForResponse(input) {
+    if (!Array.isArray(input)) return [];
+    const items = [];
+    for (const entry of input) {
+      if (!entry) continue;
+      if (typeof entry === "string") {
+        const key = entry.trim().toLowerCase();
+        const match = catalogByName.get(key);
+        if (match) {
+          items.push({ ...match });
+        } else {
+          items.push({ name: entry });
+        }
+        continue;
+      }
+      if (typeof entry === "object") {
+        const name = String(entry.name || "").trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        const match = catalogByName.get(key);
+        if (match) {
+          items.push({
+            name: match.name || name,
+            time: match.time || "",
+            instructor: match.instructor || "",
+            category: match.category || "",
+          });
+        } else {
+          items.push({
+            name,
+            time: String(entry.time || "").trim(),
+            instructor: String(entry.instructor || "").trim(),
+            category: String(entry.category || "").trim(),
+          });
+        }
+      }
+    }
+    return items;
+  }
+
+  function mapUserPayload(user) {
+    if (!user) return null;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role || "student",
+      discordId: user.discordId || null,
+      discordUsername: user.discordUsername || null,
+      schedule: normalizeScheduleForResponse(user.schedule),
+      scheduleLocked: Boolean(user.scheduleLocked),
+    };
+  }
 
   function normalizeSchedule(input) {
     if (!Array.isArray(input)) return [];
@@ -333,7 +373,7 @@ function buildAuthRouter() {
   router.get("/schedule", requireAuth, async (req, res) => {
     const user = req.user;
     res.json({
-      schedule: Array.isArray(user?.schedule) ? user.schedule : [],
+      schedule: normalizeScheduleForResponse(user?.schedule),
       scheduleLocked: Boolean(user?.scheduleLocked),
     });
   });
