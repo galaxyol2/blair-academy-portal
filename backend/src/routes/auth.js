@@ -418,6 +418,17 @@ function buildAuthRouter() {
     });
   });
 
+  router.post("/schedule/unlock", requireAdminKey, async (req, res) => {
+    const discordId = String(req.body?.discordId || "").trim();
+    if (!discordId) return res.status(400).json({ error: "discordId is required" });
+
+    const user = await usersStore.findByDiscordId(discordId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const updated = await usersStore.setScheduleLock({ userId: user.id, locked: false });
+    res.json({ ok: true, scheduleLocked: Boolean(updated?.scheduleLocked) });
+  });
+
   router.get("/discord/link", requireAuth, async (req, res) => {
     try {
       const url = buildDiscordAuthorizeUrl(req.user.id);

@@ -146,6 +146,21 @@ function createJsonUsersStore() {
       await writeDb(db);
       return db.users[idx];
     },
+
+    async setScheduleLock({ userId, locked }) {
+      const id = String(userId || "").trim();
+      if (!id) return null;
+      const db = await readDb();
+      const idx = db.users.findIndex((u) => u.id === id);
+      if (idx === -1) return null;
+      db.users[idx] = {
+        ...db.users[idx],
+        scheduleLocked: Boolean(locked),
+        updatedAt: new Date().toISOString(),
+      };
+      await writeDb(db);
+      return db.users[idx];
+    },
   };
 }
 
@@ -310,6 +325,18 @@ function createPgUsersStore() {
          WHERE id = $1
          RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"`,
         [userId, payload, Boolean(lock)]
+      );
+      return res.rows[0] || null;
+    },
+
+    async setScheduleLock({ userId, locked }) {
+      await ensureSchema();
+      const res = await pool.query(
+        `UPDATE users
+           SET schedule_locked = $2, updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule", schedule_locked AS "scheduleLocked"`,
+        [userId, Boolean(locked)]
       );
       return res.rows[0] || null;
     },
