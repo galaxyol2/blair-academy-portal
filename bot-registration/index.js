@@ -8,6 +8,7 @@ const {
   EmbedBuilder,
   Events,
   GatewayIntentBits,
+  MessageFlags,
   PermissionsBitField,
   StringSelectMenuBuilder,
 } = require("discord.js");
@@ -147,22 +148,41 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.customId !== "registration_classes") return;
     const selected = interaction.values || [];
     if (selected.length === 0) {
-      await interaction.reply({ content: "Please choose at least one class.", ephemeral: true });
+      const reply = { content: "Please choose at least one class." };
+      if (interaction.inGuild()) reply.flags = MessageFlags.Ephemeral;
+      await interaction.reply(reply);
       return;
     }
 
+    const reply = { content: "Saving your schedule..." };
+    if (interaction.inGuild()) reply.flags = MessageFlags.Ephemeral;
+
+    let ack = "reply";
     try {
-      await interaction.deferUpdate();
+      await interaction.reply(reply);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to acknowledge registration select menu", err);
-      return;
+      ack = "deferUpdate";
+      try {
+        await interaction.deferUpdate();
+      } catch (innerErr) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to acknowledge registration select menu", err, innerErr);
+        return;
+      }
     }
     try {
       await updateSchedule({ discordId: interaction.user.id, classes: selected });
-      await interaction.followUp({ content: "Schedule saved to your portal." });
+      if (ack === "reply") {
+        await interaction.editReply({ content: "Schedule saved to your portal." });
+      } else {
+        await interaction.followUp({ content: "Schedule saved to your portal." });
+      }
     } catch (err) {
-      await interaction.followUp({ content: `Failed to save schedule: ${err.message}` });
+      if (ack === "reply") {
+        await interaction.editReply({ content: `Failed to save schedule: ${err.message}` });
+      } else {
+        await interaction.followUp({ content: `Failed to save schedule: ${err.message}` });
+      }
     }
   }
 });
