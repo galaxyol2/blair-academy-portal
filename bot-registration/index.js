@@ -35,18 +35,10 @@ const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
 
 const classesCatalog = [
   { label: "Nutrition & Healthy Living", value: "Nutrition & Healthy Living" },
-  { label: "Photography & Digital Imaging", value: "Photography & Digital Imaging" },
-  { label: "Introduction to Journalism", value: "Introduction to Journalism" },
   { label: "Introduction to Psychology", value: "Introduction to Psychology" },
-  { label: "Sexual & Reproductive Health", value: "Sexual & Reproductive Health" },
   { label: "Literature & Film", value: "Literature & Film" },
-  { label: "Influencer & Creator Marketing", value: "Influencer & Creator Marketing" },
-  { label: "Fitness & Strength Training", value: "Fitness & Strength Training" },
-  { label: "Introduction Of Arts I", value: "Introduction Of Arts I" },
-  { label: "Investigative Journalism", value: "Investigative Journalism" },
-  { label: "Music Ensembles", value: "Music Ensembles" },
-  { label: "News Writing & Reporting", value: "News Writing & Reporting" },
   { label: "Family Law", value: "Family Law" },
+  { label: "News Writing & Reporting", value: "News Writing & Reporting" },
 ];
 
 function canUse(interaction) {
@@ -112,7 +104,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       .setCustomId("registration_classes")
       .setPlaceholder("Select your classes")
       .setMinValues(1)
-      .setMaxValues(Math.min(8, classesCatalog.length))
+      .setMaxValues(Math.min(4, classesCatalog.length))
       .addOptions(classesCatalog);
 
     const row = new ActionRowBuilder().addComponents(menu);
