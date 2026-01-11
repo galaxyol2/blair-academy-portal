@@ -99,10 +99,10 @@ function buildSelectionSummary(selections) {
   return [
     "Confirm your schedule selections:",
     "",
-    "Courses:",
+    "Courses (4 required):",
     formatSelectionList(selections.courses),
     "",
-    "Electives:",
+    "Electives (2 required):",
     formatSelectionList(selections.electives),
     "",
     "Lock your schedule to finalize for Semester 1.",
@@ -241,14 +241,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const coursesMenu = new StringSelectMenuBuilder()
         .setCustomId("registration_courses")
         .setPlaceholder("Select your courses")
-        .setMinValues(1)
+        .setMinValues(Math.min(4, coursesCatalog.length))
         .setMaxValues(Math.min(4, coursesCatalog.length))
         .addOptions(coursesCatalog);
 
       const electivesMenu = new StringSelectMenuBuilder()
         .setCustomId("registration_electives")
         .setPlaceholder("Select up to 2 electives")
-        .setMinValues(1)
+        .setMinValues(Math.min(2, electivesCatalog.length))
         .setMaxValues(Math.min(2, electivesCatalog.length))
         .addOptions(electivesCatalog);
 
@@ -308,13 +308,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const hasElectives = selections.electives.length > 0;
       if (!hasCourses) {
         await interaction.user.send(
-          "Electives saved. Select your courses to finish registration."
+          "Electives saved. Select exactly 4 courses to finish registration."
         );
         return;
       }
       if (!hasElectives) {
         await interaction.user.send(
-          "Courses saved. Select your electives to finish registration."
+          "Courses saved. Select exactly 2 electives to finish registration."
         );
         return;
       }
@@ -348,14 +348,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (!selections.courses.length) {
         await interaction.update({
-          content: "Select your courses before locking your schedule.",
+          content: "Select exactly 4 courses before locking your schedule.",
           components: [],
         });
         return;
       }
       if (!selections.electives.length) {
         await interaction.update({
-          content: "Select your electives before locking your schedule.",
+          content: "Select exactly 2 electives before locking your schedule.",
+          components: [],
+        });
+        return;
+      }
+      if (selections.courses.length !== 4) {
+        await interaction.update({
+          content: "Please select exactly 4 courses before locking your schedule.",
+          components: [],
+        });
+        return;
+      }
+      if (selections.electives.length !== 2) {
+        await interaction.update({
+          content: "Please select exactly 2 electives before locking your schedule.",
           components: [],
         });
         return;
