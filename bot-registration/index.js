@@ -34,6 +34,9 @@ const SCHEDULE_UPDATE_URL = requiredEnvAny(["SCHEDULE_UPDATE_URL", "SCHEDULE_API
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
+const DEBUG_REGISTRATION = /^(1|true|yes)$/i.test(
+  String(process.env.REGISTRATION_DEBUG || "").trim()
+);
 
 const classesCatalog = [
   { label: "Nutrition & Healthy Living", value: "Nutrition & Healthy Living" },
@@ -55,7 +58,19 @@ function ephemeralReply(content) {
   return { content, flags: MessageFlags.Ephemeral };
 }
 
+function debugLog(message, details) {
+  if (!DEBUG_REGISTRATION) return;
+  if (details !== undefined) {
+    // eslint-disable-next-line no-console
+    console.log(`[debug] ${message}`, details);
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.log(`[debug] ${message}`);
+}
+
 async function updateSchedule({ discordId, classes }) {
+  debugLog("schedule:update:start", { discordId, classesCount: classes.length });
   const res = await fetch(SCHEDULE_UPDATE_URL, {
     method: "POST",
     headers: {
@@ -72,6 +87,7 @@ async function updateSchedule({ discordId, classes }) {
     // ignore
   }
 
+  debugLog("schedule:update:response", { status: res.status, ok: res.ok });
   if (!res.ok) {
     const msg = (json && (json.error || json.message)) || `Request failed (${res.status})`;
     throw new Error(msg);
@@ -117,20 +133,31 @@ process.on("uncaughtException", (err) => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
+    debugLog("interaction:received", {
+      type: interaction.type,
+      command: interaction.commandName || null,
+      customId: interaction.customId || null,
+      userId: interaction.user?.id || null,
+      guildId: interaction.guildId || null,
+      channelId: interaction.channelId || null,
+    });
     if (interaction.isChatInputCommand()) {
       if (interaction.commandName !== "registration") return;
 
       if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
+        debugLog("interaction:registration:blocked", { reason: "guild-mismatch" });
         await interaction.reply(ephemeralReply("This command isn't available here."));
         return;
       }
 
       if (!canUse(interaction)) {
+        debugLog("interaction:registration:blocked", { reason: "permission" });
         await interaction.reply(ephemeralReply("You don't have permission to use this command."));
         return;
       }
 
       await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
+      debugLog("interaction:registration:dm-prompted");
 
       const menu = new StringSelectMenuBuilder()
         .setCustomId("registration_classes")
@@ -147,7 +174,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       try {
         await interaction.user.send({ embeds: [embed], components: [row] });
+        debugLog("interaction:registration:dm-sent");
       } catch (err) {
+        debugLog("interaction:registration:dm-failed", { message: err?.message || String(err) });
         await interaction.followUp(
           ephemeralReply("I couldn't DM you. Please enable DMs and try again.")
         );
@@ -158,6 +187,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isAnySelectMenu()) {
       if (interaction.customId !== "registration_classes") return;
       const selected = interaction.values || [];
+      debugLog("interaction:registration:selected", { count: selected.length });
       if (selected.length === 0) {
         await interaction.reply(ephemeralReply("Please choose at least one class."));
         return;
@@ -165,6 +195,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       try {
         await interaction.deferUpdate();
+        debugLog("interaction:registration:ack");
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error("Failed to acknowledge registration select menu", err);
