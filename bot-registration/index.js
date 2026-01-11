@@ -175,7 +175,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await updateSchedule({ discordId: interaction.user.id, classes: selected });
         await interaction.user.send("Schedule saved to your portal.");
       } catch (err) {
-        await interaction.user.send(`Failed to save schedule: ${err.message}`);
+        const msg = String(err?.message || "Unable to save schedule.");
+        if (/user not found/i.test(msg)) {
+          await interaction.user.send(
+            "Please connect Discord in your portal Settings first so we can sync your schedule."
+          );
+        } else {
+          await interaction.user.send(`Failed to save schedule: ${msg}`);
+        }
       } finally {
         if (interaction.message?.components?.length) {
           try {
