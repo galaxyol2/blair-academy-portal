@@ -146,7 +146,7 @@ function buildAuthRouter() {
     { name: "Fitness & Strength Training", time: "", instructor: "Professor Deuce Jackson", category: "elective" },
     { name: "Introduction of Art I", time: "", instructor: "Professor Kyro", category: "elective" },
     { name: "Investigative Journalism", time: "", instructor: "Professor Ski Mask", category: "course" },
-    { name: "Music Ensembles", time: "", instructor: "Professor Yabitchoav aka Jordyn", category: "elective" },
+    { name: "Music Ensembles", time: "", instructor: "Professor Yabitchoav", category: "elective" },
     { name: "News Writing & Reporting", time: "", instructor: "Professor Gigi", category: "course" },
     { name: "Family Law", time: "", instructor: "Professor Cobain", category: "course" },
   ];
