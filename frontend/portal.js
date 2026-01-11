@@ -1181,27 +1181,47 @@ async function loadStudentSchedule() {
       statusEl.textContent = "No classes selected yet.";
       return;
     }
-    statusEl.textContent = "Your classes";
+    const groups = { course: [], elective: [], other: [] };
     for (const item of items) {
-      const row = document.createElement("li");
-      row.className = "schedule-item";
-
-      const title = document.createElement("div");
-      title.className = "schedule-item__title";
-      title.textContent = String(item.name || "Class");
-
-      const meta = document.createElement("div");
-      meta.className = "schedule-item__meta";
-      const parts = [];
-      if (item.instructor) parts.push(item.instructor);
-      if (item.time) parts.push(item.time);
-      meta.textContent = parts.length ? parts.join(" - ") : "Schedule time pending.";
-
-      row.appendChild(title);
-      row.appendChild(meta);
-      listEl.appendChild(row);
+      const category = String(item?.category || "").trim().toLowerCase();
+      if (category === "elective") groups.elective.push(item);
+      else if (category === "course" || !category) groups.course.push(item);
+      else groups.other.push(item);
     }
-    listEl.hidden = false;
+
+    const addGroup = (label, groupItems) => {
+      if (!groupItems.length) return;
+      const header = document.createElement("li");
+      header.className = "schedule-group";
+      header.textContent = label;
+      listEl.appendChild(header);
+
+      for (const item of groupItems) {
+        const row = document.createElement("li");
+        row.className = "schedule-item";
+
+        const title = document.createElement("div");
+        title.className = "schedule-item__title";
+        title.textContent = String(item.name || "Class");
+
+        const meta = document.createElement("div");
+        meta.className = "schedule-item__meta";
+        const parts = [];
+        if (item.instructor) parts.push(item.instructor);
+        if (item.time) parts.push(item.time);
+        meta.textContent = parts.length ? parts.join(" - ") : "Schedule time pending.";
+
+        row.appendChild(title);
+        row.appendChild(meta);
+        listEl.appendChild(row);
+      }
+    };
+
+    statusEl.textContent = "Your schedule";
+    addGroup("Courses", groups.course);
+    addGroup("Electives", groups.elective);
+    addGroup("Other", groups.other);
+    listEl.hidden = listEl.childElementCount === 0;
   } catch (err) {
     statusEl.textContent = err?.message || "Unable to load schedule.";
   }

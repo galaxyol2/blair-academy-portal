@@ -38,13 +38,22 @@ const DEBUG_REGISTRATION = /^(1|true|yes)$/i.test(
   String(process.env.REGISTRATION_DEBUG || "").trim()
 );
 
-const classesCatalog = [
+const coursesCatalog = [
   { label: "Nutrition & Healthy Living", value: "Nutrition & Healthy Living" },
-  { label: "Introduction to Psychology", value: "Introduction to Psychology" },
+  { label: "Introduction To Psychology", value: "Introduction To Psychology" },
   { label: "Literature & Film", value: "Literature & Film" },
   { label: "Family Law", value: "Family Law" },
   { label: "News Writing & Reporting", value: "News Writing & Reporting" },
 ];
+
+const electivesCatalog = [
+  { label: "Music Ensembles", value: "Music Ensembles" },
+  { label: "Fitness & Strength Training", value: "Fitness & Strength Training" },
+  { label: "Introduction of Art I", value: "Introduction of Art I" },
+  { label: "Sexual & Reproductive Health", value: "Sexual & Reproductive Health" },
+];
+
+const registrationSelections = new Map();
 
 function canUse(interaction) {
   if (ALLOWED_CHANNEL_ID && interaction.channelId !== ALLOWED_CHANNEL_ID) return false;
@@ -67,6 +76,16 @@ function debugLog(message, details) {
   }
   // eslint-disable-next-line no-console
   console.log(`[debug] ${message}`);
+}
+
+function getSelections(userId) {
+  const key = String(userId || "").trim();
+  const fallback = { courses: [], electives: [] };
+  if (!key) return fallback;
+  const existing = registrationSelections.get(key);
+  if (existing) return existing;
+  registrationSelections.set(key, fallback);
+  return fallback;
 }
 
 async function updateSchedule({ discordId, classes }) {
@@ -159,21 +178,31 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
       debugLog("interaction:registration:dm-prompted");
 
-      const menu = new StringSelectMenuBuilder()
-        .setCustomId("registration_classes")
-        .setPlaceholder("Select your classes")
+      const coursesMenu = new StringSelectMenuBuilder()
+        .setCustomId("registration_courses")
+        .setPlaceholder("Select your courses")
         .setMinValues(1)
-        .setMaxValues(Math.min(4, classesCatalog.length))
-        .addOptions(classesCatalog);
+        .setMaxValues(Math.min(4, coursesCatalog.length))
+        .addOptions(coursesCatalog);
 
-      const row = new ActionRowBuilder().addComponents(menu);
+      const electivesMenu = new StringSelectMenuBuilder()
+        .setCustomId("registration_electives")
+        .setPlaceholder("Select up to 2 electives")
+        .setMinValues(0)
+        .setMaxValues(Math.min(2, electivesCatalog.length))
+        .addOptions(electivesCatalog);
+
+      const rows = [
+        new ActionRowBuilder().addComponents(coursesMenu),
+        new ActionRowBuilder().addComponents(electivesMenu),
+      ];
       const embed = new EmbedBuilder()
         .setTitle("Student Registration")
-        .setDescription("Select your classes below. We will sync them to your portal schedule.")
+        .setDescription("Pick your courses and electives. We will sync them to your portal schedule.")
         .setColor(0xd4a017);
 
       try {
-        await interaction.user.send({ embeds: [embed], components: [row] });
+        await interaction.user.send({ embeds: [embed], components: rows });
         debugLog("interaction:registration:dm-sent");
       } catch (err) {
         debugLog("interaction:registration:dm-failed", { message: err?.message || String(err) });
@@ -185,13 +214,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (interaction.isAnySelectMenu()) {
-      if (interaction.customId !== "registration_classes") return;
-      const selected = interaction.values || [];
-      debugLog("interaction:registration:selected", { count: selected.length, values: selected });
-      if (selected.length === 0) {
-        await interaction.reply(ephemeralReply("Please choose at least one class."));
+      if (
+        interaction.customId !== "registration_courses" &&
+        interaction.customId !== "registration_electives"
+      ) {
         return;
       }
+      const selected = interaction.values || [];
+      debugLog("interaction:registration:selected", {
+        menu: interaction.customId,
+        count: selected.length,
+        values: selected,
+      });
 
       try {
         await interaction.deferUpdate();
@@ -202,8 +236,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
+      const selections = getSelections(interaction.user.id);
+      if (interaction.customId === "registration_courses") {
+        selections.courses = selected;
+      } else {
+        selections.electives = selected;
+      }
+      registrationSelections.set(interaction.user.id, selections);
+
+      const hasCourses = selections.courses.length > 0;
+      if (!hasCourses) {
+        await interaction.user.send(
+          "Electives saved. Select your courses to finish registration."
+        );
+        return;
+      }
+
+      const combined = [...selections.courses, ...selections.electives];
       try {
-        await updateSchedule({ discordId: interaction.user.id, classes: selected });
+        await updateSchedule({ discordId: interaction.user.id, classes: combined });
         await interaction.user.send("Schedule saved to your portal.");
       } catch (err) {
         const msg = String(err?.message || "Unable to save schedule.");
@@ -213,14 +264,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           );
         } else {
           await interaction.user.send(`Failed to save schedule: ${msg}`);
-        }
-      } finally {
-        if (interaction.message?.components?.length) {
-          try {
-            await interaction.message.edit({ components: [] });
-          } catch (_err) {
-            // ignore
-          }
         }
       }
     }
