@@ -51,6 +51,10 @@ function canUse(interaction) {
   return true;
 }
 
+function ephemeralReply(content) {
+  return { content, flags: MessageFlags.Ephemeral };
+}
+
 async function updateSchedule({ discordId, classes }) {
   const res = await fetch(SCHEDULE_UPDATE_URL, {
     method: "POST",
@@ -106,19 +110,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.commandName !== "registration") return;
 
     if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
-      await interaction.reply({ content: "This command isn't available here.", ephemeral: true });
+      await interaction.reply(ephemeralReply("This command isn't available here."));
       return;
     }
 
     if (!canUse(interaction)) {
-      await interaction.reply({
-        content: "You don't have permission to use this command.",
-        ephemeral: true,
-      });
+      await interaction.reply(ephemeralReply("You don't have permission to use this command."));
       return;
     }
 
-    await interaction.reply({ content: "Check your DMs to complete registration.", ephemeral: true });
+    await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
 
     const menu = new StringSelectMenuBuilder()
       .setCustomId("registration_classes")
@@ -136,10 +137,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
     try {
       await interaction.user.send({ embeds: [embed], components: [row] });
     } catch (err) {
-      await interaction.followUp({
-        content: "I couldn't DM you. Please enable DMs and try again.",
-        ephemeral: true,
-      });
+      await interaction.followUp(
+        ephemeralReply("I couldn't DM you. Please enable DMs and try again.")
+      );
     }
     return;
   }
@@ -148,22 +148,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.customId !== "registration_classes") return;
     const selected = interaction.values || [];
     if (selected.length === 0) {
-      const reply = { content: "Please choose at least one class." };
-      if (interaction.inGuild()) reply.flags = MessageFlags.Ephemeral;
-      await interaction.reply(reply);
+      await interaction.reply(ephemeralReply("Please choose at least one class."));
       return;
     }
 
-    const reply = { content: "Saving your schedule..." };
-    if (interaction.inGuild()) reply.flags = MessageFlags.Ephemeral;
-
-    let ack = "reply";
+    let acknowledged = false;
     try {
-      await interaction.reply(reply);
+      await interaction.deferUpdate();
+      acknowledged = true;
     } catch (err) {
-      ack = "deferUpdate";
       try {
-        await interaction.deferUpdate();
+        await interaction.reply({ content: "Saving your schedule..." });
+        acknowledged = true;
       } catch (innerErr) {
         // eslint-disable-next-line no-console
         console.error("Failed to acknowledge registration select menu", err, innerErr);
@@ -172,16 +168,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
     try {
       await updateSchedule({ discordId: interaction.user.id, classes: selected });
-      if (ack === "reply") {
-        await interaction.editReply({ content: "Schedule saved to your portal." });
-      } else {
-        await interaction.followUp({ content: "Schedule saved to your portal." });
-      }
+      await interaction.user.send("Schedule saved to your portal.");
     } catch (err) {
-      if (ack === "reply") {
-        await interaction.editReply({ content: `Failed to save schedule: ${err.message}` });
-      } else {
-        await interaction.followUp({ content: `Failed to save schedule: ${err.message}` });
+      await interaction.user.send(`Failed to save schedule: ${err.message}`);
+    } finally {
+      if (acknowledged && interaction.message?.components?.length) {
+        try {
+          await interaction.message.edit({ components: [] });
+        } catch (_err) {
+          // ignore
+        }
       }
     }
   }
