@@ -1,4 +1,5 @@
 const path = require("path");
+const http = require("http");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const {
@@ -76,6 +77,24 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
 });
 
+function startHealthServer() {
+  const rawPort = String(process.env.PORT || "").trim();
+  if (!rawPort) return;
+
+  const port = Number(rawPort);
+  if (!Number.isFinite(port)) return;
+
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    res.end("ok");
+  });
+
+  server.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Health server listening on ${port}`);
+  });
+}
+
 client.once(Events.ClientReady, () => {
   // eslint-disable-next-line no-console
   console.log(`Registration bot ready as ${client.user.tag}`);
@@ -148,4 +167,5 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
+startHealthServer();
 client.login(DISCORD_BOT_TOKEN);
