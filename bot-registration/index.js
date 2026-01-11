@@ -105,81 +105,90 @@ client.once(Events.ClientReady, () => {
   console.log(`Registration bot ready as ${client.user.tag}`);
 });
 
+process.on("unhandledRejection", (err) => {
+  // eslint-disable-next-line no-console
+  console.error("Unhandled rejection", err);
+});
+
+process.on("uncaughtException", (err) => {
+  // eslint-disable-next-line no-console
+  console.error("Uncaught exception", err);
+});
+
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (interaction.isChatInputCommand()) {
-    if (interaction.commandName !== "registration") return;
+  try {
+    if (interaction.isChatInputCommand()) {
+      if (interaction.commandName !== "registration") return;
 
-    if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
-      await interaction.reply(ephemeralReply("This command isn't available here."));
-      return;
-    }
-
-    if (!canUse(interaction)) {
-      await interaction.reply(ephemeralReply("You don't have permission to use this command."));
-      return;
-    }
-
-    await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
-
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId("registration_classes")
-      .setPlaceholder("Select your classes")
-      .setMinValues(1)
-      .setMaxValues(Math.min(4, classesCatalog.length))
-      .addOptions(classesCatalog);
-
-    const row = new ActionRowBuilder().addComponents(menu);
-    const embed = new EmbedBuilder()
-      .setTitle("Student Registration")
-      .setDescription("Select your classes below. We will sync them to your portal schedule.")
-      .setColor(0xd4a017);
-
-    try {
-      await interaction.user.send({ embeds: [embed], components: [row] });
-    } catch (err) {
-      await interaction.followUp(
-        ephemeralReply("I couldn't DM you. Please enable DMs and try again.")
-      );
-    }
-    return;
-  }
-
-  if (interaction.isStringSelectMenu()) {
-    if (interaction.customId !== "registration_classes") return;
-    const selected = interaction.values || [];
-    if (selected.length === 0) {
-      await interaction.reply(ephemeralReply("Please choose at least one class."));
-      return;
-    }
-
-    let acknowledged = false;
-    try {
-      await interaction.deferUpdate();
-      acknowledged = true;
-    } catch (err) {
-      try {
-        await interaction.reply({ content: "Saving your schedule..." });
-        acknowledged = true;
-      } catch (innerErr) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to acknowledge registration select menu", err, innerErr);
+      if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
+        await interaction.reply(ephemeralReply("This command isn't available here."));
         return;
       }
+
+      if (!canUse(interaction)) {
+        await interaction.reply(ephemeralReply("You don't have permission to use this command."));
+        return;
+      }
+
+      await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId("registration_classes")
+        .setPlaceholder("Select your classes")
+        .setMinValues(1)
+        .setMaxValues(Math.min(4, classesCatalog.length))
+        .addOptions(classesCatalog);
+
+      const row = new ActionRowBuilder().addComponents(menu);
+      const embed = new EmbedBuilder()
+        .setTitle("Student Registration")
+        .setDescription("Select your classes below. We will sync them to your portal schedule.")
+        .setColor(0xd4a017);
+
+      try {
+        await interaction.user.send({ embeds: [embed], components: [row] });
+      } catch (err) {
+        await interaction.followUp(
+          ephemeralReply("I couldn't DM you. Please enable DMs and try again.")
+        );
+      }
+      return;
     }
-    try {
-      await updateSchedule({ discordId: interaction.user.id, classes: selected });
-      await interaction.user.send("Schedule saved to your portal.");
-    } catch (err) {
-      await interaction.user.send(`Failed to save schedule: ${err.message}`);
-    } finally {
-      if (acknowledged && interaction.message?.components?.length) {
-        try {
-          await interaction.message.edit({ components: [] });
-        } catch (_err) {
-          // ignore
+
+    if (interaction.isAnySelectMenu()) {
+      if (interaction.customId !== "registration_classes") return;
+      const selected = interaction.values || [];
+      if (selected.length === 0) {
+        await interaction.reply(ephemeralReply("Please choose at least one class."));
+        return;
+      }
+
+      try {
+        await interaction.deferUpdate();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to acknowledge registration select menu", err);
+        return;
+      }
+
+      try {
+        await updateSchedule({ discordId: interaction.user.id, classes: selected });
+        await interaction.user.send("Schedule saved to your portal.");
+      } catch (err) {
+        await interaction.user.send(`Failed to save schedule: ${err.message}`);
+      } finally {
+        if (interaction.message?.components?.length) {
+          try {
+            await interaction.message.edit({ components: [] });
+          } catch (_err) {
+            // ignore
+          }
         }
       }
     }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Interaction handler failed", err);
   }
 });
 
