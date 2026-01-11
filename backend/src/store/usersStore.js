@@ -203,11 +203,12 @@ function createPgUsersStore() {
       await ensureSchema();
       const id = crypto.randomUUID();
       const r = String(role || "student").trim() || "student";
+      const emptySchedule = JSON.stringify([]);
       try {
         const res = await pool.query(
         `INSERT INTO users (id, name, email, password_hash, role, schedule_json) VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
-        [id, name, email, passwordHash, r, []]
+        [id, name, email, passwordHash, r, emptySchedule]
       );
       return res.rows[0] || null;
       } catch (err) {
@@ -299,12 +300,13 @@ function createPgUsersStore() {
 
     async updateSchedule({ userId, schedule }) {
       await ensureSchema();
+      const payload = JSON.stringify(Array.isArray(schedule) ? schedule : []);
       const res = await pool.query(
         `UPDATE users
            SET schedule_json = $2, updated_at = NOW()
          WHERE id = $1
          RETURNING id, name, email, role, password_hash AS "passwordHash", discord_id AS "discordId", discord_username AS "discordUsername", schedule_json AS "schedule"`,
-        [userId, Array.isArray(schedule) ? schedule : []]
+        [userId, payload]
       );
       return res.rows[0] || null;
     },
