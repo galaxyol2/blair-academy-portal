@@ -132,7 +132,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    const ephemeral = interaction.inGuild();
+    try {
+      await interaction.deferReply({ ephemeral });
+    } catch (err) {
+      try {
+        await interaction.reply({ content: "Saving your schedule...", ephemeral });
+      } catch (innerErr) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to acknowledge registration select menu", err, innerErr);
+        return;
+      }
+    }
     try {
       await updateSchedule({ discordId: interaction.user.id, classes: selected });
       await interaction.editReply("Schedule saved to your portal.");
