@@ -36,6 +36,9 @@ const SCHEDULE_UPDATE_URL = requiredEnvAny(["SCHEDULE_UPDATE_URL", "SCHEDULE_API
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
+const SCHEDULE_LOCK_ROLE_ID = String(
+  process.env.SCHEDULE_LOCK_ROLE_ID || "1460087985608458261"
+).trim();
 const REGISTRATION_LOG_GUILD_ID = String(
   process.env.REGISTRATION_LOG_GUILD_ID || "1454366644515246255"
 ).trim();
@@ -84,6 +87,30 @@ function debugLog(message, details) {
   }
   // eslint-disable-next-line no-console
   console.log(`[debug] ${message}`);
+}
+
+async function assignScheduleRole({ userId, guildId, reason }) {
+  if (!SCHEDULE_LOCK_ROLE_ID) return { ok: false, reason: "missing-role" };
+  const targetGuildId = String(guildId || DISCORD_GUILD_ID || "").trim();
+  if (!targetGuildId) return { ok: false, reason: "missing-guild" };
+  if (!userId) return { ok: false, reason: "missing-user" };
+
+  try {
+    const guild = await client.guilds.fetch(targetGuildId);
+    if (!guild) return { ok: false, reason: "guild-not-found" };
+
+    const member = await guild.members.fetch(String(userId));
+    if (!member) return { ok: false, reason: "member-not-found" };
+    if (member.roles.cache.has(SCHEDULE_LOCK_ROLE_ID)) {
+      return { ok: true, already: true };
+    }
+
+    await member.roles.add(SCHEDULE_LOCK_ROLE_ID, reason || "Schedule locked");
+    return { ok: true, already: false };
+  } catch (err) {
+    debugLog("schedule:role-assign-failed", { message: err?.message || String(err) });
+    return { ok: false, reason: "assign-failed" };
+  }
 }
 
 async function logRegistrationAttempt(interaction, { status, reason, selections } = {}) {
@@ -144,7 +171,7 @@ async function logRegistrationAttempt(interaction, { status, reason, selections 
 
 function getSelections(userId) {
   const key = String(userId || "").trim();
-  const fallback = { courses: [], electives: [] };
+  const fallback = { courses: [], electives: [], guildId: null };
   if (!key) return fallback;
   const existing = registrationSelections.get(key);
   if (existing) return existing;
@@ -320,6 +347,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
+      const entry = getSelections(interaction.user.id);
+      entry.guildId = interaction.guildId || entry.guildId || null;
+      registrationSelections.set(interaction.user.id, entry);
+
       await logRegistrationAttempt(interaction, { status: "attempted" });
 
       if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
@@ -339,6 +370,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
       try {
         const locked = await fetchScheduleStatus(interaction.user.id);
         if (locked) {
+          await assignScheduleRole({
+            userId: interaction.user.id,
+            guildId: interaction.guildId,
+            reason: "Schedule already locked",
+          });
           await logRegistrationAttempt(interaction, { status: "blocked", reason: "schedule-locked" });
           await interaction.reply(
             ephemeralReply("Your schedule is locked until Semester 2.")
@@ -507,6 +543,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await dm.send(
           "Schedule locked for Semester 1. You cannot change it until Semester 2."
         );
+        await assignScheduleRole({
+          userId: interaction.user.id,
+          guildId: selections.guildId,
+          reason: "Schedule locked",
+        });
         await logRegistrationAttempt(interaction, {
           status: "locked",
           selections: { courses: selections.courses, electives: selections.electives },
