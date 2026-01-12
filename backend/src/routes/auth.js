@@ -388,6 +388,11 @@ function buildAuthRouter() {
     res.json({ scheduleLocked: Boolean(user.scheduleLocked) });
   });
 
+  router.get("/schedule/locked", requireAdminKey, async (_req, res) => {
+    const items = await usersStore.listLockedDiscordIds();
+    res.json({ items });
+  });
+
   router.post("/schedule", requireAdminKey, rateLimitScheduleUpdate, async (req, res) => {
     const discordId = String(req.body?.discordId || "").trim();
     const lockSchedule = Boolean(req.body?.lock);

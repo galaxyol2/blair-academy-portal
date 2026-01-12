@@ -278,6 +278,29 @@ async function fetchScheduleStatus(discordId) {
   return Boolean(json?.scheduleLocked);
 }
 
+async function fetchLockedScheduleUsers() {
+  const url = new URL(`${SCHEDULE_UPDATE_URL.replace(/\/schedule$/i, "")}/schedule/locked`);
+  const res = await fetch(url.toString(), {
+    headers: {
+      "x-admin-key": ADMIN_API_KEY,
+    },
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    // ignore
+  }
+
+  if (!res.ok) {
+    const msg = (json && (json.error || json.message)) || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return Array.isArray(json?.items) ? json.items : [];
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
 });
@@ -326,7 +349,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       channelId: interaction.channelId || null,
     });
     if (interaction.isChatInputCommand()) {
-      if (interaction.commandName !== "registration" && interaction.commandName !== "purge_dm") return;
+      if (
+        interaction.commandName !== "registration" &&
+        interaction.commandName !== "purge_dm" &&
+        interaction.commandName !== "sync_schedule_roles"
+      ) {
+        return;
+      }
 
       if (interaction.commandName === "purge_dm") {
         if (!canUse(interaction)) {
@@ -342,6 +371,49 @@ client.on(Events.InteractionCreate, async (interaction) => {
         } catch (err) {
           await interaction.editReply(
             err?.message ? `Unable to clean DMs: ${err.message}` : "Unable to clean DMs."
+          );
+        }
+        return;
+      }
+
+      if (interaction.commandName === "sync_schedule_roles") {
+        if (!canUse(interaction)) {
+          await interaction.reply(ephemeralReply("You don't have permission to use this command."));
+          return;
+        }
+        if (!interaction.guildId) {
+          await interaction.reply(ephemeralReply("Run this command in the server."));
+          return;
+        }
+
+        await interaction.reply(ephemeralReply("Syncing schedule roles..."));
+        try {
+          const ids = await fetchLockedScheduleUsers();
+          if (!ids.length) {
+            await interaction.editReply("No locked schedules found.");
+            return;
+          }
+
+          let assigned = 0;
+          let already = 0;
+          let failed = 0;
+          for (const id of ids) {
+            const result = await assignScheduleRole({
+              userId: id,
+              guildId: interaction.guildId,
+              reason: "Schedule locked sync",
+            });
+            if (result.ok && result.already) already += 1;
+            else if (result.ok) assigned += 1;
+            else failed += 1;
+          }
+
+          await interaction.editReply(
+            `Sync complete. Assigned: ${assigned}, already had role: ${already}, failed: ${failed}.`
+          );
+        } catch (err) {
+          await interaction.editReply(
+            err?.message ? `Sync failed: ${err.message}` : "Sync failed."
           );
         }
         return;

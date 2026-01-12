@@ -161,6 +161,13 @@ function createJsonUsersStore() {
       await writeDb(db);
       return db.users[idx];
     },
+
+    async listLockedDiscordIds() {
+      const db = await readDb();
+      return db.users
+        .filter((u) => u.scheduleLocked && u.discordId)
+        .map((u) => String(u.discordId));
+    },
   };
 }
 
@@ -339,6 +346,16 @@ function createPgUsersStore() {
         [userId, Boolean(locked)]
       );
       return res.rows[0] || null;
+    },
+
+    async listLockedDiscordIds() {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT discord_id AS "discordId"
+           FROM users
+          WHERE schedule_locked = true AND discord_id IS NOT NULL`
+      );
+      return res.rows.map((row) => String(row.discordId));
     },
   };
 }

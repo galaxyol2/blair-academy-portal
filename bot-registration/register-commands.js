@@ -25,13 +25,17 @@ const purgeDm = new SlashCommandBuilder()
   .setName("purge_dm")
   .setDescription("Delete bot messages from your DMs.");
 
+const syncRoles = new SlashCommandBuilder()
+  .setName("sync_schedule_roles")
+  .setDescription("Assign schedule-locked role to students who already locked.");
+
 async function main() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(appId, guildId), {
-    body: [registration.toJSON(), purgeDm.toJSON()],
+    body: [registration.toJSON(), purgeDm.toJSON(), syncRoles.toJSON()],
   });
   // eslint-disable-next-line no-console
-  console.log("Registered /registration and /purge_dm");
+  console.log("Registered /registration, /purge_dm, and /sync_schedule_roles");
 }
 
 if (require.main === module) {
