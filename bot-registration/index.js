@@ -86,7 +86,7 @@ function debugLog(message, details) {
   console.log(`[debug] ${message}`);
 }
 
-async function logRegistrationAttempt(interaction, { status, reason } = {}) {
+async function logRegistrationAttempt(interaction, { status, reason, selections } = {}) {
   if (!REGISTRATION_LOG_CHANNEL_ID) return;
   try {
     const channel = await client.channels.fetch(REGISTRATION_LOG_CHANNEL_ID);
@@ -116,6 +116,17 @@ async function logRegistrationAttempt(interaction, { status, reason } = {}) {
         { name: "Reason", value: reasonText }
       )
       .setTimestamp(new Date());
+
+    if (selections) {
+      const courses = Array.isArray(selections.courses) ? selections.courses : [];
+      const electives = Array.isArray(selections.electives) ? selections.electives : [];
+      const courseText = courses.length ? courses.map((c) => `- ${c}`).join("\n") : "None";
+      const electiveText = electives.length ? electives.map((e) => `- ${e}`).join("\n") : "None";
+      embed.addFields(
+        { name: "Courses", value: courseText },
+        { name: "Electives", value: electiveText }
+      );
+    }
 
     if (member?.roles?.cache?.size) {
       const roles = member.roles.cache
@@ -496,6 +507,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await dm.send(
           "Schedule locked for Semester 1. You cannot change it until Semester 2."
         );
+        await logRegistrationAttempt(interaction, {
+          status: "locked",
+          selections: { courses: selections.courses, electives: selections.electives },
+        });
       } catch (err) {
         const msg = String(err?.message || "Unable to save schedule.");
         if (/user not found/i.test(msg)) {
