@@ -36,8 +36,11 @@ const SCHEDULE_UPDATE_URL = requiredEnvAny(["SCHEDULE_UPDATE_URL", "SCHEDULE_API
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
+const REGISTRATION_LOG_GUILD_ID = String(
+  process.env.REGISTRATION_LOG_GUILD_ID || "1454366644515246255"
+).trim();
 const REGISTRATION_LOG_CHANNEL_ID = String(
-  process.env.REGISTRATION_LOG_CHANNEL_ID || "1452214511854682223"
+  process.env.REGISTRATION_LOG_CHANNEL_ID || "1460086871811166462"
 ).trim();
 const DEBUG_REGISTRATION = /^(1|true|yes)$/i.test(
   String(process.env.REGISTRATION_DEBUG || "").trim()
@@ -88,6 +91,13 @@ async function logRegistrationAttempt(interaction, { status, reason } = {}) {
   try {
     const channel = await client.channels.fetch(REGISTRATION_LOG_CHANNEL_ID);
     if (!channel || typeof channel.send !== "function") return;
+    if (
+      REGISTRATION_LOG_GUILD_ID &&
+      channel.guildId &&
+      channel.guildId !== REGISTRATION_LOG_GUILD_ID
+    ) {
+      return;
+    }
 
     const member = interaction.member;
     const user = interaction.user;
