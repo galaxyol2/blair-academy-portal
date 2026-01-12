@@ -36,6 +36,9 @@ const SCHEDULE_UPDATE_URL = requiredEnvAny(["SCHEDULE_UPDATE_URL", "SCHEDULE_API
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
+const REGISTRATION_LOG_CHANNEL_ID = String(
+  process.env.REGISTRATION_LOG_CHANNEL_ID || "1452214511854682223"
+).trim();
 const DEBUG_REGISTRATION = /^(1|true|yes)$/i.test(
   String(process.env.REGISTRATION_DEBUG || "").trim()
 );
@@ -78,6 +81,44 @@ function debugLog(message, details) {
   }
   // eslint-disable-next-line no-console
   console.log(`[debug] ${message}`);
+}
+
+async function logRegistrationAttempt(interaction, { status, reason } = {}) {
+  if (!REGISTRATION_LOG_CHANNEL_ID) return;
+  try {
+    const channel = await client.channels.fetch(REGISTRATION_LOG_CHANNEL_ID);
+    if (!channel || typeof channel.send !== "function") return;
+
+    const member = interaction.member;
+    const user = interaction.user;
+    const guildName = interaction.guild?.name || "Unknown guild";
+    const tag = user?.tag || user?.username || "Unknown user";
+    const statusText = status ? String(status) : "attempted";
+    const reasonText = reason ? String(reason) : "—";
+
+    const embed = new EmbedBuilder()
+      .setTitle("Registration command")
+      .setColor(0xd4a017)
+      .addFields(
+        { name: "User", value: `${tag} (${user?.id || "unknown"})`, inline: true },
+        { name: "Guild", value: `${guildName} (${interaction.guildId || "unknown"})`, inline: true },
+        { name: "Status", value: statusText, inline: true },
+        { name: "Reason", value: reasonText }
+      )
+      .setTimestamp(new Date());
+
+    if (member?.roles?.cache?.size) {
+      const roles = member.roles.cache
+        .filter((r) => r?.name && r?.id !== interaction.guildId)
+        .map((r) => r.name)
+        .slice(0, 8);
+      if (roles.length) embed.addFields({ name: "Roles", value: roles.join(", ") });
+    }
+
+    await channel.send({ embeds: [embed] });
+  } catch (err) {
+    debugLog("registration:log-failed", { message: err?.message || String(err) });
+  }
 }
 
 function getSelections(userId) {
@@ -258,14 +299,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
+      await logRegistrationAttempt(interaction, { status: "attempted" });
+
       if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
         debugLog("interaction:registration:blocked", { reason: "guild-mismatch" });
+        await logRegistrationAttempt(interaction, { status: "blocked", reason: "guild-mismatch" });
         await interaction.reply(ephemeralReply("This command isn't available here."));
         return;
       }
 
       if (!canUse(interaction)) {
         debugLog("interaction:registration:blocked", { reason: "permission" });
+        await logRegistrationAttempt(interaction, { status: "blocked", reason: "permission" });
         await interaction.reply(ephemeralReply("You don't have permission to use this command."));
         return;
       }
@@ -273,6 +318,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       try {
         const locked = await fetchScheduleStatus(interaction.user.id);
         if (locked) {
+          await logRegistrationAttempt(interaction, { status: "blocked", reason: "schedule-locked" });
           await interaction.reply(
             ephemeralReply("Your schedule is locked until Semester 2.")
           );
@@ -282,6 +328,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const msg = String(err?.message || "");
         if (!/user not found/i.test(msg)) {
           debugLog("interaction:registration:status-failed", { message: msg });
+          await logRegistrationAttempt(interaction, { status: "error", reason: msg });
         }
       }
 
