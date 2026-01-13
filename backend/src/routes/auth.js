@@ -141,6 +141,25 @@ function buildAuthRouter() {
     scheduleCatalog.map((item) => [item.name.toLowerCase(), item])
   );
 
+  function trimScheduleCourses(schedule) {
+    if (!Array.isArray(schedule)) return [];
+    const trimmed = [];
+    let courseCount = 0;
+    for (const entry of schedule) {
+      if (!entry) continue;
+      const category = String(entry.category || "").trim().toLowerCase();
+      const isCourse = category === "course" || !category;
+      if (isCourse) {
+        if (courseCount >= 2) continue;
+        courseCount += 1;
+        trimmed.push(entry);
+        continue;
+      }
+      trimmed.push(entry);
+    }
+    return trimmed;
+  }
+
   function normalizeScheduleForResponse(input) {
     if (!Array.isArray(input)) return [];
     const items = [];
@@ -391,6 +410,25 @@ function buildAuthRouter() {
   router.get("/schedule/locked", requireAdminKey, async (_req, res) => {
     const items = await usersStore.listLockedDiscordIds();
     res.json({ items });
+  });
+
+  router.post("/schedule/trim-courses", requireAdminKey, async (_req, res) => {
+    const users = await usersStore.listLockedUsers();
+    let updated = 0;
+    let unchanged = 0;
+
+    for (const user of users) {
+      const current = Array.isArray(user.schedule) ? user.schedule : [];
+      const trimmed = trimScheduleCourses(current);
+      if (trimmed.length === current.length) {
+        unchanged += 1;
+        continue;
+      }
+      await usersStore.updateSchedule({ userId: user.id, schedule: trimmed, lock: true });
+      updated += 1;
+    }
+
+    res.json({ ok: true, updated, unchanged });
   });
 
   router.post("/schedule", requireAdminKey, rateLimitScheduleUpdate, async (req, res) => {

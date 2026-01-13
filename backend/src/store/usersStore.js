@@ -168,6 +168,17 @@ function createJsonUsersStore() {
         .filter((u) => u.scheduleLocked && u.discordId)
         .map((u) => String(u.discordId));
     },
+
+    async listLockedUsers() {
+      const db = await readDb();
+      return db.users
+        .filter((u) => u.scheduleLocked)
+        .map((u) => ({
+          id: u.id,
+          discordId: u.discordId ? String(u.discordId) : null,
+          schedule: Array.isArray(u.schedule) ? u.schedule : [],
+        }));
+    },
   };
 }
 
@@ -356,6 +367,22 @@ function createPgUsersStore() {
           WHERE schedule_locked = true AND discord_id IS NOT NULL`
       );
       return res.rows.map((row) => String(row.discordId));
+    },
+
+    async listLockedUsers() {
+      await ensureSchema();
+      const res = await pool.query(
+        `SELECT id,
+                discord_id AS "discordId",
+                schedule_json AS "schedule"
+           FROM users
+          WHERE schedule_locked = true`
+      );
+      return res.rows.map((row) => ({
+        id: row.id,
+        discordId: row.discordId ? String(row.discordId) : null,
+        schedule: Array.isArray(row.schedule) ? row.schedule : [],
+      }));
     },
   };
 }
