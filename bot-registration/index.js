@@ -188,7 +188,7 @@ function buildSelectionSummary(selections) {
   return [
     "Confirm your schedule selections:",
     "",
-    "Courses (4 required):",
+    "Courses (2 required):",
     formatSelectionList(selections.courses),
     "",
     "Electives (2 required):",
@@ -467,8 +467,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const coursesMenu = new StringSelectMenuBuilder()
         .setCustomId("registration_courses")
         .setPlaceholder("Select your courses")
-        .setMinValues(Math.min(4, coursesCatalog.length))
-        .setMaxValues(Math.min(4, coursesCatalog.length))
+        .setMinValues(Math.min(2, coursesCatalog.length))
+        .setMaxValues(Math.min(2, coursesCatalog.length))
         .addOptions(coursesCatalog);
 
       const electivesMenu = new StringSelectMenuBuilder()
@@ -534,7 +534,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const hasElectives = selections.electives.length > 0;
       if (!hasCourses) {
         await interaction.user.send(
-          "Electives saved. Select exactly 4 courses to finish registration."
+          "Electives saved. Select exactly 2 courses to finish registration."
         );
         return;
       }
@@ -574,7 +574,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       if (!selections.courses.length) {
         await interaction.update({
-          content: "Select exactly 4 courses before locking your schedule.",
+          content: "Select exactly 2 courses before locking your schedule.",
           components: [],
         });
         return;
@@ -586,9 +586,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
         return;
       }
-      if (selections.courses.length !== 4) {
+      if (selections.courses.length !== 2) {
         await interaction.update({
-          content: "Please select exactly 4 courses before locking your schedule.",
+          content: "Please select exactly 2 courses before locking your schedule.",
           components: [],
         });
         return;
