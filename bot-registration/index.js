@@ -1,16 +1,12 @@
 const path = require("path");
-const http = require("http");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const {
   ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
   Client,
   EmbedBuilder,
   Events,
   GatewayIntentBits,
-  MessageFlags,
   PermissionsBitField,
   StringSelectMenuBuilder,
 } = require("discord.js");
@@ -36,35 +32,26 @@ const SCHEDULE_UPDATE_URL = requiredEnvAny(["SCHEDULE_UPDATE_URL", "SCHEDULE_API
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
-const SCHEDULE_LOCK_ROLE_ID = String(
-  process.env.SCHEDULE_LOCK_ROLE_ID || "1454076669278289950"
-).trim();
-const REGISTRATION_LOG_GUILD_ID = String(
-  process.env.REGISTRATION_LOG_GUILD_ID || "1454366644515246255"
-).trim();
-const REGISTRATION_LOG_CHANNEL_ID = String(
-  process.env.REGISTRATION_LOG_CHANNEL_ID || "1460086871811166462"
-).trim();
-const DEBUG_REGISTRATION = /^(1|true|yes)$/i.test(
-  String(process.env.REGISTRATION_DEBUG || "").trim()
-);
 
-const coursesCatalog = [
+const semester1Classes = [
   { label: "Nutrition & Healthy Living", value: "Nutrition & Healthy Living" },
-  { label: "Introduction To Psychology", value: "Introduction To Psychology" },
-  { label: "Literature & Film", value: "Literature & Film" },
-  { label: "Family Law", value: "Family Law" },
-  { label: "News Writing & Reporting", value: "News Writing & Reporting" },
-];
-
-const electivesCatalog = [
-  { label: "Music Ensembles", value: "Music Ensembles" },
-  { label: "Fitness & Strength Training", value: "Fitness & Strength Training" },
-  { label: "Introduction of Art I", value: "Introduction of Art I" },
+  { label: "Photography & Digital Imaging", value: "Photography & Digital Imaging" },
+  { label: "Introduction to Journalism", value: "Introduction to Journalism" },
+  { label: "Introduction to Psychology", value: "Introduction to Psychology" },
   { label: "Sexual & Reproductive Health", value: "Sexual & Reproductive Health" },
+  { label: "Literature & Film", value: "Literature & Film" },
+  { label: "Influencer & Creator Marketing", value: "Influencer & Creator Marketing" },
+  { label: "Fitness & Strength Training", value: "Fitness & Strength Training" },
+  { label: "Introduction Of Arts I", value: "Introduction Of Arts I" },
+  { label: "Investigative Journalism", value: "Investigative Journalism" },
+  { label: "Music Ensembles", value: "Music Ensembles" },
+  { label: "News Writing & Reporting", value: "News Writing & Reporting" },
+  { label: "Family Law", value: "Family Law" },
 ];
 
-const registrationSelections = new Map();
+const allYearElectives = [];
+
+const classesCatalog = [...semester1Classes, ...allYearElectives];
 
 function canUse(interaction) {
   if (ALLOWED_CHANNEL_ID && interaction.channelId !== ALLOWED_CHANNEL_ID) return false;
@@ -74,193 +61,14 @@ function canUse(interaction) {
   return true;
 }
 
-function ephemeralReply(content) {
-  return { content, flags: MessageFlags.Ephemeral };
-}
-
-function debugLog(message, details) {
-  if (!DEBUG_REGISTRATION) return;
-  if (details !== undefined) {
-    // eslint-disable-next-line no-console
-    console.log(`[debug] ${message}`, details);
-    return;
-  }
-  // eslint-disable-next-line no-console
-  console.log(`[debug] ${message}`);
-}
-
-async function assignScheduleRole({ userId, guildId, reason }) {
-  if (!SCHEDULE_LOCK_ROLE_ID) return { ok: false, reason: "missing-role" };
-  const targetGuildId = String(guildId || DISCORD_GUILD_ID || "").trim();
-  if (!targetGuildId) return { ok: false, reason: "missing-guild" };
-  if (!userId) return { ok: false, reason: "missing-user" };
-
-  try {
-    const guild = await client.guilds.fetch(targetGuildId);
-    if (!guild) return { ok: false, reason: "guild-not-found" };
-
-    const member = await guild.members.fetch(String(userId));
-    if (!member) return { ok: false, reason: "member-not-found" };
-    if (member.roles.cache.has(SCHEDULE_LOCK_ROLE_ID)) {
-      return { ok: true, already: true };
-    }
-
-    await member.roles.add(SCHEDULE_LOCK_ROLE_ID, reason || "Schedule locked");
-    return { ok: true, already: false };
-  } catch (err) {
-    debugLog("schedule:role-assign-failed", { message: err?.message || String(err) });
-    return { ok: false, reason: "assign-failed" };
-  }
-}
-
-async function logRegistrationAttempt(interaction, { status, reason, selections } = {}) {
-  if (!REGISTRATION_LOG_CHANNEL_ID) return;
-  try {
-    const channel = await client.channels.fetch(REGISTRATION_LOG_CHANNEL_ID);
-    if (!channel || typeof channel.send !== "function") return;
-    if (
-      REGISTRATION_LOG_GUILD_ID &&
-      channel.guildId &&
-      channel.guildId !== REGISTRATION_LOG_GUILD_ID
-    ) {
-      return;
-    }
-
-    const member = interaction.member;
-    const user = interaction.user;
-    const guildName = interaction.guild?.name || "Unknown guild";
-    const tag = user?.tag || user?.username || "Unknown user";
-    const statusText = status ? String(status) : "attempted";
-    const reasonText = reason ? String(reason) : "—";
-
-    const embed = new EmbedBuilder()
-      .setTitle("Registration command")
-      .setColor(0xd4a017)
-      .addFields(
-        { name: "User", value: `${tag} (${user?.id || "unknown"})`, inline: true },
-        { name: "Guild", value: `${guildName} (${interaction.guildId || "unknown"})`, inline: true },
-        { name: "Status", value: statusText, inline: true },
-        { name: "Reason", value: reasonText }
-      )
-      .setTimestamp(new Date());
-
-    if (selections) {
-      const courses = Array.isArray(selections.courses) ? selections.courses : [];
-      const electives = Array.isArray(selections.electives) ? selections.electives : [];
-      const courseText = courses.length ? courses.map((c) => `- ${c}`).join("\n") : "None";
-      const electiveText = electives.length ? electives.map((e) => `- ${e}`).join("\n") : "None";
-      embed.addFields(
-        { name: "Courses", value: courseText },
-        { name: "Electives", value: electiveText }
-      );
-    }
-
-    if (member?.roles?.cache?.size) {
-      const roles = member.roles.cache
-        .filter((r) => r?.name && r?.id !== interaction.guildId)
-        .map((r) => r.name)
-        .slice(0, 8);
-      if (roles.length) embed.addFields({ name: "Roles", value: roles.join(", ") });
-    }
-
-    await channel.send({ embeds: [embed] });
-  } catch (err) {
-    debugLog("registration:log-failed", { message: err?.message || String(err) });
-  }
-}
-
-function getSelections(userId) {
-  const key = String(userId || "").trim();
-  const fallback = { courses: [], electives: [], guildId: null };
-  if (!key) return fallback;
-  const existing = registrationSelections.get(key);
-  if (existing) return existing;
-  registrationSelections.set(key, fallback);
-  return fallback;
-}
-
-function formatSelectionList(items) {
-  if (!items.length) return "None selected";
-  return items.map((item) => `- ${item}`).join("\n");
-}
-
-function buildSelectionSummary(selections) {
-  return [
-    "Confirm your schedule selections:",
-    "",
-    "Courses (2 required):",
-    formatSelectionList(selections.courses),
-    "",
-    "Electives (2 required):",
-    formatSelectionList(selections.electives),
-    "",
-    "Lock your schedule to finalize for Semester 1.",
-  ].join("\n");
-}
-
-async function purgeBotMessages(channel, { keepMessageId } = {}) {
-  if (!channel || typeof channel.messages?.fetch !== "function") return 0;
-  let deleted = 0;
-  let beforeId = null;
-
-  while (true) {
-    const batch = await channel.messages.fetch({
-      limit: 100,
-      ...(beforeId ? { before: beforeId } : {}),
-    });
-    if (!batch.size) break;
-
-    for (const msg of batch.values()) {
-      if (msg?.author?.id !== client.user?.id) continue;
-      if (keepMessageId && msg.id === keepMessageId) continue;
-      try {
-        await msg.delete();
-        deleted += 1;
-      } catch (err) {
-        debugLog("dm:purge:delete-failed", { message: err?.message || String(err) });
-      }
-    }
-
-    beforeId = batch.last()?.id;
-    if (batch.size < 100) break;
-  }
-
-  debugLog("dm:purge:done", { deleted });
-  return deleted;
-}
-
 async function updateSchedule({ discordId, classes }) {
-  debugLog("schedule:update:start", { discordId, classesCount: classes.length });
   const res = await fetch(SCHEDULE_UPDATE_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-admin-key": ADMIN_API_KEY,
     },
-    body: JSON.stringify({ discordId, classes, lock: true }),
-  });
-
-  let json = null;
-  try {
-    json = await res.json();
-  } catch {
-    // ignore
-  }
-
-  debugLog("schedule:update:response", { status: res.status, ok: res.ok });
-  if (!res.ok) {
-    const msg = (json && (json.error || json.message)) || `Request failed (${res.status})`;
-    throw new Error(msg);
-  }
-}
-
-async function fetchScheduleStatus(discordId) {
-  const url = new URL(`${SCHEDULE_UPDATE_URL.replace(/\/schedule$/i, "")}/schedule/status`);
-  url.searchParams.set("discordId", discordId);
-  const res = await fetch(url.toString(), {
-    headers: {
-      "x-admin-key": ADMIN_API_KEY,
-    },
+    body: JSON.stringify({ discordId, classes }),
   });
 
   let json = null;
@@ -274,377 +82,76 @@ async function fetchScheduleStatus(discordId) {
     const msg = (json && (json.error || json.message)) || `Request failed (${res.status})`;
     throw new Error(msg);
   }
-
-  return Boolean(json?.scheduleLocked);
-}
-
-async function fetchLockedScheduleUsers() {
-  const url = new URL(`${SCHEDULE_UPDATE_URL.replace(/\/schedule$/i, "")}/schedule/locked`);
-  const res = await fetch(url.toString(), {
-    headers: {
-      "x-admin-key": ADMIN_API_KEY,
-    },
-  });
-
-  let json = null;
-  try {
-    json = await res.json();
-  } catch {
-    // ignore
-  }
-
-  if (!res.ok) {
-    const msg = (json && (json.error || json.message)) || `Request failed (${res.status})`;
-    throw new Error(msg);
-  }
-
-  return Array.isArray(json?.items) ? json.items : [];
 }
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
 });
 
-function startHealthServer() {
-  const rawPort = String(process.env.PORT || "").trim();
-  if (!rawPort) return;
-
-  const port = Number(rawPort);
-  if (!Number.isFinite(port)) return;
-
-  const server = http.createServer((req, res) => {
-    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-    res.end("ok");
-  });
-
-  server.listen(port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Health server listening on ${port}`);
-  });
-}
-
 client.once(Events.ClientReady, () => {
   // eslint-disable-next-line no-console
   console.log(`Registration bot ready as ${client.user.tag}`);
 });
 
-process.on("unhandledRejection", (err) => {
-  // eslint-disable-next-line no-console
-  console.error("Unhandled rejection", err);
-});
-
-process.on("uncaughtException", (err) => {
-  // eslint-disable-next-line no-console
-  console.error("Uncaught exception", err);
-});
-
 client.on(Events.InteractionCreate, async (interaction) => {
-  try {
-    debugLog("interaction:received", {
-      type: interaction.type,
-      command: interaction.commandName || null,
-      customId: interaction.customId || null,
-      userId: interaction.user?.id || null,
-      guildId: interaction.guildId || null,
-      channelId: interaction.channelId || null,
-    });
-    if (interaction.isChatInputCommand()) {
-      if (
-        interaction.commandName !== "registration" &&
-        interaction.commandName !== "purge_dm" &&
-        interaction.commandName !== "sync_schedule_roles"
-      ) {
-        return;
-      }
+  if (interaction.isChatInputCommand()) {
+    if (interaction.commandName !== "registration") return;
 
-      if (interaction.commandName === "purge_dm") {
-        if (!canUse(interaction)) {
-          await interaction.reply(ephemeralReply("You don't have permission to use this command."));
-          return;
-        }
-
-        await interaction.reply(ephemeralReply("Cleaning your DMs..."));
-        try {
-          const dm = await interaction.user.createDM();
-          const deleted = await purgeBotMessages(dm);
-          await interaction.editReply(`Done. Deleted ${deleted} bot messages from your DMs.`);
-        } catch (err) {
-          await interaction.editReply(
-            err?.message ? `Unable to clean DMs: ${err.message}` : "Unable to clean DMs."
-          );
-        }
-        return;
-      }
-
-      if (interaction.commandName === "sync_schedule_roles") {
-        if (!canUse(interaction)) {
-          await interaction.reply(ephemeralReply("You don't have permission to use this command."));
-          return;
-        }
-        if (!interaction.guildId) {
-          await interaction.reply(ephemeralReply("Run this command in the server."));
-          return;
-        }
-
-        await interaction.reply(ephemeralReply("Syncing schedule roles..."));
-        try {
-          const ids = await fetchLockedScheduleUsers();
-          if (!ids.length) {
-            await interaction.editReply("No locked schedules found.");
-            return;
-          }
-
-          let assigned = 0;
-          let already = 0;
-          let failed = 0;
-          for (const id of ids) {
-            const result = await assignScheduleRole({
-              userId: id,
-              guildId: interaction.guildId,
-              reason: "Schedule locked sync",
-            });
-            if (result.ok && result.already) already += 1;
-            else if (result.ok) assigned += 1;
-            else failed += 1;
-          }
-
-          await interaction.editReply(
-            `Sync complete. Assigned: ${assigned}, already had role: ${already}, failed: ${failed}.`
-          );
-        } catch (err) {
-          await interaction.editReply(
-            err?.message ? `Sync failed: ${err.message}` : "Sync failed."
-          );
-        }
-        return;
-      }
-
-      const entry = getSelections(interaction.user.id);
-      entry.guildId = interaction.guildId || entry.guildId || null;
-      registrationSelections.set(interaction.user.id, entry);
-
-      await logRegistrationAttempt(interaction, { status: "attempted" });
-
-      if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
-        debugLog("interaction:registration:blocked", { reason: "guild-mismatch" });
-        await logRegistrationAttempt(interaction, { status: "blocked", reason: "guild-mismatch" });
-        await interaction.reply(ephemeralReply("This command isn't available here."));
-        return;
-      }
-
-      if (!canUse(interaction)) {
-        debugLog("interaction:registration:blocked", { reason: "permission" });
-        await logRegistrationAttempt(interaction, { status: "blocked", reason: "permission" });
-        await interaction.reply(ephemeralReply("You don't have permission to use this command."));
-        return;
-      }
-
-      try {
-        const locked = await fetchScheduleStatus(interaction.user.id);
-        if (locked) {
-          await assignScheduleRole({
-            userId: interaction.user.id,
-            guildId: interaction.guildId,
-            reason: "Schedule already locked",
-          });
-          await logRegistrationAttempt(interaction, { status: "blocked", reason: "schedule-locked" });
-          await interaction.reply(
-            ephemeralReply("Your schedule is locked until Semester 2.")
-          );
-          return;
-        }
-      } catch (err) {
-        const msg = String(err?.message || "");
-        if (!/user not found/i.test(msg)) {
-          debugLog("interaction:registration:status-failed", { message: msg });
-          await logRegistrationAttempt(interaction, { status: "error", reason: msg });
-        }
-      }
-
-      await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
-      debugLog("interaction:registration:dm-prompted");
-
-      const coursesMenu = new StringSelectMenuBuilder()
-        .setCustomId("registration_courses")
-        .setPlaceholder("Select your courses")
-        .setMinValues(Math.min(2, coursesCatalog.length))
-        .setMaxValues(Math.min(2, coursesCatalog.length))
-        .addOptions(coursesCatalog);
-
-      const electivesMenu = new StringSelectMenuBuilder()
-        .setCustomId("registration_electives")
-        .setPlaceholder("Select up to 2 electives")
-        .setMinValues(Math.min(2, electivesCatalog.length))
-        .setMaxValues(Math.min(2, electivesCatalog.length))
-        .addOptions(electivesCatalog);
-
-      const rows = [
-        new ActionRowBuilder().addComponents(coursesMenu),
-        new ActionRowBuilder().addComponents(electivesMenu),
-      ];
-      const embed = new EmbedBuilder()
-        .setTitle("Student Registration")
-        .setDescription("Pick your courses and electives. We will sync them to your portal schedule.")
-        .setColor(0xd4a017);
-
-      try {
-        await interaction.user.send({ embeds: [embed], components: rows });
-        debugLog("interaction:registration:dm-sent");
-      } catch (err) {
-        debugLog("interaction:registration:dm-failed", { message: err?.message || String(err) });
-        await interaction.followUp(
-          ephemeralReply("I couldn't DM you. Please enable DMs and try again.")
-        );
-      }
+    if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
+      await interaction.reply({ content: "This command isn't available here.", ephemeral: true });
       return;
     }
 
-    if (interaction.isAnySelectMenu()) {
-      if (
-        interaction.customId !== "registration_courses" &&
-        interaction.customId !== "registration_electives"
-      ) {
-        return;
-      }
-      const selected = interaction.values || [];
-      debugLog("interaction:registration:selected", {
-        menu: interaction.customId,
-        count: selected.length,
-        values: selected,
+    if (!canUse(interaction)) {
+      await interaction.reply({
+        content: "You don't have permission to use this command.",
+        ephemeral: true,
       });
-
-      try {
-        await interaction.deferUpdate();
-        debugLog("interaction:registration:ack");
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to acknowledge registration select menu", err);
-        return;
-      }
-
-      const selections = getSelections(interaction.user.id);
-      if (interaction.customId === "registration_courses") {
-        selections.courses = selected;
-      } else {
-        selections.electives = selected;
-      }
-      registrationSelections.set(interaction.user.id, selections);
-
-      const hasCourses = selections.courses.length > 0;
-      const hasElectives = selections.electives.length > 0;
-      if (!hasCourses) {
-        await interaction.user.send(
-          "Electives saved. Select exactly 2 courses to finish registration."
-        );
-        return;
-      }
-      if (!hasElectives) {
-        await interaction.user.send(
-          "Courses saved. Select exactly 2 electives to finish registration."
-        );
-        return;
-      }
-
-      const lockButton = new ButtonBuilder()
-        .setCustomId("registration_lock")
-        .setLabel("Lock schedule")
-        .setStyle(ButtonStyle.Primary);
-      const editButton = new ButtonBuilder()
-        .setCustomId("registration_edit")
-        .setLabel("Keep editing")
-        .setStyle(ButtonStyle.Secondary);
-      const row = new ActionRowBuilder().addComponents(lockButton, editButton);
-      const summary = buildSelectionSummary(selections);
-      await interaction.user.send({ content: summary, components: [row] });
+      return;
     }
 
-    if (interaction.isButton()) {
-      if (interaction.customId !== "registration_lock" && interaction.customId !== "registration_edit") {
-        return;
-      }
+    await interaction.reply({ content: "Check your DMs to complete registration.", ephemeral: true });
 
-      const selections = getSelections(interaction.user.id);
-      if (interaction.customId === "registration_edit") {
-        await interaction.update({
-          content: "Okay! Update your selections and lock when you're ready.",
-          components: [],
-        });
-        return;
-      }
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("registration_classes")
+      .setPlaceholder("Select your classes")
+      .setMinValues(1)
+      .setMaxValues(Math.min(8, classesCatalog.length))
+      .addOptions(classesCatalog);
 
-      if (!selections.courses.length) {
-        await interaction.update({
-          content: "Select exactly 2 courses before locking your schedule.",
-          components: [],
-        });
-        return;
-      }
-      if (!selections.electives.length) {
-        await interaction.update({
-          content: "Select exactly 2 electives before locking your schedule.",
-          components: [],
-        });
-        return;
-      }
-      if (selections.courses.length !== 2) {
-        await interaction.update({
-          content: "Please select exactly 2 courses before locking your schedule.",
-          components: [],
-        });
-        return;
-      }
-      if (selections.electives.length !== 2) {
-        await interaction.update({
-          content: "Please select exactly 2 electives before locking your schedule.",
-          components: [],
-        });
-        return;
-      }
+    const row = new ActionRowBuilder().addComponents(menu);
+    const embed = new EmbedBuilder()
+      .setTitle("Student Registration")
+      .setDescription("Select your classes below. We will sync them to your portal schedule.")
+      .setColor(0xd4a017);
 
-      const combined = [...selections.courses, ...selections.electives];
-      try {
-        await updateSchedule({ discordId: interaction.user.id, classes: combined });
-        registrationSelections.delete(interaction.user.id);
-        await interaction.update({
-          content: "Finalizing your schedule...",
-          components: [],
-        });
-
-        const dm = await interaction.user.createDM();
-        await purgeBotMessages(dm);
-        await dm.send(
-          "Schedule locked for Semester 1. You cannot change it until Semester 2."
-        );
-        await assignScheduleRole({
-          userId: interaction.user.id,
-          guildId: selections.guildId,
-          reason: "Schedule locked",
-        });
-        await logRegistrationAttempt(interaction, {
-          status: "locked",
-          selections: { courses: selections.courses, electives: selections.electives },
-        });
-      } catch (err) {
-        const msg = String(err?.message || "Unable to save schedule.");
-        if (/user not found/i.test(msg)) {
-          await interaction.update({
-            content:
-              "Please connect Discord in your portal Settings first so we can sync your schedule.",
-            components: [],
-          });
-        } else {
-          await interaction.update({
-            content: `Failed to save schedule: ${msg}`,
-            components: [],
-          });
-        }
-      }
+    try {
+      await interaction.user.send({ embeds: [embed], components: [row] });
+    } catch (err) {
+      await interaction.followUp({
+        content: "I couldn't DM you. Please enable DMs and try again.",
+        ephemeral: true,
+      });
     }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("Interaction handler failed", err);
+    return;
+  }
+
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId !== "registration_classes") return;
+    const selected = interaction.values || [];
+    if (selected.length === 0) {
+      await interaction.reply({ content: "Please choose at least one class.", ephemeral: true });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      await updateSchedule({ discordId: interaction.user.id, classes: selected });
+      await interaction.editReply("Schedule saved to your portal.");
+    } catch (err) {
+      await interaction.editReply(`Failed to save schedule: ${err.message}`);
+    }
   }
 });
 
-startHealthServer();
 client.login(DISCORD_BOT_TOKEN);

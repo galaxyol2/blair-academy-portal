@@ -179,6 +179,23 @@ function createJsonUsersStore() {
           schedule: Array.isArray(u.schedule) ? u.schedule : [],
         }));
     },
+
+    async updateNameByEmail({ email, firstName, lastName }) {
+      const normalized = normalizeEmail(email);
+      const db = await readDb();
+      const idx = db.users.findIndex((u) => u.email === normalized);
+      if (idx === -1) return null;
+      const currentParts = String(db.users[idx].name || "").trim().split(/\s+/).filter(Boolean);
+      let currentFirst = currentParts[0] || "";
+      let currentLast = currentParts.slice(1).join(" ") || "";
+      if (firstName) currentFirst = String(firstName).trim();
+      if (lastName) currentLast = String(lastName).trim();
+      const newName = [currentFirst, currentLast].filter(Boolean).join(" ").trim();
+      if (!newName) return null;
+      db.users[idx] = { ...db.users[idx], name: newName, updatedAt: new Date().toISOString() };
+      await writeDb(db);
+      return { id: db.users[idx].id, email: db.users[idx].email, name: db.users[idx].name };
+    },
   };
 }
 
@@ -383,6 +400,33 @@ function createPgUsersStore() {
         discordId: row.discordId ? String(row.discordId) : null,
         schedule: Array.isArray(row.schedule) ? row.schedule : [],
       }));
+    },
+
+    async updateNameByEmail({ email, firstName, lastName }) {
+      await ensureSchema();
+      const normalized = normalizeEmail(email);
+      const res = await pool.query(
+        `SELECT id, name FROM users WHERE email = $1 LIMIT 1`,
+        [normalized]
+      );
+      if (!res.rows[0]) return null;
+
+      const currentParts = String(res.rows[0].name || "").trim().split(/\s+/).filter(Boolean);
+      let currentFirst = currentParts[0] || "";
+      let currentLast = currentParts.slice(1).join(" ") || "";
+      if (firstName) currentFirst = String(firstName).trim();
+      if (lastName) currentLast = String(lastName).trim();
+      const newName = [currentFirst, currentLast].filter(Boolean).join(" ").trim();
+      if (!newName) return null;
+
+      const update = await pool.query(
+        `UPDATE users
+            SET name = $2, updated_at = NOW()
+          WHERE id = $1
+          RETURNING id, email, name`,
+        [res.rows[0].id, newName]
+      );
+      return update.rows[0] || null;
     },
   };
 }

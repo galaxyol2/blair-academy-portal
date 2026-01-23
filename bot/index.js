@@ -146,6 +146,41 @@ async function deleteUserByEmail(email) {
   return json?.deleted || null;
 }
 
+async function updateUserName({ email, firstName, lastName }) {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) throw new Error("Missing email.");
+  if (!firstName && !lastName) throw new Error("Provide first and/or last name.");
+
+  const url = `${backendOrigin()}/api/admin/users/name`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": ADMIN_API_KEY,
+    },
+    body: JSON.stringify({
+      email: e,
+      firstName: firstName ? String(firstName).trim() : undefined,
+      lastName: lastName ? String(lastName).trim() : undefined,
+    }),
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    // ignore
+  }
+
+  if (!res.ok) {
+    const msg =
+      (json && (json.error || json.message)) || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return json?.user || null;
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -341,7 +376,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (
     interaction.commandName !== "announce" &&
     interaction.commandName !== "clear-announcements" &&
-    interaction.commandName !== "delete-user"
+    interaction.commandName !== "delete-user" &&
+    interaction.commandName !== "rename-user"
   ) {
     return;
   }
@@ -387,6 +423,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
       );
     } catch (err) {
       await interaction.editReply(`Failed to delete: ${err.message}`);
+    }
+    return;
+  }
+
+  if (interaction.commandName === "rename-user") {
+    const email = String(interaction.options.getString("email") || "").trim();
+    const first = String(interaction.options.getString("first") || "").trim();
+    const last = String(interaction.options.getString("last") || "").trim();
+
+    if (!first && !last) {
+      await interaction.reply({
+        content: "Provide `first` and/or `last`.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const user = await updateUserName({ email, firstName: first, lastName: last });
+      await interaction.editReply(
+        user
+          ? `Updated name to "${user.name}" for ${user.email}.`
+          : "Updated."
+      );
+    } catch (err) {
+      await interaction.editReply(`Failed to update name: ${err.message}`);
     }
     return;
   }

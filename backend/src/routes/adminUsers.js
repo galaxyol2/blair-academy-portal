@@ -41,6 +41,18 @@ function buildAdminUsersRouter() {
     res.json({ ok: true, deleted: { id: deleted.id, email: deleted.email, name: deleted.name } });
   });
 
+  router.put("/users/name", requireAdminKey, async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    const firstName = String(req.body?.firstName || "").trim();
+    const lastName = String(req.body?.lastName || "").trim();
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!firstName && !lastName) return res.status(400).json({ error: "firstName or lastName is required" });
+
+    const updated = await usersStore.updateNameByEmail({ email, firstName: firstName || null, lastName: lastName || null });
+    if (!updated) return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true, user: updated });
+  });
+
   return router;
 }
 
