@@ -514,7 +514,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
         return;
       }
-      if (selections.courses.length !== 4) {
+      if (selections.courses.length !== 2) {
         await interaction.update({
           content: "Please Select exactly 2 courses before locking your schedule.",
           components: [],
@@ -576,3 +576,4 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 startHealthServer();
 client.login(DISCORD_BOT_TOKEN);
+
