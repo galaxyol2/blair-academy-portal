@@ -131,6 +131,7 @@ function buildAuthRouter() {
     { name: "Influencer & Creator Marketing", time: "", instructor: "Professor Tejada", category: "course" },
     { name: "Fitness & Strength Training", time: "", instructor: "Professor Deuce Jackson", category: "elective" },
     { name: "Introduction of Art I", time: "", instructor: "Professor Kyro", category: "elective" },
+    { name: "Introduction Of Arts I", time: "", instructor: "Professor Kyro", category: "elective" }, // alias
     { name: "Investigative Journalism", time: "", instructor: "Professor Ski Mask", category: "course" },
     { name: "Music Ensembles", time: "", instructor: "Professor Yabitchoav", category: "elective" },
     { name: "News Writing & Reporting", time: "", instructor: "Professor Gigi", category: "course" },
