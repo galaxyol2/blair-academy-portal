@@ -5,6 +5,10 @@ const { readJsonFile, writeJsonFileAtomic } = require("./jsonFile");
 
 const defaultDb = { users: [] };
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function dataFilePath() {
   // Keep it outside git by default (see .gitignore suggestion)
   return (
