@@ -179,7 +179,6 @@ function buildStudentClassroomsRouter() {
 
       res.json({ items: modules });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[student.classrooms.modules] failed", err);
       return res.status(500).json({ error: "Unable to load modules" });
     }

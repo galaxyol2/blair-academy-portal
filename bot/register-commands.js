@@ -9,7 +9,6 @@ const guildId = process.env.DISCORD_GUILD_ID;
 
 if (!token || !appId || !guildId) {
   if (require.main === module) {
-    // eslint-disable-next-line no-console
     console.error(
       "Missing env: DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID, DISCORD_GUILD_ID"
     );
@@ -73,13 +72,11 @@ async function main() {
       renameUser.toJSON(),
     ],
   });
-  // eslint-disable-next-line no-console
   console.log("Registered /announce, /clear-announcements, /delete-user, /rename-user");
 }
 
 if (require.main === module) {
   main().catch((err) => {
-    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
   });

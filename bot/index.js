@@ -207,11 +207,9 @@ const commandCooldown = createCooldown({ windowMs: 60_000, maxUses: 5 });
 let clientReady = false;
 client.once(Events.ClientReady, () => {
   clientReady = true;
-  // eslint-disable-next-line no-console
   console.log(`Bot ready as ${client.user.tag}`);
 
   if (SIGNUP_LOG_CHANNEL_ID && DISCORD_GUILD_ID && SIGNUP_LOG_CHANNEL_ID === DISCORD_GUILD_ID) {
-    // eslint-disable-next-line no-console
     console.warn(
       "SIGNUP_LOG_CHANNEL_ID matches DISCORD_GUILD_ID; you likely pasted the server ID instead of the channel ID."
     );
@@ -222,12 +220,10 @@ client.once(Events.ClientReady, () => {
       .fetch(SIGNUP_LOG_CHANNEL_ID)
       .then((ch) => {
         if (!ch || !ch.isTextBased()) {
-          // eslint-disable-next-line no-console
           console.warn("SIGNUP_LOG_CHANNEL_ID is not a text channel.");
         }
       })
       .catch((err) => {
-        // eslint-disable-next-line no-console
         console.warn(`SIGNUP_LOG_CHANNEL_ID is invalid or not accessible: ${err.message}`);
       });
   }
@@ -335,7 +331,6 @@ function startLogServer() {
         createdAt: String(body?.createdAt || "").trim(),
       });
 
-      // eslint-disable-next-line no-console
       console.log(
         `[signup-log] Posted signup for ${String(body?.email || "").trim() || "(no email)"}`
       );
@@ -343,7 +338,6 @@ function startLogServer() {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error(`[signup-log] Error: ${err.message || err}`);
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: err.message || "Bad request" }));
@@ -351,7 +345,6 @@ function startLogServer() {
   });
 
   server.listen(LOG_SERVER_PORT, () => {
-    // eslint-disable-next-line no-console
     console.log(
       `Log server listening on http://localhost:${LOG_SERVER_PORT} (signup channel set: ${Boolean(
         SIGNUP_LOG_CHANNEL_ID
@@ -360,7 +353,6 @@ function startLogServer() {
   });
 
   server.on("error", (err) => {
-    // eslint-disable-next-line no-console
     console.error(
       err && err.code === "EADDRINUSE"
         ? `Log server port ${LOG_SERVER_PORT} is already in use. Change BOT_PORT in bot/.env.`

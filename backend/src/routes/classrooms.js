@@ -280,7 +280,6 @@ function buildClassroomsRouter() {
       const uniqueStudentIds = [...new Set(items.map((s) => s.studentId).filter(Boolean))];
       const students = new Map();
       for (const sid of uniqueStudentIds) {
-        // eslint-disable-next-line no-await-in-loop
         const u = await usersStore.findById(sid);
         if (u) students.set(sid, { id: u.id, name: u.name, email: u.email });
       }
@@ -312,7 +311,6 @@ function buildClassroomsRouter() {
 
       const students = new Map();
       for (const sid of uniqueStudentIds) {
-        // eslint-disable-next-line no-await-in-loop
         const u = await usersStore.findById(sid);
         if (u) students.set(sid, { id: u.id, name: u.name, email: u.email, role: u.role });
       }
@@ -382,7 +380,6 @@ function buildClassroomsRouter() {
         })),
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[classrooms.people] failed", err);
       return res.status(500).json({ error: "Unable to load students" });
     }
@@ -440,7 +437,6 @@ function buildClassroomsRouter() {
         },
       });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[classrooms.delete] failed", err);
       return res.status(500).json({ error: "Unable to delete classroom" });
     }
@@ -582,7 +578,6 @@ function buildClassroomsRouter() {
 
     const students = new Map();
     for (const sid of uniqueStudentIds) {
-      // eslint-disable-next-line no-await-in-loop
       const u = await usersStore.findById(sid);
       if (u) students.set(sid, { id: u.id, name: u.name, email: u.email });
     }
@@ -628,7 +623,6 @@ function buildClassroomsRouter() {
 
       const students = new Map();
       for (const sid of uniqueStudentIds) {
-        // eslint-disable-next-line no-await-in-loop
         const u = await usersStore.findById(sid);
         if (u) students.set(sid, { id: u.id, name: u.name, email: u.email });
       }
@@ -780,7 +774,6 @@ function buildClassroomsRouter() {
       pointsEarned === "" || pointsEarned === null || pointsEarned === undefined ? null : Number(pointsEarned);
     if (status === "excused") {
       // Excused work is excluded from totals; store as null.
-      // eslint-disable-next-line no-param-reassign
       // peNum is const; use a separate variable below.
     }
 

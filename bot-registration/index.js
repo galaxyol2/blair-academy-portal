@@ -81,11 +81,9 @@ function ephemeralReply(content) {
 function debugLog(message, details) {
   if (!DEBUG_REGISTRATION) return;
   if (details !== undefined) {
-    // eslint-disable-next-line no-console
     console.log(`[debug] ${message}`, details);
     return;
   }
-  // eslint-disable-next-line no-console
   console.log(`[debug] ${message}`);
 }
 
@@ -295,23 +293,19 @@ function startHealthServer() {
   });
 
   server.listen(port, () => {
-    // eslint-disable-next-line no-console
     console.log(`Health server listening on ${port}`);
   });
 }
 
 client.once(Events.ClientReady, () => {
-  // eslint-disable-next-line no-console
   console.log(`Registration bot ready as ${client.user.tag}`);
 });
 
 process.on("unhandledRejection", (err) => {
-  // eslint-disable-next-line no-console
   console.error("Unhandled rejection", err);
 });
 
 process.on("uncaughtException", (err) => {
-  // eslint-disable-next-line no-console
   console.error("Uncaught exception", err);
 });
 
@@ -445,7 +439,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.deferUpdate();
         debugLog("interaction:registration:ack");
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error("Failed to acknowledge registration select menu", err);
         return;
       }
@@ -569,7 +562,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error("Interaction handler failed", err);
   }
 });

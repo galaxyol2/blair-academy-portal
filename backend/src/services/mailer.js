@@ -78,7 +78,6 @@ async function sendPasswordResetEmail({ to, token }) {
 
   if (hasSendgridApiConfig()) {
     await sendViaSendgridApi({ from, to, subject, text, html });
-    // eslint-disable-next-line no-console
     console.log(`[password-reset] Sent to: ${to} (via SendGrid API)`);
     return { ok: true, provider: "sendgrid_api" };
   }
@@ -86,15 +85,12 @@ async function sendPasswordResetEmail({ to, token }) {
   if (hasSmtpConfig()) {
     const transport = buildTransport();
     await transport.sendMail({ from, to, subject, text, html });
-    // eslint-disable-next-line no-console
     console.log(`[password-reset] Sent to: ${to} (via SMTP)`);
     return { ok: true, provider: "smtp" };
   }
 
   // Dev/default behavior: print the link so you can click it.
-  // eslint-disable-next-line no-console
   console.log(`[password-reset] To: ${to}`);
-  // eslint-disable-next-line no-console
   console.log(`[password-reset] Link: ${resetLink}`);
 
   return { ok: true, resetLink };

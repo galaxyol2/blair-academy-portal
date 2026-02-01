@@ -1662,7 +1662,6 @@ function initClassroomAnnouncementDelete() {
       await loadClassroomRecentActivity();
       await loadClassroomAnnouncements();
     } catch (err) {
-      // eslint-disable-next-line no-alert
       alert(err?.message || "Failed to delete.");
     }
   });
@@ -3049,7 +3048,6 @@ function initModulesInteractions() {
         );
         await loadClassroomModules();
       } catch (err) {
-        // eslint-disable-next-line no-alert
         alert(err?.message || "Failed to delete module.");
       }
       return;
@@ -3067,7 +3065,6 @@ function initModulesInteractions() {
         );
         await loadClassroomModules();
       } catch (err) {
-        // eslint-disable-next-line no-alert
         alert(err?.message || "Failed to delete assignment.");
       }
     }
@@ -3164,7 +3161,6 @@ function initTeacherPeopleInteractions() {
       );
       await loadTeacherPeople();
     } catch (err) {
-      // eslint-disable-next-line no-alert
       alert(err?.message || "Failed to remove student.");
     }
   });

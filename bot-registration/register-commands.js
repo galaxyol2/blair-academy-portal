@@ -9,7 +9,6 @@ const guildId = process.env.DISCORD_GUILD_ID;
 
 if (!token || !appId || !guildId) {
   if (require.main === module) {
-    // eslint-disable-next-line no-console
     console.error(
       "Missing env: DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID, DISCORD_GUILD_ID"
     );
@@ -34,13 +33,11 @@ async function main() {
   await rest.put(Routes.applicationGuildCommands(appId, guildId), {
     body: [registration.toJSON(), purgeDm.toJSON(), syncRoles.toJSON()],
   });
-  // eslint-disable-next-line no-console
   console.log("Registered /registration, /purge_dm, and /sync_schedule_roles");
 }
 
 if (require.main === module) {
   main().catch((err) => {
-    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
   });

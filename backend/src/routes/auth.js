@@ -289,7 +289,6 @@ function buildAuthRouter() {
     if (!user) return res.status(409).json({ error: "Email already in use" });
 
     postSignupLog({ user }).catch((err) => {
-      // eslint-disable-next-line no-console
       console.error(`[signup-log] Failed: ${err.message || err}`);
     });
 
@@ -333,7 +332,6 @@ function buildAuthRouter() {
     if (!user) return res.status(409).json({ error: "Email already in use" });
 
     postSignupLog({ user }).catch((err) => {
-      // eslint-disable-next-line no-console
       console.error(`[signup-log] Failed: ${err.message || err}`);
     });
 
@@ -587,16 +585,13 @@ function buildAuthRouter() {
     // Intentionally do not reveal whether the email exists.
     const user = await usersStore.findByEmail(email);
     if (!user) {
-      // eslint-disable-next-line no-console
       console.log(`[password-reset] No user for: ${email}`);
     } else {
       const token = signPasswordResetToken({ userId: user.id });
       try {
         await sendPasswordResetEmail({ to: email, token });
       } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(`[password-reset] Failed to send to: ${email}`);
-        // eslint-disable-next-line no-console
         console.error(err);
       }
     }
