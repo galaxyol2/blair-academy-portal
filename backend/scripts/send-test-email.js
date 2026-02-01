@@ -12,13 +12,10 @@ async function main() {
 
   const fakeToken = "dev-token";
   await sendPasswordResetEmail({ to, token: fakeToken });
-  // eslint-disable-next-line no-console
   console.log("Sent (or printed) password reset email.");
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });
-
