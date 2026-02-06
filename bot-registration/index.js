@@ -65,7 +65,6 @@ const electivesCatalog = [
 ];
 
 const registrationSelections = new Map();
-
 function canUse(interaction) {
   if (ALLOWED_CHANNEL_ID && interaction.channelId !== ALLOWED_CHANNEL_ID) return false;
   if (ALLOWED_ROLE_ID) {
@@ -129,7 +128,7 @@ async function logRegistrationAttempt(interaction, { status, reason, selections 
     const guildName = interaction.guild?.name || "Unknown guild";
     const tag = user?.tag || user?.username || "Unknown user";
     const statusText = status ? String(status) : "attempted";
-    const reasonText = reason ? String(reason) : "—";
+    const reasonText = reason ? String(reason) : "ï¿½";
 
     const embed = new EmbedBuilder()
       .setTitle("Registration command")
@@ -186,7 +185,7 @@ function buildSelectionSummary(selections) {
   return [
     "Confirm your schedule selections:",
     "",
-    "Courses (4 required):",
+    "Courses (2 required):",
     formatSelectionList(selections.courses),
     "",
     "Electives (2 required):",
@@ -242,7 +241,6 @@ async function updateSchedule({ discordId, classes }) {
   try {
     json = await res.json();
   } catch {
-    // ignore
   }
 
   debugLog("schedule:update:response", { status: res.status, ok: res.ok });
@@ -265,7 +263,6 @@ async function fetchScheduleStatus(discordId) {
   try {
     json = await res.json();
   } catch {
-    // ignore
   }
 
   if (!res.ok) {
@@ -568,5 +565,3 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 startHealthServer();
 client.login(DISCORD_BOT_TOKEN);
-
-
