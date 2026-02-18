@@ -28,12 +28,33 @@ const syncRoles = new SlashCommandBuilder()
   .setName("sync_schedule_roles")
   .setDescription("Assign schedule-locked role to students who already locked.");
 
+const resetPasswordByEmail = new SlashCommandBuilder()
+  .setName("reset_password_by_email")
+  .setDescription("Admin: reset a portal user's password by email.")
+  .addStringOption((option) =>
+    option.setName("email").setDescription("User email").setRequired(true)
+  )
+  .addStringOption((option) =>
+    option
+      .setName("new_password")
+      .setDescription("New password (min 8 chars)")
+      .setRequired(true)
+      .setMinLength(8)
+  );
+
 async function main() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(appId, guildId), {
-    body: [registration.toJSON(), purgeDm.toJSON(), syncRoles.toJSON()],
+    body: [
+      registration.toJSON(),
+      purgeDm.toJSON(),
+      syncRoles.toJSON(),
+      resetPasswordByEmail.toJSON(),
+    ],
   });
-  console.log("Registered /registration, /purge_dm, and /sync_schedule_roles");
+  console.log(
+    "Registered /registration, /purge_dm, /sync_schedule_roles, and /reset_password_by_email"
+  );
 }
 
 if (require.main === module) {

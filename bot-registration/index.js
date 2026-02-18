@@ -33,6 +33,11 @@ const DISCORD_BOT_TOKEN = requiredEnv("DISCORD_BOT_TOKEN");
 const DISCORD_GUILD_ID = String(process.env.DISCORD_GUILD_ID || "").trim();
 const ADMIN_API_KEY = requiredEnvAny(["ADMIN_API_KEY", "ADMIN_KEY"]);
 const SCHEDULE_UPDATE_URL = requiredEnvAny(["SCHEDULE_UPDATE_URL", "SCHEDULE_API_URL"]);
+const RESET_PASSWORD_URL =
+  String(process.env.RESET_PASSWORD_URL || process.env.ADMIN_RESET_PASSWORD_URL || "").trim() ||
+  String(SCHEDULE_UPDATE_URL)
+    .replace(/\/+$/, "")
+    .replace(/\/api\/auth\/schedule$/i, "/api/admin/users/reset-password");
 
 const ALLOWED_ROLE_ID = String(process.env.ALLOWED_ROLE_ID || "").trim();
 const ALLOWED_CHANNEL_ID = String(process.env.ALLOWED_CHANNEL_ID || "").trim();
@@ -84,6 +89,10 @@ function debugLog(message, details) {
     return;
   }
   console.log(`[debug] ${message}`);
+}
+
+function isUnknownInteractionError(err) {
+  return Number(err?.code) === 10062;
 }
 
 async function assignScheduleRole({ userId, guildId, reason }) {
@@ -273,6 +282,28 @@ async function fetchScheduleStatus(discordId) {
   return Boolean(json?.scheduleLocked);
 }
 
+async function resetPasswordByEmail({ email, newPassword }) {
+  const res = await fetch(RESET_PASSWORD_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": ADMIN_API_KEY,
+    },
+    body: JSON.stringify({ email, newPassword }),
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+  }
+
+  if (!res.ok) {
+    const msg = (json && (json.error || json.message)) || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.DirectMessages],
 });
@@ -317,7 +348,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       channelId: interaction.channelId || null,
     });
     if (interaction.isChatInputCommand()) {
-      if (interaction.commandName !== "registration" && interaction.commandName !== "purge_dm") return;
+      if (
+        interaction.commandName !== "registration" &&
+        interaction.commandName !== "purge_dm" &&
+        interaction.commandName !== "reset_password_by_email"
+      ) {
+        return;
+      }
 
       if (interaction.commandName === "purge_dm") {
         if (!canUse(interaction)) {
@@ -333,6 +370,37 @@ client.on(Events.InteractionCreate, async (interaction) => {
         } catch (err) {
           await interaction.editReply(
             err?.message ? `Unable to clean DMs: ${err.message}` : "Unable to clean DMs."
+          );
+        }
+        return;
+      }
+
+      if (interaction.commandName === "reset_password_by_email") {
+        if (!canUse(interaction)) {
+          await interaction.reply(ephemeralReply("You don't have permission to use this command."));
+          return;
+        }
+
+        const email = String(interaction.options.getString("email", true) || "")
+          .trim()
+          .toLowerCase();
+        const newPassword = String(interaction.options.getString("new_password", true) || "");
+        if (!email) {
+          await interaction.reply(ephemeralReply("Email is required."));
+          return;
+        }
+        if (!newPassword || newPassword.length < 8) {
+          await interaction.reply(ephemeralReply("New password must be at least 8 characters."));
+          return;
+        }
+
+        await interaction.deferReply({ ephemeral: true });
+        try {
+          await resetPasswordByEmail({ email, newPassword });
+          await interaction.editReply(`Password reset for ${email}.`);
+        } catch (err) {
+          await interaction.editReply(
+            err?.message ? `Failed to reset password: ${err.message}` : "Failed to reset password."
           );
         }
         return;
@@ -436,7 +504,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         await interaction.deferUpdate();
         debugLog("interaction:registration:ack");
       } catch (err) {
-        console.error("Failed to acknowledge registration select menu", err);
+        if (!isUnknownInteractionError(err)) {
+          console.error("Failed to acknowledge registration select menu", err);
+        }
         return;
       }
 
@@ -521,12 +591,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       const combined = [...selections.courses, ...selections.electives];
       try {
-        await updateSchedule({ discordId: interaction.user.id, classes: combined });
-        registrationSelections.delete(interaction.user.id);
         await interaction.update({
           content: "Finalizing your schedule...",
           components: [],
         });
+
+        await updateSchedule({ discordId: interaction.user.id, classes: combined });
+        registrationSelections.delete(interaction.user.id);
 
         const dm = await interaction.user.createDM();
         await purgeBotMessages(dm);
@@ -545,13 +616,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
       } catch (err) {
         const msg = String(err?.message || "Unable to save schedule.");
         if (/user not found/i.test(msg)) {
-          await interaction.update({
+          await interaction.editReply({
             content:
               "Please connect Discord in your portal Settings first so we can sync your schedule.",
             components: [],
           });
         } else {
-          await interaction.update({
+          await interaction.editReply({
             content: `Failed to save schedule: ${msg}`,
             components: [],
           });
@@ -559,7 +630,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
   } catch (err) {
-    console.error("Interaction handler failed", err);
+    if (!isUnknownInteractionError(err)) {
+      console.error("Interaction handler failed", err);
+    }
   }
 });
 

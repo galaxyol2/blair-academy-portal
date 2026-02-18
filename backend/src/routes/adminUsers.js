@@ -1,6 +1,7 @@
 const express = require("express");
 
 const { usersStore } = require("../store/usersStore");
+const { hashPassword } = require("../services/passwords");
 const { createFixedWindowRateLimiter, requestIp } = require("../middleware/rateLimit");
 
 function requireAdminKey(req, res, next) {
@@ -28,6 +29,13 @@ function buildAdminUsersRouter() {
       String(req.get("x-admin-key") || req.get("x-api-key") || "").trim() ||
       requestIp(req),
   });
+  const rateLimitPasswordResets = createFixedWindowRateLimiter({
+    windowMs: 60_000,
+    max: 10,
+    keyFn: (req) =>
+      String(req.get("x-admin-key") || req.get("x-api-key") || "").trim() ||
+      requestIp(req),
+  });
 
   // Delete a user so they can re-create their account with the same email.
   // NOTE: JWTs are stateless; existing tokens may remain valid until expiry.
@@ -51,6 +59,24 @@ function buildAdminUsersRouter() {
     const updated = await usersStore.updateNameByEmail({ email, firstName: firstName || null, lastName: lastName || null });
     if (!updated) return res.status(404).json({ error: "User not found" });
     res.json({ ok: true, user: updated });
+  });
+
+  router.post("/users/reset-password", requireAdminKey, rateLimitPasswordResets, async (req, res) => {
+    const email = normalizeEmail(req.body?.email);
+    const newPassword = String(req.body?.newPassword || "");
+    if (!email) return res.status(400).json({ error: "Email is required" });
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: "New password must be at least 8 characters" });
+    }
+
+    const user = await usersStore.findByEmail(email);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const passwordHash = await hashPassword(newPassword);
+    const updated = await usersStore.updatePassword({ userId: user.id, passwordHash });
+    if (!updated) return res.status(404).json({ error: "User not found" });
+
+    res.json({ ok: true, user: { id: updated.id, email: updated.email, name: updated.name } });
   });
 
   return router;
