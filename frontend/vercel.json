@@ -1,6 +1,10 @@
 {
   "cleanUrls": true,
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://blair-academy-portal-production-6f9a.up.railway.app/api/$1"
+    },
     { "source": "/dashboard", "destination": "/dashboard.html" },
     { "source": "/teacher/dashboard", "destination": "/teacher/dashboard.html" },
     { "source": "/settings", "destination": "/settings.html" },
