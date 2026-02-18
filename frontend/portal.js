@@ -233,7 +233,13 @@ async function apiFetch(path, options = {}) {
   headers.set("Content-Type", "application/json");
   if (session?.token) headers.set("Authorization", `Bearer ${session.token}`);
 
-  const res = await fetch(`${apiBaseUrl()}${path}`, {
+  let base = apiBaseUrl();
+  let targetPath = String(path || "");
+  if (base.endsWith("/api") && targetPath.startsWith("/api/")) {
+    targetPath = targetPath.slice(4);
+  }
+
+  const res = await fetch(`${base}${targetPath}`, {
     ...options,
     headers,
   });
