@@ -338,6 +338,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
+      await interaction.deferReply({ ephemeral: true });
+
       const entry = getSelections(interaction.user.id);
       entry.guildId = interaction.guildId || entry.guildId || null;
       registrationSelections.set(interaction.user.id, entry);
@@ -347,14 +349,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (DISCORD_GUILD_ID && interaction.guildId && interaction.guildId !== DISCORD_GUILD_ID) {
         debugLog("interaction:registration:blocked", { reason: "guild-mismatch" });
         await logRegistrationAttempt(interaction, { status: "blocked", reason: "guild-mismatch" });
-        await interaction.reply(ephemeralReply("This command isn't available here."));
+        await interaction.editReply("This command isn't available here.");
         return;
       }
 
       if (!canUse(interaction)) {
         debugLog("interaction:registration:blocked", { reason: "permission" });
         await logRegistrationAttempt(interaction, { status: "blocked", reason: "permission" });
-        await interaction.reply(ephemeralReply("You don't have permission to use this command."));
+        await interaction.editReply("You don't have permission to use this command.");
         return;
       }
 
@@ -367,9 +369,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             reason: "Schedule already locked",
           });
           await logRegistrationAttempt(interaction, { status: "blocked", reason: "schedule-locked" });
-          await interaction.reply(
-            ephemeralReply("Your schedule is locked until Semester 2.")
-          );
+          await interaction.editReply("Your schedule is locked until Semester 2.");
           return;
         }
       } catch (err) {
@@ -380,7 +380,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
 
-      await interaction.reply(ephemeralReply("Check your DMs to complete registration."));
+      await interaction.editReply("Check your DMs to complete registration.");
       debugLog("interaction:registration:dm-prompted");
 
       const coursesMenu = new StringSelectMenuBuilder()
