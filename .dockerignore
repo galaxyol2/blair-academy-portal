@@ -1,9 +1,0 @@
-.git
-.gitignore
-**/node_modules
-frontend
-docs
-infra
-Campus.mp4
-*.log
-backend/.env
