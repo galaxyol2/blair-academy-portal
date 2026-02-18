@@ -62,6 +62,20 @@ const renameUser = new SlashCommandBuilder()
     opt.setName("last").setDescription("New last name (optional)").setRequired(false)
   );
 
+const resetPassword = new SlashCommandBuilder()
+  .setName("reset-password")
+  .setDescription("Reset a user's password by email.")
+  .addStringOption((opt) =>
+    opt.setName("email").setDescription("User email to reset").setRequired(true)
+  )
+  .addStringOption((opt) =>
+    opt
+      .setName("new_password")
+      .setDescription("New password (min 8 chars)")
+      .setRequired(true)
+      .setMinLength(8)
+  );
+
 async function main() {
   const rest = new REST({ version: "10" }).setToken(token);
   await rest.put(Routes.applicationGuildCommands(appId, guildId), {
@@ -70,9 +84,12 @@ async function main() {
       clearAnnouncements.toJSON(),
       deleteUser.toJSON(),
       renameUser.toJSON(),
+      resetPassword.toJSON(),
     ],
   });
-  console.log("Registered /announce, /clear-announcements, /delete-user, /rename-user");
+  console.log(
+    "Registered /announce, /clear-announcements, /delete-user, /rename-user, /reset-password"
+  );
 }
 
 if (require.main === module) {

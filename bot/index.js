@@ -181,6 +181,43 @@ async function updateUserName({ email, firstName, lastName }) {
   return json?.user || null;
 }
 
+async function resetUserPassword({ email, newPassword }) {
+  const e = String(email || "").trim().toLowerCase();
+  const password = String(newPassword || "");
+  if (!e) throw new Error("Missing email.");
+  if (!password || password.length < 8) {
+    throw new Error("New password must be at least 8 characters.");
+  }
+
+  const url = `${backendOrigin()}/api/admin/users/reset-password`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": ADMIN_API_KEY,
+    },
+    body: JSON.stringify({
+      email: e,
+      newPassword: password,
+    }),
+  });
+
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {
+    // ignore
+  }
+
+  if (!res.ok) {
+    const msg =
+      (json && (json.error || json.message)) || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  return json?.user || null;
+}
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
@@ -369,7 +406,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
     interaction.commandName !== "announce" &&
     interaction.commandName !== "clear-announcements" &&
     interaction.commandName !== "delete-user" &&
-    interaction.commandName !== "rename-user"
+    interaction.commandName !== "rename-user" &&
+    interaction.commandName !== "reset-password"
   ) {
     return;
   }
@@ -442,6 +480,39 @@ client.on(Events.InteractionCreate, async (interaction) => {
       );
     } catch (err) {
       await interaction.editReply(`Failed to update name: ${err.message}`);
+    }
+    return;
+  }
+
+  if (interaction.commandName === "reset-password") {
+    const email = String(interaction.options.getString("email") || "").trim();
+    const newPassword = String(interaction.options.getString("new_password") || "");
+
+    if (!email) {
+      await interaction.reply({
+        content: "Provide `email`.",
+        ephemeral: true,
+      });
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      await interaction.reply({
+        content: "Provide `new_password` with at least 8 characters.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+    try {
+      const user = await resetUserPassword({ email, newPassword });
+      await interaction.editReply(
+        user
+          ? `Password reset for ${user.email} (${user.name || "no name"}).`
+          : `Password reset for ${email}.`
+      );
+    } catch (err) {
+      await interaction.editReply(`Failed to reset password: ${err.message}`);
     }
     return;
   }
