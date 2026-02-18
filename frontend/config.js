@@ -1,6 +1,6 @@
 window.__BLAIR_CONFIG__ = window.__BLAIR_CONFIG__ || {
-  // Use Vercel same-origin proxy for API calls to avoid browser CORS issues.
-  apiBaseUrl: "/api",
+  // Point frontend to the live backend API (Railway)
+  apiBaseUrl: "https://blair-academy-portal-production-6f9a.up.railway.app",
   publicBaseUrl: "https://www.blair-academy.org",
 };
 // trigger redeploy
